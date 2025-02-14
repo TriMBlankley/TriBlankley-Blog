@@ -9,6 +9,10 @@
   --cd-salmon: #c58288;
   --cd-blue: #587ca0;
   --cd-mustard: #c5b96b;
+
+  /* Accent Colors */
+  --ac-links: #c29fcb;
+  --ac-links-highlight: #e7c6ef;
 }
 
 /* semantic color variables for this project */

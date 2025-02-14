@@ -10,14 +10,14 @@
 a,
 .tb-purple {
   text-decoration: none;
-  color: #c29fcb;
+  color: var(--ac-links);
   transition: 0.4s;
   padding: 3px;
 }
 
 @media (hover: hover) {
   a:hover {
-    background-color: #e7c6ef;
+    background-color: var(--ac-links-highlight);
   }
 }
 
