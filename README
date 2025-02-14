@@ -1,0 +1,1 @@
+bring up mongodb with: sudo docker run -it --net=host mongodb/mongodb-community-server
