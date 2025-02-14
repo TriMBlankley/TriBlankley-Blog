@@ -1,45 +1,30 @@
 /* color palette from <https://github.com/vuejs/theme> */
 :root {
-  /* Light Theme */
-  --lt-backround: #dae3e5;
-  --lt-backround-soft: #ecf6f8;
-  --lt-text: #3d4142;
-
-  /* Dark Theme */
-  --dt-backround: #3d4142;
-  --dt-backround-soft: #313435;
-  --dt-text: #dae3e5;
+  /* Main Theme */
+  --mt-dark: #3d4142;
+  --mt-light: #fffff2;
 
   /* Class Div's */
   --cd-turqoise: #489595;
-  --cd-turqoise-offset: #3c8181;
-
   --cd-salmon: #c58288;
-  --cd-salmon-offset: #af7277;
-
   --cd-blue: #587ca0;
-  --cd-blue-offset: #4c6b89;
-
   --cd-mustard: #c5b96b;
-  --cd-mustard-offset: #b6aa60;
 }
 
 /* semantic color variables for this project */
 :root {
-  --background: var(--lt-backround);
-  --background-soft: var(--lt-backround-soft);
+  --background: var(--mt-light);
 
-  --text: var(--lt-text);
+  --text: var(--mt-dark);
 
   --section-gap: 160px;
 }
 
 @media (prefers-scheme: dark) {
   :root {
-    --background: var(--dt-backround);
-    --background-soft: var(--dt-backround-soft);
+    --background: var(--mt-dark);
 
-    --text: var(--dt-text);
+    --text: var(--mt-light);
   }
 }
 
