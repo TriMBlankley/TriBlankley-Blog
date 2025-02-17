@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import homeBackround from '@/components/homeBackround.vue';
+import homeBackround from '@/components/blogHome_C/homeBackround.vue';
 </script>
 
 <template>

@@ -9,16 +9,16 @@
   --cd-salmon: #c58288;
   --cd-blue: #587ca0;
   --cd-mustard: #c5b96b;
+  --cd-lilac: #b78fbc;
 
   /* Accent Colors */
-  --ac-links: #c29fcb;
-  --ac-links-highlight: #e7c6ef;
+  --ac-links: #cda2c9;
+  --ac-links-highlight: #edb3e7;
 }
 
 /* semantic color variables for this project */
 :root {
   --background: var(--mt-light);
-
   --text: var(--mt-dark);
 
   --section-gap: 160px;

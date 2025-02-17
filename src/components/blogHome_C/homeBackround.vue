@@ -14,7 +14,7 @@
   left: 0;
   top: 0;
 
-  background-image: url('@/assets/homeBackground.svg');
+  background-image: url('@/assets/backrounds/homeBackground.svg');
   opacity: 0.05;
 
   background-size: 1%;
