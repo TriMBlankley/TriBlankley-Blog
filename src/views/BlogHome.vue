@@ -10,7 +10,4 @@ import homeBackround from '@/components/blogHome_C/homeBackround.vue';
 </template>
 
 <style scoped>
-.blogHome {
-  background-color:;
-}
 </style>
