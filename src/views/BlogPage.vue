@@ -1,12 +1,14 @@
 <script setup lang="ts">
-import testComponent from '../components/testComponent.vue';
-import apiTest from '../components/apiTest.vue';
-import queryTest from '../components/queryTest.vue';
-import physicalHobbiesBackround from '@/components/physicalHobbiesBackround.vue';
+import testComponent from '../components/LearningComponents/testComponent.vue';
+import apiTest from '../components/LearningComponents/apiTest.vue';
+import queryTest from '../components/LearningComponents/queryTest.vue';
+import physicalHobbiesBackround from '@/components/Backround_C/physicalHobbiesBackround.vue';
 </script>
 
 <template>
   <div v-cloak>
+     <!-- <physicalHobbiesBackround />  -->
+      
     <h1>Awawawa!</h1>
     <testComponent />
     <AxiosTest />
@@ -15,7 +17,7 @@ import physicalHobbiesBackround from '@/components/physicalHobbiesBackround.vue'
   </div>
 </template>
 
-<style>
+<style scoped>
 .box {
   background-color: blueviolet;
 }

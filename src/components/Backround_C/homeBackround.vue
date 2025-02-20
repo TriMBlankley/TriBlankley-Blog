@@ -1,7 +1,8 @@
 <script setup lang="ts"></script>
 
 <template>
-  <div class="homeBackground"></div>
+  <div class="homeBackground">
+  </div>
 </template>
 
 <style>
@@ -14,8 +15,8 @@
   left: 0;
   top: 0;
 
-  background-image: url('@/assets/backrounds/homeBackground.svg');
-  opacity: 0.05;
+  background-image: url('@/assets/Backgrounds/homeBackground.svg');
+  opacity: 0.03;
 
   background-size: 1%;
   background-repeat: repeat;

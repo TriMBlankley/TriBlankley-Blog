@@ -1,19 +1,21 @@
 <script setup lang="ts">
+import BackgroundControl from './views/BackgroundControl.vue';
 import BlogHome from './views/BlogHome.vue';
+import BlogPage from './views/BlogPage.vue';
 </script>
 
 <template>
-  <title>Tri Blankley Blog</title>
-
-  <!--<header>
-    <nav>
-      <RouterLink to="BlogPage">Blog Page</RouterLink>
-    </nav>
-  </header> -->
-  <BlogHome />
+  <body>
+    <BackgroundControl />
+    <BlogHome />
+  </body>
 </template>
 
 <style scoped>
+body {
+  display: flex;
+}
+
 header {
   line-height: 1.5;
   max-height: 100vh;
