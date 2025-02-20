@@ -11,15 +11,13 @@ import PostDescriptor from './postDescriptor.vue';
     </div>
 
     <!-- The following 3 divs are to make the post look correct-->
-    <div class="backOpacity"></div>
-    <div class="outline"></div>
-    <div class="PostListContainer">
-      
-      
+    <div class="PostListContainer removeBakcroundTile"></div>
+    <div class="PostListContainer backOpacity"></div>
+    <div class="PostListContainer outline">
+
       <PostDescriptor />
 
-      
-    </div>
+    </div> 
   </div>
 </template>
 
@@ -58,32 +56,25 @@ import PostDescriptor from './postDescriptor.vue';
   /* Size ------------- */
     height: 91%;
     width: 100%;
-    border-radius: 20px;
+    border-radius: 15px;
   
     /* Position ------------- */
     position: absolute;
     top: 9%;
     left: 0;
+}
 
-    /* Color ------------- */
-    background-color: var(--background);
+.removeBakcroundTile {
+  /* Color ------------- */
+  background-color: var(--background);
 
-    /* Behaviour ------------- */
-    z-index: 1;
-    display: flex;
-    flex-direction: column;
+  /* Behaviour ------------- */
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 .backOpacity {
-  /* Size ------------- */
-  height: 91%;
-  width: 100%;
-  border-radius: 20px;
-  
-  /* Position ------------- */
-  position: absolute;
-  top: 9%;
-  left: 0;
 
   /* Color ------------- */
   background-color: var(--cd-turqoise); /* CHANGE THESE -------------------------------------------- */   
@@ -100,13 +91,6 @@ import PostDescriptor from './postDescriptor.vue';
 }
 
 .outline {
-  /* Size ------------- */
-  height: 100%; width: 100%;
-  border-radius: 20px;
-  
-  /* Position ------------- */
-  position: relative;
-  margin: 0px 0px 0px 0px;
 
   /* Color ------------- */
   border: 7px solid var(--cd-turqoise);    /* CHANGE THESE -------------------------------------------- */   
