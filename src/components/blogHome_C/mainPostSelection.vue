@@ -6,7 +6,7 @@ import PostDescriptor from './postDescriptor.vue';
 
 <template>
   <div class="mainPostSelection">
-    <div class="folderTabPost">\
+    <div class="folderTabPost">
       <FolderTab />
     </div>
 
