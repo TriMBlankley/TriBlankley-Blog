@@ -1,11 +1,11 @@
 
 <script setup lang="ts">
-import HomeBackround from '@/components/Backround_C/homeBackround.vue';
-import PhysicalHobbiesBackround from '@/components/Backround_C/physicalHobbiesBackround.vue';
+import PhysicalHobbiesBackround from '@/components/Background_C/physicalHobbiesBackround.vue';
+import HomeBackground from '../components/Background_C/homeBackground.vue';
 </script>
 
 <template>
-  <HomeBackround />
+  <HomeBackground />
   <!-- <PhysicalHobbiesBackround />  -->
 </template>
 
