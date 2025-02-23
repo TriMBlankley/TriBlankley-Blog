@@ -1,6 +1,6 @@
 
 <script setup lang="ts">
-import PhysicalHobbiesBackround from '@/components/Background_C/physicalHobbiesBackround.vue';
+// import PhysicalHobbiesBackground from '@/components/Background_C/physicalHobbiesBackground.vue';
 import HomeBackground from '../components/Background_C/homeBackground.vue';
 </script>
 

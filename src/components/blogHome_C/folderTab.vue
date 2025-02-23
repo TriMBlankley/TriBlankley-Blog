@@ -13,8 +13,8 @@ export default {
 <template>
   <div class="folderTab">
 
-    <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg width="100%"
-      height="100%" viewBox="0 0 18 37" version="1.1" xmlns="http://www.w3.org/2000/svg"
+    <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+    <svg height="50px" viewBox="0 0 18 37" version="1.1" xmlns="http://www.w3.org/2000/svg"
       xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/"
       style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
       <g id="folderTab">
@@ -23,12 +23,13 @@ export default {
           style="fill:currentColor;" />
       </g>
     </svg>
-    <h1 style="color: var(--text); background-color: var(--cd-turqoise);">Folder Tab</h1>
 
-    <div style="-webkit-transform: scaleX(-1); transform: scaleX(-1);">
+    <h1 style="color: var(--text); background-color: var(--cd-turqoise);">Physical Hobbies</h1>
+
+    <div style="-webkit-transform: scaleX(-1); transform: scaleX(-1); height: 100;">
       
-      <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg
-        width="100%" height="100%" viewBox="0 0 18 37" version="1.1" xmlns="http://www.w3.org/2000/svg"
+      <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+      <svg height="50px" viewBox="0 0 18 37" version="1.1" xmlns="http://www.w3.org/2000/svg"
         xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/"
         style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
         <g id="folderTab">
@@ -37,36 +38,26 @@ export default {
             style="fill:currentColor;" />
         </g>
       </svg>
-    </div>
-  </div>
+    </div>  <!-- For svg transform-->
+  </div> <!-- folderTab -->
 </template>
 
 <style scoped>
 .folderTab {
   /* Size ------------- */
-  height: 100%;
+  height: auto;
   width: auto;
 
   /* Position ------------- */
-  position: absolute;
-  bottom: 0;
 
-  /* Color ------------- 
-  background-color: var(v-bind(tabColor));
-  color: var(v-bind(tabColor)); */
-  color: var(--cd-turqoise);
+  /* Color -------------  */
+  color: var(--cd-turqoise); /* CHANGE THIS ----------------------------*/
 
-  /* CHANGE THIS ----------------------------*/
+  
   /* Behaviour ------------- */
   display: flex;
   flex-direction: row;
   flex-wrap: nowrap;
-  align-content: center;
-  float: left;
-
-
-
-  margin: 0%;
-  gap: 0;
+  align-items: stretch;
 }
 </style>

@@ -1,11 +1,11 @@
 <script setup lang="ts"></script>
 
 <template>
-  <div class="physicalHobbiesBackround"></div>
+  <div class="physicalHobbiesBackground"></div>
 </template>
 
 <style>
-.physicalHobbiesBackround {
+.physicalHobbiesBackground {
   z-index: -1;
   width: calc(((sqrt(2) * 100vw) + (sqrt(2) * 100vh)) / 2);
   height: calc(((sqrt(2) * 100vw) + (sqrt(2) * 100vh)) / 2);
