@@ -6,25 +6,24 @@ import PostDescriptor from './postDescriptor.vue';
 
 <template>
   <div class="mainPostSelection">
+    <!-- This holds the stylized tabs of the posts that makes it look like an,
+          old-shool file cabinet/ browser tab effect.-->
     <div class="folderTabPost">
       <FolderTab />
     </div>
 
-    <!-- The following 3 divs are to make the post look correct-->
+    <!-- This div holds the cards of each individual post, including a title,
+          photo or icon, and description-->
     <div class="PostListContainer">
-
       <PostDescriptor />
-
-    </div> 
+    </div>
   </div>
 </template>
 
 <style scoped>
 .mainPostSelection{
     /* Size ------------- */
-    height: 100;
-    width: 100;
-  
+
     /* Position ------------- */
     position: relative;
 
@@ -36,9 +35,9 @@ import PostDescriptor from './postDescriptor.vue';
 .folderTabPost {
     /* Size ------------- */
     width: 100%;
-  
+
     /* Position ------------- */
-  
+
     /* Color ------------- */
     /* Behaviour ------------- */
     display: flex;
@@ -51,13 +50,16 @@ import PostDescriptor from './postDescriptor.vue';
   /* Backround and Color------------- */
   background: color-mix(in oklab, var(--background), var(--cd-turqoise) 20%);
   border: 7px solid var(--cd-turqoise);
+  border-radius: 15px;
 
   /* Size ------------- */
-  height: 91%;
-  width: 100%;
-  border-radius: 15px;
-  
+  height: 95%;
+
   /* Position ------------- */
+
+  /* Behaviour ------------- */
+  display: flex;
+  flex-direction: column;
 }
 </style>
 

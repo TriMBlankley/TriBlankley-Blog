@@ -1,26 +1,11 @@
 <script setup lang="ts">
-
-import svgCog from '@/assets/uiElements/settingsCog.txt'; // Path to your SVG file
-
+import settingsCogSVG from '@/assets/uiElements/settingsCog.svg'
 </script>
 
 <template>
   <div class="settingsCog">
-    hello
-    {{ svgCog }}
+    <settingsCogSVG />
 
-
-    <!-- <img src="@/assets/uiElements/settingsCog.svg" /> --> 
-    <!-- <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg width="100%"
-      height="100%" viewBox="0 0 32 31" version="1.1" xmlns="http://www.w3.org/2000/svg"
-      xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/"
-      style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
-      <g id="settingsCog">
-        <path
-          d="M18.687,0.503c0.302,0.064 0.531,0.312 0.567,0.619c0.156,1.292 0.553,4.608 0.553,4.608c1.567,0.655 2.959,1.667 4.066,2.955c0,-0 3.277,-0.648 4.554,-0.9c0.303,-0.06 0.611,0.08 0.764,0.348c1.02,1.811 1.668,3.808 1.907,5.872c0.033,0.307 -0.133,0.601 -0.413,0.73c-1.181,0.548 -4.212,1.95 -4.212,1.95c-0.139,1.693 -0.671,3.329 -1.554,4.78c0,0 1.629,2.917 2.263,4.053c0.151,0.27 0.113,0.606 -0.095,0.835c-1.407,1.529 -3.105,2.763 -4.995,3.628c-0.282,0.126 -0.612,0.059 -0.822,-0.168c-0.886,-0.953 -3.156,-3.403 -3.156,-3.403c-1.653,0.391 -3.374,0.391 -5.026,-0c-0,-0 -2.271,2.45 -3.155,3.404c-0.21,0.227 -0.542,0.295 -0.824,0.168c-1.889,-0.866 -3.587,-2.1 -4.994,-3.63c-0.207,-0.229 -0.245,-0.564 -0.095,-0.833c0.634,-1.137 2.262,-4.054 2.262,-4.054c-0.883,-1.451 -1.414,-3.087 -1.553,-4.78c-0,0 -3.032,-1.402 -4.213,-1.949c-0.281,-0.129 -0.447,-0.424 -0.414,-0.731c0.24,-2.064 0.889,-4.061 1.909,-5.871c0.154,-0.268 0.461,-0.408 0.763,-0.348c1.277,0.251 4.554,0.899 4.554,0.899c1.107,-1.288 2.5,-2.3 4.067,-2.955c-0,0 0.396,-3.316 0.551,-4.609c0.037,-0.306 0.265,-0.556 0.568,-0.619c2.037,-0.41 4.136,-0.41 6.173,0.001Zm-3.086,10.723c2.522,-0 4.569,2.047 4.569,4.569c0,2.522 -2.047,4.569 -4.569,4.569c-2.522,0 -4.57,-2.047 -4.57,-4.569c0,-2.522 2.048,-4.569 4.57,-4.569Z"
-          style="fill:currentColor;" />
-      </g>
-    </svg> -->
   </div> <!-- settingsCog -->
 </template>
 
@@ -29,11 +14,6 @@ import svgCog from '@/assets/uiElements/settingsCog.txt'; // Path to your SVG fi
   /* Size ------------- */
   height: 100%;
   width: 100%;
-
   /* Position ------------- */
-}
-
-svg {
-  fill: currentColor;
 }
 </style>

@@ -8,7 +8,7 @@ import SettingsCog from '@/components/Settings_C/settingsCog.vue';
   <div class="SettingsCog">
     <SettingsCog />
   </div>
-  
+
   <div class="mainPostSelection">
     <mainPostSelection />
   </div>
@@ -19,7 +19,7 @@ import SettingsCog from '@/components/Settings_C/settingsCog.vue';
     /* Size ------------- */
     height: 90vh;
     width: 90vw;
-  
+
     /* Position ------------- */
     position: absolute;
       top: 50%;
@@ -34,12 +34,12 @@ import SettingsCog from '@/components/Settings_C/settingsCog.vue';
 
 .SettingsCog {
     /* Size ------------- */
-    height: 6vh;
-    width: 6vh;
-  
+    height: 30px;
+    width: 30px;
+
     /* Position ------------- */
     position: absolute;
-    top: 3vh;
+    top: 4vh;
     left: 90vw;
 }
 

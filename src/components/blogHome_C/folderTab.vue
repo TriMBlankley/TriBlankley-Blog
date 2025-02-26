@@ -1,43 +1,23 @@
-<script>
-export default {
-  data() {
-    return {
-      tabColor: "--cd-turqoise"
-    }
-  },
-  // ... other component options
-}
+<script setup lang="ts">
+import folderTabAccent from "@/assets/uiElements/folderTab.svg";
 
+let tabTitle: string = "Physical Hobbies";
 </script>
 
 <template>
-  <div class="folderTab">
 
-    <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
-    <svg height="50px" viewBox="0 0 18 37" version="1.1" xmlns="http://www.w3.org/2000/svg"
-      xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/"
-      style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
-      <g id="folderTab">
-        <path
-          d="M5.4,29.04l3.6,-21.6c0.624,-3.861 1.33,-4.679 1.8,-5.28c1.021,-1.306 2.808,-1.958 7.2,-1.92l-0,36l-18,0c3.087,-0.011 3.788,-1.299 4.23,-2.04c0.508,-0.852 0.599,-1.66 1.17,-5.16Z"
-          style="fill:currentColor;" />
-      </g>
-    </svg>
+  <div class="folderTab" style="margin-left: 15px;">
+    <div class="folderTabAcent">
+      <folderTabAccent style="height: 100%;"/>
+    </div>
 
-    <h1 style="color: var(--text); background-color: var(--cd-turqoise);">Physical Hobbies</h1>
+    <h1 style="color: var(--text); background-color: var(--cd-turqoise);">
+      Physical Hobbies
+      <!-- {{ tabTitle }} -->
+    </h1>
 
-    <div style="-webkit-transform: scaleX(-1); transform: scaleX(-1); height: 100;">
-      
-      <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
-      <svg height="50px" viewBox="0 0 18 37" version="1.1" xmlns="http://www.w3.org/2000/svg"
-        xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/"
-        style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
-        <g id="folderTab">
-          <path
-            d="M5.4,29.04l3.6,-21.6c0.624,-3.861 1.33,-4.679 1.8,-5.28c1.021,-1.306 2.808,-1.958 7.2,-1.92l-0,36l-18,0c3.087,-0.011 3.788,-1.299 4.23,-2.04c0.508,-0.852 0.599,-1.66 1.17,-5.16Z"
-            style="fill:currentColor;" />
-        </g>
-      </svg>
+    <div style="-webkit-transform: scaleX(-1); transform: scaleX(-1);">
+      <folderTabAccent style="height: 100%;"/>
     </div>  <!-- For svg transform-->
   </div> <!-- folderTab -->
 </template>
@@ -50,14 +30,20 @@ export default {
 
   /* Position ------------- */
 
+
   /* Color -------------  */
   color: var(--cd-turqoise); /* CHANGE THIS ----------------------------*/
 
-  
   /* Behaviour ------------- */
   display: flex;
   flex-direction: row;
   flex-wrap: nowrap;
   align-items: stretch;
+}
+
+folderTabAcent {
+  height: 100%;
+  color: var(--cd-turqoise);
+  fill: var(--cd-turqoise)
 }
 </style>

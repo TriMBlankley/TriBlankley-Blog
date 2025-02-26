@@ -5,6 +5,8 @@ import vue from '@vitejs/plugin-vue'
 import vueJsx from '@vitejs/plugin-vue-jsx'
 import vueDevTools from 'vite-plugin-vue-devtools'
 import rawPlugin from 'vite-raw-plugin'
+import svgLoader from 'vite-svg-loader';
+import InlineSvg from 'vue-inline-svg';
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -12,9 +14,12 @@ export default defineConfig({
     vue(),
     vueJsx(),
     vueDevTools(),
+    svgLoader({
+      defaultImport: 'component',
+    }),
     rawPlugin({
       fileRegex: /\.txt$/
-    })
+    }),
   ],
   resolve: {
     alias: {

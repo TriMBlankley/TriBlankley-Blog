@@ -1,7 +1,6 @@
-<script setup lang="ts"></script>
-
-
-
+<script setup lang="ts">
+import homeBackroundSVG from '@/assets/Backgrounds/homeBackround.svg'
+</script>
 
 <template>
   <div class="svgBackground"></div>

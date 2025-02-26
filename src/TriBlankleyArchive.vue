@@ -2,13 +2,13 @@
 import BackgroundControl from './views/BackgroundControl.vue';
 import BlogHome from './views/BlogHome.vue';
 import BlogPage from './views/BlogPage.vue';
+
+
 </script>
 
 <template>
-  <body>
-    <BackgroundControl />
-    <BlogHome />
-  </body>
+  <BackgroundControl />
+  <BlogHome />
 </template>
 
 <style scoped>
