@@ -6,8 +6,8 @@ let tabTitle: string = "Physical Hobbies";
 
 <template>
 
-  <div class="folderTab" style="margin-left: 15px;">
-    <div class="folderTabAcent">
+  <div class="folderTab">
+    <div class="folder-tab-acent">
       <folderTabAccent style="height: 100%;"/>
     </div>
 
@@ -41,9 +41,8 @@ let tabTitle: string = "Physical Hobbies";
   align-items: stretch;
 }
 
-folderTabAcent {
-  height: 100%;
+.folder-tab-acent {
   color: var(--cd-turqoise);
-  fill: var(--cd-turqoise)
+  fill: var(--cd-turqoise);
 }
 </style>

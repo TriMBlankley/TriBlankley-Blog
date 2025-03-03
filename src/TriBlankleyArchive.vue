@@ -1,44 +1,37 @@
 <script setup lang="ts">
-import BackgroundControl from './views/BackgroundControl.vue';
-import BlogHome from './views/BlogHome.vue';
-import BlogPage from './views/BlogPage.vue';
-
 
 </script>
 
 <template>
-  <BackgroundControl />
-  <BlogHome />
+  <router-view />
 </template>
 
 <style scoped>
-body {
+/* body {
+  overflow: hidden;
+
   display: flex;
-}
+  flex-direction: column;
 
-header {
-  line-height: 1.5;
-  max-height: 100vh;
-}
+  min-height: 100vh;
+} */
 
-.logo {
-  display: block;
-  margin: 0 auto 2rem;
-}
+
 
 nav {
   width: 100%;
   font-size: 12px;
   text-align: center;
-  margin-top: 2rem;
+  /* margin-top: 2rem; */
 }
 
 nav a.router-link-exact-active {
-  color: var(--color-text);
+  color: var(--ac-links);
 }
 
 nav a.router-link-exact-active:hover {
   background-color: transparent;
+  color: var(--ac-links-highlight)
 }
 
 nav a {
@@ -55,20 +48,20 @@ nav a:first-of-type {
   header {
     display: flex;
     place-items: center;
-    padding-right: calc(var(--section-gap) / 2);
+    /* padding-right: calc(var(--section-gap) / 2); */
   }
 
   .logo {
-    margin: 0 2rem 0 0;
+    /* margin: 0 2rem 0 0; */
   }
 
   nav {
     text-align: left;
-    margin-left: -1rem;
+    /* margin-left: -1rem; */
     font-size: 1rem;
 
     padding: 1rem 0;
-    margin-top: 1rem;
+    /* margin-top: 1rem; */
   }
 }
 </style>

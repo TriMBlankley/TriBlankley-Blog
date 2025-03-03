@@ -3,15 +3,13 @@
 
 <template>
   <div class="CssBoilerplate">
-    hello
+    Filter!
   </div>
 </template>
 
 <style>
 .cssBoilerplate {
     /* Size ------------- */
-    height: 100%;
-    width: 100%;
 
     /* Position ------------- */
 

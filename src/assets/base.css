@@ -21,6 +21,8 @@
   --background: var(--mt-light);
   --text: var(--mt-dark);
 
+  --focused: var(--cd-turqoise);
+
   --section-gap: 160px;
 }
 
@@ -41,12 +43,18 @@
 }
 
 body {
+  /* Behaviour ------------------------*/
   min-height: 100vh;
+  display: contents;
+
+  /* Color Formatting -----------------*/
   color: var(--text);
   background: var(--background);
   transition:
     color 0.5s,
     background-color 0.5s;
+
+  /* Font Formating -------------------*/
   line-height: 1.6;
   font-family:
     Inter,
