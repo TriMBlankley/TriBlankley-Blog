@@ -43,6 +43,7 @@ const left_right_margin = ref('5vw');
 </template>
 
 <style scoped>
+/* MAIN CSS for Display ---------------------- */
 .blog-home {
   /* Size ------------- */
 
@@ -55,6 +56,7 @@ const left_right_margin = ref('5vw');
   flex-direction: row;
 }
 
+/* Posts and Tabs ---------------------------- */
 .post-view {
   /* Size ------------- */
 
@@ -74,6 +76,8 @@ const left_right_margin = ref('5vw');
   /* Size ------------- */
 
   /* Position ------------- */
+  z-index: 1;
+
   /* top&bottom, right&left */
   margin: 0 15px;
 
@@ -89,6 +93,7 @@ const left_right_margin = ref('5vw');
   /* Size ------------- */
 
   /* Position ------------- */
+  z-index: 2;
 
   /* Color ------------- */
   background: color-mix(in oklab, var(--background), var(--focused) 20%);
@@ -101,6 +106,7 @@ const left_right_margin = ref('5vw');
   flex-grow: 10;
 }
 
+/* Logo and Filter --------------------------- */
 .logo-and-filter {
   /* Size ------------- */
 
@@ -114,7 +120,6 @@ const left_right_margin = ref('5vw');
   display: flex;
   flex-direction: column;
 }
-
 
 .logo-and-settings{
   /* Size ------------- */
@@ -131,7 +136,6 @@ const left_right_margin = ref('5vw');
   align-items: center;
   justify-content: space-evenly;
 }
-
 
 .filter-and-news {
 

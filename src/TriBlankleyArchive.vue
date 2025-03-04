@@ -1,8 +1,10 @@
 <script setup lang="ts">
+import BackgroundControl from './views/BackgroundControl.vue';
 
 </script>
 
 <template>
+  <BackgroundControl />
   <router-view />
 </template>
 

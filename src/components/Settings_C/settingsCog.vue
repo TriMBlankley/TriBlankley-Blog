@@ -5,7 +5,6 @@ import settingsCogSVG from '@/assets/uiElements/settingsCog.svg'
 <template>
   <div class="settingsCog">
     <settingsCogSVG />
-
   </div> <!-- settingsCog -->
 </template>
 
