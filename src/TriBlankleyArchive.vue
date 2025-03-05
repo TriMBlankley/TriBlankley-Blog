@@ -1,11 +1,17 @@
 <script setup lang="ts">
+import { defineAsyncComponent } from 'vue';
+
 import BackgroundControl from './views/BackgroundControl.vue';
 
+const LazyBackround = defineAsyncComponent(() =>
+  import('./views/BackgroundControl.vue')
+);
 </script>
 
 <template>
-  <BackgroundControl />
-  <router-view />
+  <router-view  style="z-index: 99;"/>
+  <LazyBackround />
+
 </template>
 
 <style scoped>
