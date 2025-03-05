@@ -76,7 +76,7 @@ const left_right_margin = ref('5vw');
   /* Size ------------- */
 
   /* Position ------------- */
-  z-index: 1;
+  z-index: 5;
 
   /* top&bottom, right&left */
   margin: 0 15px;
@@ -93,7 +93,7 @@ const left_right_margin = ref('5vw');
   /* Size ------------- */
 
   /* Position ------------- */
-  z-index: 2;
+  z-index: 10;
 
   /* Color ------------- */
   background: color-mix(in oklab, var(--background), var(--focused) 20%);
@@ -125,6 +125,7 @@ const left_right_margin = ref('5vw');
   /* Size ------------- */
 
   /* Position ------------- */
+  z-index: 10;
   /* top, right, bottom, left */
   margin-top: .5em;
 
@@ -143,6 +144,7 @@ const left_right_margin = ref('5vw');
   width: 200px;
 
   /* Position ------------- */
+  z-index: 10;
   /* top, right, bottom, left */
   margin: 1em 0 auto .5em;
 

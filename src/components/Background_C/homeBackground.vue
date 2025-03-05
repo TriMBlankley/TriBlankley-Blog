@@ -60,11 +60,15 @@ onMounted(fillContainer);
   /* Change this to 100 when finished ---------- */
 
   /* Position ------------- */
+  position: absolute;
+  top: 0;
+  left: 0;
+
   z-index: 1;
   margin: 0; padding: 0;
 
   /* Color ------------- */
-  background-color: var(--background);
+
 
   /* Behaviour ------------- */
   display: flex;
@@ -74,11 +78,12 @@ onMounted(fillContainer);
 }
 
 .tile-backround {
-  height: 110vh;
-  width: 110vw;
+  height: 100vh;
+  width: 100vw;
   /* Change this to 100 when finished ---------- */
 
   /* Position ------------- */
+  z-index: 1;
   margin: 0; padding: 0;
 
   /* Color ------------- */
@@ -96,6 +101,7 @@ onMounted(fillContainer);
   width: 100%;
   height: 100%;
 
+  z-index: 1;
   margin: 0; padding: 0;
   box-sizing: border-box;
 
