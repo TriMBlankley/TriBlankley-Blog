@@ -8,7 +8,10 @@ import { ref } from 'vue';
 import folderTabAccent from "@/assets/uiElements/folderTab.svg";
 
 // Logic ---------------------------------------------------
-const tabTitle = "Physical Hobbies";
+
+// Post Data ----------
+const tabTitle = "Horny Hobbies";
+const tabColor = tabColorPicker('lilac');
 
 // This binds the color of the tab to the result it gets from the databse
 // const tabFormatting = ref('folder-tab');
@@ -23,7 +26,6 @@ function tabColorPicker(colorIn: string): string {
   return "color: var(--cd-" + colorIn + ");";
 };
 
-const tabColor = tabColorPicker('blue');
 
 </script>
 

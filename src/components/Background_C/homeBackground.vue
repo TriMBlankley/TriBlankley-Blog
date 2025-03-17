@@ -19,7 +19,7 @@ const fillContainer = async () => {
   if (!divRef.value) return;
   cloneCount.value = 0; // Reset count
 
-  let maxAttempts = 5000; // Safety limit
+  let maxAttempts = 4000; // Safety limit
   while (maxAttempts-- > 0) {
     cloneCount.value++;
     await nextTick();
@@ -41,9 +41,15 @@ onMounted(fillContainer);
   <div class="backround-control">
     <div class="tile-backround" ref="divRef">
 
+      <!-- <p v-for="n in cloneCount"
+         :key="n"
+         class="tile"
+      >
+        a
+      </p> -->
       <component
         :is="homeBackroundSVG"
-        v-for="n in cloneCount"
+        v-for="n in 5000"
         :key="n"
         class="tile"/>
 
@@ -90,8 +96,8 @@ onMounted(fillContainer);
 
   /* Behaviour ------------- */
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));
-  grid-auto-rows: 50px;
+  grid-template-columns: repeat(auto-fill, minmax(1em, 1fr));
+  grid-auto-rows: 1em;
   gap: 0;
   justify-content: start;
   align-content: start;
@@ -105,7 +111,7 @@ onMounted(fillContainer);
   margin: 0; padding: 0;
   box-sizing: border-box;
 
-  color: var(--text);
+  color: purple;
   opacity: 75%;
   /* This is where you change the opacity */
 }
