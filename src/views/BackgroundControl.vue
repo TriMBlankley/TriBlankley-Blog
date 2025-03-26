@@ -10,13 +10,18 @@ import HomeBackground from '../components/Background_C/homeBackground.vue';
 
 <style scoped>
 .backround-control {
+  /* Size ------------- */
+  width: 100vw;
+  height: 100vh;
+
+  /* Position ----------- */
   position: absolute;
   top: 0;
   left: 0;
-  width: 100vw;
-  height: 100vh;
   z-index: -200;
+
+  /* Color ------------------ */
   background: var(--background);
-  transition: background-color 0.3s ease;
+  transition: background-color 0.2s ease;
 }
 </style>

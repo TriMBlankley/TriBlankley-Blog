@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useTheme } from '@/composables/useTheme';
+
 import LightMode from "@/assets/uiElements/LightMode.svg";
 import DarkMode from "@/assets/uiElements/DarkMode.svg";
 
@@ -14,20 +15,24 @@ const { isDarkMode, toggleTheme } = useTheme();
 
 <style>
 .theme-toggle {
-  padding: 10px 20px;
-  font-size: 16px;
-  cursor: pointer;
+  /* Size -------- */
+  padding: 10px 10px;
+
+  /* Color */
   border: none;
-  background-color: var(--cd-turqoise);
+  background-color: var(--focused);
   color: var(--text);
-  border-radius: 5px;
+  border-radius: 12px;
+
+  /* Behaviour ----------- */
   display: flex;
   align-items: center;
   justify-content: center;
+  cursor: pointer;
 }
 
 .theme-toggle svg {
-  width: 20px;
-  height: 20px;
+  width: 25px;
+  height: 25px;
 }
 </style>
