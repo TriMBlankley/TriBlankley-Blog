@@ -11,6 +11,7 @@ import FilterAndNews from '@/components/blogHome_C/filterAndNews.vue';
 
 //SVG imports
 import tbBlogLogo from "@/assets/uiElements/tbBlogLogo.svg"
+import ThemeToggle from '@/components/Settings_C/themeToggle.vue';
 
 // Logic
 const left_right_margin = ref('5vw');
@@ -33,6 +34,7 @@ const left_right_margin = ref('5vw');
     <div class="logo-and-filter">
       <div class="logo-and-settings">
         <SettingsCog style="width: 50px;"/>
+        <ThemeToggle />
         <tbBlogLogo style="width: 100px;"/>
       </div>
       <div class="filter-and-news">
@@ -48,6 +50,7 @@ const left_right_margin = ref('5vw');
   /* Size ------------- */
 
   /* Position ------------- */
+  z-index: 10;
 
   /* Color ------------- */
 
@@ -61,6 +64,7 @@ const left_right_margin = ref('5vw');
   /* Size ------------- */
 
   /* Position ------------- */
+  z-index: 100;
   /* top, right, bottom, left */
   margin: 2em 0.5em auto v-bind(left_right_margin);
 

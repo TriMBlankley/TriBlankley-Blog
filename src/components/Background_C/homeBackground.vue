@@ -1,119 +1,55 @@
 <script setup lang="ts">
-import { ref, onMounted, nextTick } from "vue";
+import { useTheme } from '@/composables/useTheme';
+import { ref, watch, onMounted } from 'vue';
+import homeBackroundLight from '@/assets/Backgrounds/homeBackroundLight.svg';
+import homeBackroundDark from '@/assets/Backgrounds/homeBackroundDark.svg';
 
-import homeBackroundSVG from '@/assets/Backgrounds/homeBackround.svg'
+const { isDarkMode } = useTheme();
+const bgClasses = ref(['home-background', isDarkMode.value ? 'dark-mode' : 'light-mode']);
 
-// Check if the div is overflowing! this code was found from: https://stackoverflow.com/questions/143815/determine-if-an-html-elements-content-overflows
-const divRef = ref<HTMLElement | null>(null);
+watch(isDarkMode, (newVal) => {
+  // Start transition
+  bgClasses.value = ['home-background', 'fade-out'];
 
+  // After fade out completes, switch background and fade in
+  setTimeout(() => {
+    bgClasses.value = ['home-background', newVal ? 'dark-mode' : 'light-mode'];
+  }, 300);
+});
 
-function checkOverflow(el: HTMLElement): boolean {
-  const { scrollWidth, clientWidth, scrollHeight, clientHeight } = el;
-  return scrollWidth > clientWidth || scrollHeight > clientHeight;
-}
-
-// Fill div with clones ---------------------------------------
-const cloneCount = ref(0);
-
-const fillContainer = async () => {
-  if (!divRef.value) return;
-  cloneCount.value = 0; // Reset count
-
-  let maxAttempts = 4000; // Safety limit
-  while (maxAttempts-- > 0) {
-    cloneCount.value++;
-    await nextTick();
-
-    if (divRef.value && checkOverflow(divRef.value)) {
-      cloneCount.value--; // Remove last one
-      break;
-    }
-  }
-};
-
-// Start filling on mount
-onMounted(fillContainer);
-
+// Set initial class
+onMounted(() => {
+  bgClasses.value = ['home-background', isDarkMode.value ? 'dark-mode' : 'light-mode'];
+});
 </script>
 
-
 <template>
-  <div class="backround-control">
-    <div class="tile-backround" ref="divRef">
-
-      <!-- <p v-for="n in cloneCount"
-         :key="n"
-         class="tile"
-      >
-        a
-      </p> -->
-      <component
-        :is="homeBackroundSVG"
-        v-for="n in 5000"
-        :key="n"
-        class="tile"/>
-
-    </div>
-  </div>
+  <div :class="bgClasses"></div>
 </template>
 
-
 <style>
-.backround-control {
-  /* Size ------------- */
+.home-background {
   height: 100vh;
   width: 100vw;
-  /* Change this to 100 when finished ---------- */
-
-  /* Position ------------- */
-  position: absolute;
+  position: fixed;
   top: 0;
   left: 0;
-
-  z-index: 1;
-  margin: 0; padding: 0;
-
-  /* Color ------------- */
-
-
-  /* Behaviour ------------- */
-  display: flex;
-  justify-content: center;
-  align-content: center;
-  overflow: hidden;
+  z-index: -100;
+  background-size: 15px 15px;
+  background-repeat: repeat;
+  opacity: 0.2;
+  transition: opacity 0.3s ease;
 }
 
-.tile-backround {
-  height: 100vh;
-  width: 100vw;
-  /* Change this to 100 when finished ---------- */
-
-  /* Position ------------- */
-  z-index: 1;
-  margin: 0; padding: 0;
-
-  /* Color ------------- */
-
-  /* Behaviour ------------- */
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(1em, 1fr));
-  grid-auto-rows: 1em;
-  gap: 0;
-  justify-content: start;
-  align-content: start;
+.home-background.light-mode {
+  background-image: url('@/assets/Backgrounds/homeBackroundLight.svg');
 }
 
-.tile {
-  width: 100%;
-  height: 100%;
-
-  z-index: 1;
-  margin: 0; padding: 0;
-  box-sizing: border-box;
-
-  color: purple;
-  opacity: 75%;
-  /* This is where you change the opacity */
+.home-background.dark-mode {
+  background-image: url('@/assets/Backgrounds/homeBackroundDark.svg');
 }
 
+.home-background.fade-out {
+  opacity: 0;
+}
 </style>

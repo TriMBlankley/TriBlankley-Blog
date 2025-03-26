@@ -1,0 +1,7 @@
+<svg width="100%" height="100%" viewBox="0 0 15 15" version="1.1"
+    xmlns="http://www.w3.org/2000/svg">
+    <g id="homeBackground">
+        <path d="M15,5l-10,10h5l5,-5v-5Z" style="fill:#fffff2;" />
+        <path d="M5,0l-5,5v5l10,-10h-5Z" style="fill:#fffff2;" />
+    </g>
+</svg>

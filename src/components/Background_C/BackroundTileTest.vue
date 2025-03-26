@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue';
-import homeBackroundSVG from '@/assets/Backgrounds/homeBackround.svg';
+import homeBackroundSVG from '@/assets/Backgrounds/homeBackroundLight.svg';
 
 const width = ref<number>(0);
 const height = ref<number>(0);
