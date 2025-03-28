@@ -43,14 +43,6 @@ const navigateToPost = () => {
   transition: transform 0.2s, box-shadow 0.2s; /* Smooth transition for hover effect */
 }
 
-.post:hover {
-  transform: translateY(-2px); /* Slight lift effect on hover */
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Shadow effect on hover */
-}
-
-.post:active {
-  transform: translateY(0); /* Reset transform when clicked */
-}
 
 .postDescriptor {
   /* Behaviour ------------- */

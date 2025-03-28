@@ -32,6 +32,7 @@ const goToHome = () => {
     <div class="separator"></div>
     <PostContent style="margin-bottom: 35px;"/>
     <BottomNav />
+
   </div>
 </template>
 
@@ -43,13 +44,19 @@ const goToHome = () => {
   margin: 0 auto;
   padding: 20px;
 
+    /* Left and Right Border (Color of backround effect) */
   background-color: var(--background);
+  border-left: solid 3px;
+  border-Right: solid 3px;
+  border-color: color-mix(in oklab, var(--background), var(--text) 45%);
+
 
   position: relative; /* Needed for absolute positioning of children */
 
   scroll-behavior: smooth;
   overflow-y: auto;
 }
+
 
 .logo-and-settings {
   position: fixed; /* Changed from absolute to fixed */
@@ -86,7 +93,7 @@ const goToHome = () => {
 
 .separator{
   width: 100%;
-  height: 2px;
+  height: 3px;
 
   margin-top: 5px;
   margin-bottom: 15px;

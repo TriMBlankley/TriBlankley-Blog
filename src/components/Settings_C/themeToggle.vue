@@ -16,13 +16,12 @@ const { isDarkMode, toggleTheme } = useTheme();
 <style>
 .theme-toggle {
   /* Size -------- */
-  padding: 10px 10px;
+  padding: 3px 15px;
 
   /* Color */
-  border: none;
-  background-color: var(--focused);
   color: var(--text);
-  border-radius: 12px;
+  background: none;
+  border: none;
 
   /* Behaviour ----------- */
   display: flex;
