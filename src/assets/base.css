@@ -4,6 +4,9 @@
   --mt-dark: #3d4142;
   --mt-light: #fffff2;
 
+  --mt-dark-offset: #515758;
+  --mt-light-offset: #e2e2cf;
+
   /* Class Div's */
   --cd-turqoise: #489595;
   --cd-salmon: #c58288;
@@ -21,6 +24,7 @@
 :root {
   --background: var(--mt-light);
   --text: var(--mt-dark);
+  --text-offset: var(--mt-dark-offset);
 
   --focused: var(--cd-turqoise);
 }
@@ -28,6 +32,7 @@
 :root[data-theme='dark'] {
   --background: var(--mt-dark);
   --text: var(--mt-light);
+  --text-offset: var(--mt-light-offset);
 }
 
 *,
