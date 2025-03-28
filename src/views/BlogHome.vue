@@ -12,7 +12,6 @@ import FilterAndNews from '@/components/blogHome_C/filterAndNews.vue';
 //SVG imports
 import tbBlogLogo from "@/assets/uiElements/tbBlogLogo.svg"
 import HomeNav from '@/components/blogHome_C/homeNav.vue';
-import PostContent from '@/components/BlogPost_C/postContent.vue';
 
 // Logic
 const left_right_margin = ref('5vw');
@@ -29,7 +28,6 @@ const left_right_margin = ref('5vw');
       <div class="post-container">
         <div class="post-cards">
           <PostDescriptor />
-          <!-- <PostContent /> -->
         </div>
         <HomeNav />
       </div>
@@ -62,7 +60,7 @@ const left_right_margin = ref('5vw');
   /* Behaviour ------------- */
   display: flex;
   flex-direction: row;
-  overflow: hidden;
+  overflow-y: auto;
 }
 
 /* Posts and Tabs ---------------------------- */
@@ -85,7 +83,7 @@ const left_right_margin = ref('5vw');
 
 
   scroll-behavior: smooth;
-  overflow-y: auto;
+  /* overflow-y: auto; */
 }
 
 .tab-motif {

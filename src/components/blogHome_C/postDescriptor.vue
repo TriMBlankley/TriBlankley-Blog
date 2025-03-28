@@ -54,7 +54,7 @@ const navigateToPost = () => {
   border-radius: 5px;
   border: none;
 
-  padding: 0px 10px;
+  padding: 0px 7px 7px 7px;
 }
 
 .postIcon {

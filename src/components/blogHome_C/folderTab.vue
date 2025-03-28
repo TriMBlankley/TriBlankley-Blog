@@ -11,7 +11,7 @@ import folderTabAccent from "@/assets/uiElements/folderTab.svg";
 
 // Post Data ----------
 const tabTitle = "Physical Hobbies";
-const tabColor = tabColorPicker('turqoise');
+const tabColor = tabColorPicker('lilac');
 
 
 // This binds the color of the tab to the result it gets from the databse
