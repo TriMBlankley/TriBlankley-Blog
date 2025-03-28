@@ -11,6 +11,8 @@ import FilterAndNews from '@/components/blogHome_C/filterAndNews.vue';
 
 //SVG imports
 import tbBlogLogo from "@/assets/uiElements/tbBlogLogo.svg"
+import HomeNav from '@/components/blogHome_C/homeNav.vue';
+import PostContent from '@/components/BlogPost_C/postContent.vue';
 
 // Logic
 const left_right_margin = ref('5vw');
@@ -24,16 +26,21 @@ const left_right_margin = ref('5vw');
       <div class="tab-motif">
         <FolderTab />
       </div>
-      <div class="post-cards">
-        <PostDescriptor />
+      <div class="post-container">
+        <div class="post-cards">
+          <PostDescriptor />
+          <!-- <PostContent /> -->
+        </div>
+        <HomeNav />
       </div>
+
     </div>
 
 
     <div class="logo-and-filter">
       <div class="logo-and-settings">
-        <SettingsCog style="width: 30px;"/>
-        <tbBlogLogo style="width: 70px;"/>
+        <SettingsCog style="width: 30px;" />
+        <tbBlogLogo style="width: 70px;" />
       </div>
       <div class="filter-and-news">
         <FilterAndNews />
@@ -46,39 +53,45 @@ const left_right_margin = ref('5vw');
 /* MAIN CSS for Display ---------------------- */
 .blog-home {
   /* Size ------------- */
+  height: 100vh;
 
   /* Position ------------- */
-  z-index: 10;
 
   /* Color ------------- */
 
   /* Behaviour ------------- */
   display: flex;
   flex-direction: row;
+  overflow: hidden;
 }
 
 /* Posts and Tabs ---------------------------- */
 .post-view {
   /* Size ------------- */
+  /* height: calc(100vh - 3em); */
 
   /* Position ------------- */
+  position: relative; /* Needed for absolute positioning of children */
   z-index: 100;
   /* top, right, bottom, left */
-  margin: 2em 0.5em auto v-bind(left_right_margin);
+  margin: 1.5em 0.5em auto v-bind(left_right_margin);
 
   /* Color ------------- */
 
   /* Behaviour ------------- */
+  flex: 1;
   display: flex;
   flex-direction: column;
-  flex-grow: 10;
+
+
+  scroll-behavior: smooth;
+  overflow-y: auto;
 }
 
 .tab-motif {
   /* Size ------------- */
 
   /* Position ------------- */
-  z-index: 5;
 
   /* top&bottom, right&left */
   margin: 0 15px;
@@ -88,24 +101,42 @@ const left_right_margin = ref('5vw');
   /* Behaviour ------------- */
   display: flex;
   flex-direction: row;
-  flex-grow: 10;
 }
 
-.post-cards {
+.post-container {
   /* Size ------------- */
+  flex: 1;
+  min-height: 0; /* Important for flex children to respect overflow */
 
   /* Position ------------- */
-  z-index: 10;
 
   /* Color ------------- */
-  background: color-mix(in oklab, var(--background), var(--focused) 20%);
+  background: var(--focused);
   border: 7px solid var(--focused);
   border-radius: 15px;
 
   /* Behaviour ------------- */
   display: flex;
   flex-direction: column;
-  flex-grow: 10;
+
+}
+.post-cards {
+  /* Size ------------- */
+  flex: 1;
+  min-height: 0;
+
+  /* Position ------------- */
+  padding: 7px;
+
+  /* Color ------------- */
+  background: color-mix(in oklab, var(--background), var(--focused) 20%);
+
+  border-radius: 7px;
+
+  /* Behaviour ------------- */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden; /* Prevent nested scrolling */
 }
 
 /* Logo and Filter --------------------------- */
@@ -113,6 +144,8 @@ const left_right_margin = ref('5vw');
   /* Size ------------- */
 
   /* Position ------------- */
+  position: sticky;
+  top: 0;
   /* top, right, bottom, left */
   margin: 0 v-bind(left_right_margin) auto auto;
 
@@ -123,7 +156,7 @@ const left_right_margin = ref('5vw');
   flex-direction: column;
 }
 
-.logo-and-settings{
+.logo-and-settings {
   /* Size ------------- */
 
   /* Position ------------- */
@@ -159,5 +192,4 @@ const left_right_margin = ref('5vw');
   display: flex;
   flex-direction: column;
 }
-
 </style>

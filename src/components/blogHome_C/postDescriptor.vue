@@ -32,15 +32,16 @@ const navigateToPost = () => {
   margin: 5px;
 
   /* Color ------------- */
-  background-color: color-mix(in oklab, var(--background), var(--cd-turqoise) 20%);
-  border: 5px solid var(--cd-turqoise);
-  border-radius: 6px;
+  background-color: color-mix(in oklab, var(--background), var(--focused) 80%);
+
+  border: 5px solid;
+  border-color: color-mix(in oklab, var(--background), var(--focused) 80%);
+  border-radius: 5px;
 
   /* Behaviour ------------- */
   display: flex;
   flex-direction: row;
   cursor: pointer; /* Changes cursor to indicate clickable */
-  transition: transform 0.2s, box-shadow 0.2s; /* Smooth transition for hover effect */
 }
 
 
@@ -48,11 +49,16 @@ const navigateToPost = () => {
   /* Behaviour ------------- */
   display: flex;
   flex-direction: column;
+
+  background-color: var(--background);
+  border-radius: 5px;
+  border: none;
+
+  padding: 0px 10px;
 }
 
 .postIcon {
   margin-right: 5px;
-  border: 5px solid var(--cd-turqoise);
-  border-radius: 6px;
+
 }
 </style>

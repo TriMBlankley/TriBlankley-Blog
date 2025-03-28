@@ -13,12 +13,12 @@
     height: 100%;
 
     /* Position ------------- */
+    margin-top: auto;
+    bottom: 0;
 
     /* Color ------------- */
     background-color: var(--focused);
 
-    border: none;
-    border-radius: 7px;
     /* Behaviour ------------- */
     display: flex;
     flex-direction: column;
