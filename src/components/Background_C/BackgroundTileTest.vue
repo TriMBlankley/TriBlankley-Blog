@@ -70,7 +70,8 @@ onUnmounted(() => {
 .tile {
   height: 16px;
   width: 16px;
-  transform: translateZ(0);
+  color: var(--text);
+  /* transform: translateZ(0); */
   /* Force pixel-perfect rendering */
   will-change: transform;
   /* Optimize rendering */

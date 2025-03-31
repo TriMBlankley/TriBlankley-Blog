@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import BackgroundTileTest from '@/components/Background_C/BackgroundTileTest.vue';
 import HomeBackground from '../components/Background_C/homeBackground.vue';
 </script>
 
