@@ -6,6 +6,7 @@ import HomeBackground from '../components/Background_C/homeBackground.vue';
 <template>
   <div class="backround-control">
     <HomeBackground />
+    <!-- <BackgroundTileTest /> -->
   </div>
 </template>
 
@@ -24,5 +25,8 @@ import HomeBackground from '../components/Background_C/homeBackground.vue';
   /* Color ------------------ */
   background: var(--background);
   transition: background-color 0.2s ease;
+
+  /* Behaviour ------------------ */
+  overflow: hidden;
 }
 </style>

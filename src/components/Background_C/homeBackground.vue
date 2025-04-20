@@ -5,7 +5,10 @@ const { isDarkMode } = useTheme();
 </script>
 
 <template>
-  <div class="home-background" :class="{ 'dark-mode': isDarkMode }"></div>
+  <div class="home-background"
+    :class="{ 'dark-mode': isDarkMode }"
+    :key="String(isDarkMode)">
+    </div>
 </template>
 
 <style>
