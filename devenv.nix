@@ -24,6 +24,7 @@
   # NPM setup ---------------------------------------
   processes = {
     TriBlankley-Blog.exec = "npm run dev -- --host --open";
+    api.exec = "node blogDB/dbAPI.js";
   };
 
   # https://devenv.sh/services/
@@ -43,7 +44,11 @@
           location / {
             proxy_pass http://localhost:5173 ;
           }
+          location /api {
+            proxy_pass http://localhost:8050 ;
+          }
         }
+
       '';
     };
 

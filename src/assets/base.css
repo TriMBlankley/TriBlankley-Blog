@@ -26,7 +26,7 @@
   --text: var(--mt-dark);
   --text-offset: var(--mt-dark-offset);
 
-  --focused: var(--cd-lilac);
+  --focused: var(--cd-blue);
 }
 
 :root[data-theme='dark'] {
