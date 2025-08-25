@@ -7,9 +7,16 @@ const topicSchema = new mongoose.Schema({
 })
 
 const postSchema = new mongoose.Schema({
-  postId: { type: Number, required: true },
-  postDate: { type: Date, required: true },
-})
+  postId: { type: Number, required: true, unique: true },
+  postTitle: { type: String, required: true },
+  postAuthor: { type: String, required: true },
+  postDate: { type: String, required: true },
+  postContent: { type: String, required: true },
+  postTopics: { type: [String], default: [] },
+  isPublished: { type: Boolean, default: false },
+  contentType: { type: String, default: 'markdown' } // Default to markdown
+});
+
 const blogPost = mongoose.model('Post', postSchema)
 
 export { blogPost }

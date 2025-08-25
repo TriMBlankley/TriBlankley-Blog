@@ -1,7 +1,18 @@
 <script setup lang="ts">
-const postTitle = "Post Title";
-const postAuthor = "Tri Blankley";
-const postDate = "Mar 27 2025";
+defineProps({
+  postTitle: {
+    type: String,
+    required: true
+  },
+  postAuthor: {
+    type: String,
+    required: true
+  },
+  postDate: {
+    type: String,
+    required: true
+  }
+})
 </script>
 
 <template>

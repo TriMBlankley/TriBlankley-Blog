@@ -1,22 +1,89 @@
 <script setup lang="ts">
-// Vue Imports
-import { useRouter } from 'vue-router';
+import { ref, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { marked } from 'marked'
+import DOMPurify from 'dompurify'
 
-// Component Imports
-import PostContent from '@/components/BlogPost_C/postContent.vue';
-import PostTitle from '@/components/BlogPost_C/postTitle.vue';
-import SettingsCog from '@/components/Settings_C/settingsCog.vue';
-import BottomNav from '@/components/BlogPost_C/bottomNav.vue';
+// Lazy-load highlight.js to avoid SSR issues
+const hljs = ref<any>(null)
 
-// SVG import as component
+import PostTitle from '@/components/BlogPost_C/postTitle.vue'
+import SettingsCog from '@/components/Settings_C/settingsCog.vue'
+import BottomNav from '@/components/BlogPost_C/bottomNav.vue'
 import TbBlogLogo from "@/assets/uiElements/tbBlogLogo.svg"
 
+const router = useRouter()
+const route = useRoute()
+const renderedContent = ref('')
 
-const router = useRouter();
+interface PostData {
+  postId: number
+  postTitle: string
+  postAuthor: string
+  postDate: string
+  postContent: string // This will now store markdown
+  postTopics: string[]
+}
 
-const goToHome = () => {
-  router.push('/');
-};
+const postData = ref<PostData | null>(null)
+const isLoading = ref(true)
+const error = ref<string | null>(null)
+
+const goToHome = () => router.push('/')
+
+// More complete type definition
+type MarkedOptions = {
+  highlight?: (code: string, lang: string, callback?: (error: any, code: string) => void) => string | void
+  // Add other marked options you might need
+}
+
+const markedOptions: MarkedOptions = {
+  highlight: (code, lang) => {
+    if (lang && hljs.getLanguage(lang)) {
+      try {
+        return hljs.highlight(code, { language: lang }).value
+      } catch (error) {
+        console.error('Error highlighting code:', error)
+        return code // Return unhighlighted code on error
+      }
+    }
+    return hljs.highlightAuto(code).value
+  }
+}
+
+marked.setOptions(markedOptions)
+
+const markdownOptions = {
+  highlight(code: string, lang: string) {
+    if (hljs.value) {
+      try {
+        return hljs.value.highlight(code, { language: lang }).value
+      } catch {
+        return hljs.value.highlightAuto(code).value
+      }
+    }
+    return code
+  }
+}
+
+onMounted(async () => {
+  try {
+    const response = await fetch(`http://localhost:8050/api/posts/${route.params.id}`)
+    if (!response.ok) throw new Error('Post not found')
+    postData.value = await response.json()
+
+    // Sanitize and render the content
+    if (postData.value?.postContent) {
+      renderedContent.value = DOMPurify.sanitize(
+        marked.parse(postData.value.postContent)
+      )
+    }
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : 'Unknown error'
+  } finally {
+    isLoading.value = false
+  }
+})
 </script>
 
 <template>
@@ -28,18 +95,36 @@ const goToHome = () => {
       </button>
     </div>
 
-    <PostTitle />
-    <div class="separator"></div>
-    <PostContent style="margin-bottom: 35px;"/>
-    <BottomNav />
+    <template v-if="isLoading">
+      <div>Loading...</div>
+    </template>
+    <template v-else-if="error">
+      <div>Error: {{ error }}</div>
+    </template>
+    <template v-else-if="postData">
+      <PostTitle
+        :postTitle="postData.postTitle"
+        :postAuthor="postData.postAuthor"
+        :postDate="postData.postDate"
+      />
+      <div class="separator"></div>
 
+      <!-- Replace PostContent with vue-markdown-render -->
+      <div
+        class="markdown-content"
+        v-html="renderedContent"
+        style="margin-bottom: 35px;"
+      ></div>
+
+      <BottomNav />
+    </template>
   </div>
 </template>
 
 <style scoped>
 .blog-page {
   max-width: 950px;
-  max-height: 100vh; /* Ensure it takes at least full viewport height */
+  height: 100vh; /* Ensure it takes at least full viewport height */
 
   margin: 0 auto;
   padding: 20px;
@@ -110,5 +195,50 @@ const goToHome = () => {
 input {
   margin: 10px;
   display: block;
+}
+
+
+/* Add these styles for better markdown rendering */
+.markdown-content {
+  line-height: 1.6;
+}
+
+.markdown-content p {
+  margin: 1em 0;
+}
+
+.markdown-content table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1em 0;
+}
+
+.markdown-content table th,
+.markdown-content table td {
+  border: 1px solid #ddd;
+  padding: 8px;
+}
+
+.markdown-content table th {
+  background-color: #f2f2f2;
+}
+
+.markdown-content pre {
+  background-color: #f5f5f5;
+  padding: 1em;
+  border-radius: 4px;
+  overflow-x: auto;
+}
+
+.markdown-content code {
+  font-family: monospace;
+  background-color: #f5f5f5;
+  padding: 0.2em 0.4em;
+  border-radius: 3px;
+}
+
+.markdown-content img {
+  max-width: 100%;
+  height: auto;
 }
 </style>

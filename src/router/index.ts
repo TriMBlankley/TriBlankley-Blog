@@ -11,20 +11,10 @@ const router = createRouter({
       component: BlogHome,
     },
     {
-      path: '/BlogPage',
+      path: '/BlogPage/:id',
       name: 'BlogPage',
-      // route level code-splitting
-      // this generates a separate chunk (About.[hash].js) for this route
-      // which is lazy-loaded when the route is visited.
       component: () => import('../views/BlogPage.vue'),
-    },
-    {
-      path: '/BlogEditor',
-      name: 'BlogEditor',
-      // route level code-splitting
-      // this generates a separate chunk (About.[hash].js) for this route
-      // which is lazy-loaded when the route is visited.
-      component: () => import('../views/BlogEditor.vue'),
+      props: true
     },
   ],
 });

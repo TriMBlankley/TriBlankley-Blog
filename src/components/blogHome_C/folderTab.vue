@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // VueJS imports
-// import { ref } from 'vue';
+import { defineProps, defineEmits, ref, computed, onMounted, onUnmounted } from 'vue';
 
 // Component Imports
 
@@ -9,14 +9,45 @@ import folderTabAccent from "@/assets/uiElements/folderTab.svg";
 
 // Logic ---------------------------------------------------
 
-// Post Data ----------
-const tabTitle = "Physical Hobbies";
-const tabColor = tabColorPicker('lilac');
+// Post Data defined with props ----------
+const props = defineProps({
+  title: {
+    type: String,
+    default: "Default Title"
+  },
+  color: {
+    type: String,
+    default: "#000000" // Default to black if no color provided
+  },
+  isActive: {
+    type: Boolean,
+    default: false
+  }
+});
+
+// Emit the topic to change the site color, and apply filtering
+const emit = defineEmits(['tab-clicked']);
 
 
-// This binds the color of the tab to the result it gets from the databse
-function tabColorPicker(colorIn: string): string {
-  return "color: var(--cd-" + colorIn + ");";
+console.log(`Rendering tab: ${props.title}`, {
+  color: props.color,
+  isActive: props.isActive
+});
+
+const tabStyle = {
+  color: props.color,
+};
+
+const handleClick = () => {
+  console.log(`Tab clicked: ${props.title}`, {
+    color: props.color,
+    topicName: props.title,
+    currentTime: new Date().toISOString()
+  });
+  emit('tab-clicked', {
+    color: props.color,
+    topicName: props.title
+  });
 };
 
 
@@ -25,7 +56,9 @@ function tabColorPicker(colorIn: string): string {
 <template>
 
   <!-- <div v-bind:class="tabColor"> -->
-  <div class="folder-tab" v-bind:style="tabColor">
+  <div class="folder-tab"
+       v-bind:style="tabStyle"
+       @click="handleClick">
                 <!-- top, right, bottom, left -->
     <div style="margin: 0 -1px -1.5px 0;">
       <folderTabAccent style="height: 100%;" />
@@ -33,7 +66,7 @@ function tabColorPicker(colorIn: string): string {
 
     <h1 style="background-color: currentColor;">
       <div class="tab-text">
-        {{ tabTitle }}
+        {{ title }}
       </div>
     </h1>
 
@@ -58,6 +91,8 @@ function tabColorPicker(colorIn: string): string {
   flex-direction: row;
   flex-wrap: nowrap;
   white-space: nowrap;
+  transition: all 0.2s ease;
+  cursor: pointer;
 }
 
 .tab-text {

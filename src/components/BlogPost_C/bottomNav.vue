@@ -4,13 +4,14 @@
 <template>
   <div class="post-nav">
     Bottom Nav
+
   </div>
 </template>
 
 <style>
 .post-nav {
     /* Size ------------- */
-    height: 100%;
+    height: 40px;
 
     /* Position ------------- */
 
@@ -21,7 +22,7 @@
     border-radius: 7px;
     /* Behaviour ------------- */
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
 }
 </style>
 

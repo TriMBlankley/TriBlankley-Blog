@@ -1,7 +1,6 @@
 <script setup lang="ts">
 // VueJS imports
-import { ref } from 'vue';
-
+import { ref, onMounted, watch, computed } from 'vue';
 
 // Component Imports
 import FolderTab from '@/components/blogHome_C/folderTab.vue';
@@ -12,30 +11,130 @@ import FilterAndNews from '@/components/blogHome_C/filterAndNews.vue';
 //SVG imports
 import tbBlogLogo from "@/assets/uiElements/tbBlogLogo.svg"
 import HomeNav from '@/components/blogHome_C/homeNav.vue';
-import PostContent from '@/components/BlogPost_C/postContent.vue';
 
-// Logic
+// State
+const topics = ref<any[]>([]);
+const posts = ref<any[]>([]);
+const activeTabColor = ref(localStorage.getItem('activeTabColor') || 'var(--cd-blue)');
 const left_right_margin = ref('5vw');
 
+
+const allTopicsTab = computed(() => ({
+  topicName: "All Topics",
+  topicColor: "#b78fbc",
+  topicOrder: 100 // Place it after all other topics
+}));
+
+// Data fetching
+const fetchTopics = async () => {
+  try {
+    const response = await fetch('http://localhost:8050/api/topics');
+    if (!response.ok) throw new Error('Failed to fetch topics');
+    const data = await response.json();
+    topics.value = data.sort((a: any, b: any) => a.topicOrder - b.topicOrder);
+  } catch (error) {
+    console.error('Error in fetchTopics:', error);
+  }
+};
+
+const activeTopic = ref<string | null>(null);
+
+const fetchPosts = async () => {
+  try {
+    const response = await fetch('http://localhost:8050/api/posts');
+    if (!response.ok) throw new Error('Failed to fetch posts');
+    let allPosts = await response.json();
+
+    // Filter by published status first
+    allPosts = allPosts.filter((post: any) => post.isPublished);
+
+    // Then filter by topic if one is selected
+    if (activeTopic.value) {
+      allPosts = allPosts.filter((post: any) =>
+        post.postTopics.includes(activeTopic.value)
+      );
+    }
+
+    posts.value = allPosts;
+  } catch (error) {
+    console.error('Error in fetchPosts:', error);
+  }
+};
+
+const handleTabClick = (tabData: { color: string, topicName: string }) => {
+  if (tabData.topicName === "All Topics") {
+    activeTopic.value = null;
+    activeTabColor.value = tabData.color;
+  } else {
+    activeTabColor.value = tabData.color;
+    activeTopic.value = tabData.topicName;
+  }
+
+  localStorage.setItem('activeTabColor', tabData.color);
+  document.documentElement.style.setProperty('--focused', tabData.color);
+  fetchPosts();
+};
+
+// Add a method to clear topic filter if needed
+const clearTopicFilter = () => {
+  activeTopic.value = null;
+  fetchPosts();
+};
+
+const handlePostClick = (postId: number) => {
+  console.log('Post clicked:', postId);
+  // Add any additional post-click logic here
+};
+
+// Lifecycle hooks
+onMounted(() => {
+  fetchTopics();
+  fetchPosts();
+
+  // Set All Topics as active if no topic is selected
+  if (!activeTopic.value) {
+    document.documentElement.style.setProperty('--focused', "#b78fbc");
+  }
+});
+
+// Watchers
+watch(activeTabColor, (color) => {
+  document.documentElement.style.setProperty('--focused', color);
+}, { immediate: true });
 </script>
 
 <template>
   <div class="blog-home">
-
     <div class="post-view">
       <div class="tab-motif">
-        <FolderTab />
+        <FolderTab
+          v-for="topic in topics"
+          :key="topic.topicName"
+          :title="topic.topicName"
+          :color="topic.topicColor"
+          :is-active="activeTabColor === topic.topicColor"
+          @tab-clicked="handleTabClick"
+        />
+
+        <FolderTab
+          :title="allTopicsTab.topicName"
+          :color="allTopicsTab.topicColor"
+          :is-active="!activeTopic"
+          @tab-clicked="handleTabClick"
+        />
       </div>
       <div class="post-container">
         <div class="post-cards">
-          <PostDescriptor />
-          <PostContent />
+          <PostDescriptor
+            v-for="post in posts"
+            :key="post.postId"
+            :post="post"
+            @click-post="handlePostClick"
+          />
         </div>
         <HomeNav />
       </div>
-
     </div>
-
 
     <div class="logo-and-filter">
       <div class="logo-and-settings">
@@ -72,7 +171,7 @@ const left_right_margin = ref('5vw');
 
   /* Position ------------- */
   position: relative; /* Needed for absolute positioning of children */
-  z-index: 100;
+  /* z-index: 100; */
   /* top, right, bottom, left */
   margin: 1.5em 0.5em auto v-bind(left_right_margin);
 

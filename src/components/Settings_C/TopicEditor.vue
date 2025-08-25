@@ -55,7 +55,7 @@ const submitTopic = async () => {
   } else {
     topics.value.push({...form.value});
   }
-  
+
   await saveTopics();
   resetForm();
 };
@@ -80,7 +80,7 @@ const resetForm = () => {
   form.value = {
     topicColor: '#000000',
     topicName: '',
-    topicOrder: topics.value.length > 0 ? 
+    topicOrder: topics.value.length > 0 ?
       Math.max(...topics.value.map(t => t.topicOrder)) + 1 : 0
   };
   editingIndex.value = null;
@@ -95,55 +95,55 @@ onMounted(fetchTopics);
   <div class="blogEditor">
     <div class="editorContainer">
       <h2>Topic Management</h2>
-      
+
       <!-- Topic Form -->
       <div class="topicForm">
         <div class="formGroup">
           <label for="topicName">Topic Name *</label>
-          <input 
-            id="topicName" 
-            v-model="form.topicName" 
-            type="text" 
+          <input
+            id="topicName"
+            v-model="form.topicName"
+            type="text"
             placeholder="Enter topic name"
             required
           >
         </div>
-        
+
         <div class="formGroup">
           <label for="topicColor">Topic Color *</label>
-          <input 
-            id="topicColor" 
-            v-model="form.topicColor" 
-            type="color" 
+          <input
+            id="topicColor"
+            v-model="form.topicColor"
+            type="color"
             required
           >
         </div>
-        
+
         <div class="formGroup">
           <label for="topicOrder">Order *</label>
-          <input 
-            id="topicOrder" 
-            v-model.number="form.topicOrder" 
-            type="number" 
+          <input
+            id="topicOrder"
+            v-model.number="form.topicOrder"
+            type="number"
             min="0"
             required
           >
         </div>
-        
+
         <div class="formActions">
           <button @click="submitTopic" class="submitBtn">
             {{ editingIndex !== null ? 'Update' : 'Add' }} Topic
           </button>
-          <button 
-            v-if="editingIndex !== null" 
-            @click="resetForm" 
+          <button
+            v-if="editingIndex !== null"
+            @click="resetForm"
             class="cancelBtn"
           >
             Cancel
           </button>
         </div>
       </div>
-      
+
       <!-- Topics List -->
       <div class="topicsList">
         <h3>Existing Topics</h3>
@@ -153,8 +153,8 @@ onMounted(fetchTopics);
         <ul v-else>
           <li v-for="(topic, index) in topics" :key="index" class="topicItem">
             <div class="topicInfo">
-              <span 
-                class="colorIndicator" 
+              <span
+                class="colorIndicator"
                 :style="{ backgroundColor: topic.topicColor }"
               ></span>
               <span class="topicName">{{ topic.topicName }}</span>
