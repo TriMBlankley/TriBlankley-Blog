@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue';
-import BlogEditor from './TopicEditor.vue';
-import PostEditor from './PostEditor.vue';
+import TopicEditor from './TopicEditor.vue';
 import ThemeToggle from '@/components/Settings_C/themeToggle.vue';
 
 const emit = defineEmits<{
@@ -40,12 +39,12 @@ const handleClose = () => {
         >
           Blog Topics
         </button>
-        <button
+        <!-- <button
           @click="activeTab = 'postEditor'"
           :class="{ active: activeTab === 'postEditor' }"
         >
           Post Editor
-        </button>
+        </button> -->
       </div>
 
 
@@ -58,8 +57,7 @@ const handleClose = () => {
         </div>
 
         <!-- Blog Topics content will appear here -->
-        <BlogEditor v-if="activeTab === 'blogTopics'" />
-        <PostEditor v-if="activeTab === 'postEditor'" />
+        <TopicEditor v-if="activeTab === 'blogTopics'" />
       </div>
     </div>
   </div>

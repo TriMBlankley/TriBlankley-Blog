@@ -20,17 +20,17 @@ const fetchTopics = async () => {
   try {
     const response = await fetch('http://localhost:8050/api/topics');
     if (!response.ok) throw new Error('Failed to fetch topics');
-    topics.value = await response.json();
-    resetForm();
+    const data = await response.json();
+    topics.value = data.sort((a: any, b: any) => a.topicOrder - b.topicOrder);
   } catch (error) {
-    console.error('Error fetching topics:', error);
+    console.error('Error in fetchTopics:', error);
   }
 };
 
 // Save topics to the API
 const saveTopics = async () => {
   try {
-    const response = await fetch('http://localhost:8050/api/topics', {
+    const response = await fetch('/api/topics', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

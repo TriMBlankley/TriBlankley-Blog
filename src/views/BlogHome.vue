@@ -28,7 +28,7 @@ const allTopicsTab = computed(() => ({
 // Data fetching
 const fetchTopics = async () => {
   try {
-    const response = await fetch('http://localhost:8050/api/topics');
+    const response = await fetch('/api/topics');
     if (!response.ok) throw new Error('Failed to fetch topics');
     const data = await response.json();
     topics.value = data.sort((a: any, b: any) => a.topicOrder - b.topicOrder);
@@ -41,7 +41,7 @@ const activeTopic = ref<string | null>(null);
 
 const fetchPosts = async () => {
   try {
-    const response = await fetch('http://localhost:8050/api/posts');
+    const response = await fetch('/api/posts');
     if (!response.ok) throw new Error('Failed to fetch posts');
     let allPosts = await response.json();
 
