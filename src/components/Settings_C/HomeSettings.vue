@@ -2,18 +2,18 @@
 import { ref } from 'vue';
 import TopicEditor from './TopicEditor.vue';
 import ThemeToggle from '@/components/Settings_C/themeToggle.vue';
-
+import PostCreator from '@/components/Settings_C/PostCreator.vue';
+import PostEditor from '@/components/Settings_C/PostEditor.vue';
 const emit = defineEmits<{
   (e: 'close'): void;
 }>();
 
-const activeTab = ref<'settings' | 'blogTopics' | 'postEditor'>('settings');
+const activeTab = ref<'settings' | 'blogTopics' | 'postCreator' | 'postEditor'>('settings'); // Update this line
 
 const handleClose = () => {
   emit('close');
 };
 </script>
-
 
 <template>
   <div class="home-settings">
@@ -39,14 +39,19 @@ const handleClose = () => {
         >
           Blog Topics
         </button>
-        <!-- <button
+        <button
+          @click="activeTab = 'postCreator'"
+          :class="{ active: activeTab === 'postCreator' }"
+        >
+          Post Creator
+        </button>
+        <button
           @click="activeTab = 'postEditor'"
           :class="{ active: activeTab === 'postEditor' }"
         >
           Post Editor
-        </button> -->
+        </button>
       </div>
-
 
       <div class="class-options">
         <!-- General settings content can go here -->
@@ -58,6 +63,12 @@ const handleClose = () => {
 
         <!-- Blog Topics content will appear here -->
         <TopicEditor v-if="activeTab === 'blogTopics'" />
+
+        <!-- Blog Post Creator -->
+        <PostCreator v-if="activeTab === 'postCreator'" />
+
+        <!-- Post Editor -->
+        <PostEditor v-if="activeTab === 'postEditor'" />
       </div>
     </div>
   </div>

@@ -18,7 +18,7 @@ const form = ref<Topic>({
 // Fetch topics from the API
 const fetchTopics = async () => {
   try {
-    const response = await fetch('http://localhost:8050/api/topics');
+    const response = await fetch('/api/topics');
     if (!response.ok) throw new Error('Failed to fetch topics');
     const data = await response.json();
     topics.value = data.sort((a: any, b: any) => a.topicOrder - b.topicOrder);
