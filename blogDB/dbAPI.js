@@ -1,15 +1,16 @@
 // [file name]: enhancedDbAPI.js
 import express from 'express';
 import mongoose from 'mongoose';
-import cors from 'cors';
 import { GridFSBucket } from 'mongodb';
 import fs from 'fs';
 import path from 'path';
 // Import post Schemas:
-import { blogPost, blogTopic } from "./blogPostSchema.js";
+import { blogPost, blogTopic, PostGroup } from "./blogPostSchema.js";
 
 const app = express();
-app.use(express.json({ limit: '50mb' }));
+app.use(express.json({ limit: '500mb' })); // Increase from 500mb to 100mb
+app.use(express.urlencoded({ limit: '500mb', extended: true }));
+
 
 // Connect to MongoDB
 mongoose.connect('mongodb://localhost:27017/blogDB')
@@ -28,6 +29,69 @@ conn.once('open', () => {
   });
 });
 
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'OK', timestamp: new Date().toISOString() });
+});
+
+// Post Groups API ------------------------------------------------------------------------
+app.get('/api/post-groups', async (req, res) => {
+  try {
+    const groups = await PostGroup.find().sort({ createdDate: -1 });
+    res.json(groups);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/post-groups', async (req, res) => {
+  try {
+    const { groupName, groupDescription } = req.body;
+
+    // Check if group already exists
+    const existingGroup = await PostGroup.findOne({ groupName });
+    if (existingGroup) {
+      return res.status(400).json({ error: 'Post group with this name already exists' });
+    }
+
+    const newGroup = new PostGroup({
+      groupName,
+      groupDescription
+    });
+
+    const savedGroup = await newGroup.save();
+    res.status(201).json(savedGroup);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// Get posts by group
+app.get('/api/posts/group/:groupId', async (req, res) => {
+  try {
+    const posts = await blogPost.find({
+      'postGroup.groupId': req.params.groupId
+    }).sort({ 'postGroup.sequence': 1 });
+    res.json(posts);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Update post sequence in group
+app.put('/api/posts/:id/sequence', async (req, res) => {
+  try {
+    const { sequence } = req.body;
+    const updatedPost = await blogPost.findOneAndUpdate(
+      { postId: parseInt(req.params.id) },
+      { 'postGroup.sequence': sequence },
+      { new: true }
+    );
+    res.json(updatedPost);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
 
 // Topics API ------------------------------------------------------------------------
 app.get('/api/topics', async (req, res) => {
@@ -52,7 +116,7 @@ app.post('/api/topics', async (req, res) => {
 // Posts API ---------------------------------------------------------------------------
 app.get('/api/posts', async (req, res) => {
   try {
-    const posts = await blogPost.find(); // Changed from Post to blogPost
+    const posts = await blogPost.find().sort({ postId: -1 });
     res.json(posts);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -75,10 +139,10 @@ app.get('/api/posts/:id', async (req, res) => {
 app.post('/api/posts', async (req, res) => {
   try {
     // Generate a new postId by finding the highest existing one and adding 1
-    const highestPost = await blogPost.findOne().sort('-postId'); // Changed from Post to blogPost
+    const highestPost = await blogPost.findOne().sort('-postId');
     const newPostId = highestPost ? highestPost.postId + 1 : 1;
 
-    const newPost = new blogPost({ // Changed from Post to blogPost
+    const newPost = new blogPost({
       ...req.body,
       postId: newPostId,
       postDate: new Date().toLocaleDateString('en-US', {
@@ -91,6 +155,7 @@ app.post('/api/posts', async (req, res) => {
     const savedPost = await newPost.save();
     res.status(201).json(savedPost);
   } catch (err) {
+    console.error('Error creating post:', err);
     res.status(400).json({ error: err.message });
   }
 });
@@ -117,11 +182,17 @@ app.delete('/api/posts/:id', async (req, res) => {
   }
 });
 
-// File Upload endpoint -------------------------------------------------------------------
+// Enhanced File Upload endpoint with sequencing -------------------------------------
 app.post('/api/upload/:postId', async (req, res) => {
   try {
     const { postId } = req.params;
-    const { filename, base64Data } = req.body;
+    const { filename, base64Data, fileType = 'attachment', sequence = 0 } = req.body;
+
+    // Validate post exists
+    const post = await blogPost.findOne({ postId: parseInt(postId) });
+    if (!post) {
+      return res.status(404).json({ error: 'Post not found' });
+    }
 
     const buffer = Buffer.from(base64Data, 'base64');
 
@@ -132,14 +203,16 @@ app.post('/api/upload/:postId', async (req, res) => {
 
       uploadStream.on('finish', async (file) => {
         try {
-          // Add file reference to post
+          // Add file reference to post with file type and sequence
           await blogPost.findOneAndUpdate(
-            { postId: postId },
+            { postId: parseInt(postId) },
             {
               $push: {
                 attachedFiles: {
                   filename: filename,
-                  fileId: uploadStream.id // Use uploadStream.id instead of file._id
+                  fileId: uploadStream.id,
+                  fileType: fileType,
+                  sequence: sequence
                 }
               }
             }
@@ -147,48 +220,97 @@ app.post('/api/upload/:postId', async (req, res) => {
 
           res.json({
             message: 'File uploaded successfully',
-            fileId: uploadStream.id
+            fileId: uploadStream.id,
+            filename: filename
           });
           resolve();
         } catch (error) {
+          console.error('Error updating post with file:', error);
           reject(error);
         }
       });
 
       uploadStream.on('error', (error) => {
+        console.error('Upload stream error:', error);
         reject(error);
       });
     });
 
   } catch (err) {
+    console.error('Upload endpoint error:', err);
     res.status(500).json({ error: err.message });
   }
 });
-
 
 // File Download Endpoint ---------------------------------------------------------
-app.get('/api/file/:fileId', (req, res) => {
+app.get('/api/file/:fileId', async (req, res) => {
   try {
     const fileId = new mongoose.Types.ObjectId(req.params.fileId);
-    const downloadStream = gfs.openDownloadStream(fileId);
 
-    downloadStream.on('data', (chunk) => {
-      res.write(chunk);
-    });
+    // First, get file metadata to determine the size
+    const filesCollection = conn.db.collection('uploads.files');
+    const fileDoc = await filesCollection.findOne({ _id: fileId });
 
-    downloadStream.on('end', () => {
-      res.end();
-    });
+    if (!fileDoc) {
+      return res.status(404).json({ error: 'File not found' });
+    }
 
-    downloadStream.on('error', (err) => {
-      res.status(404).json({ error: 'File not found' });
-    });
+    // Set proper headers for file download
+    res.setHeader('Content-Type', fileDoc.contentType || 'application/octet-stream');
+    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(fileDoc.filename)}"`);
+    res.setHeader('Content-Length', fileDoc.length);
+    res.setHeader('Accept-Ranges', 'bytes');
+
+    // Handle range requests for partial content (optional but good for large files)
+    const range = req.headers.range;
+    if (range) {
+      const parts = range.replace(/bytes=/, "").split("-");
+      const start = parseInt(parts[0], 10);
+      const end = parts[1] ? parseInt(parts[1], 10) : fileDoc.length - 1;
+      const chunksize = (end - start) + 1;
+
+      res.writeHead(206, {
+        'Content-Range': `bytes ${start}-${end}/${fileDoc.length}`,
+        'Content-Length': chunksize,
+      });
+
+      const downloadStream = gfs.openDownloadStream(fileId, { start, end });
+      downloadStream.pipe(res);
+
+      downloadStream.on('error', (err) => {
+        console.error('Download stream error:', err);
+        if (!res.headersSent) {
+          res.status(404).json({ error: 'File not found' });
+        }
+      });
+
+    } else {
+      // Standard full file download
+      const downloadStream = gfs.openDownloadStream(fileId);
+
+      downloadStream.pipe(res);
+
+      downloadStream.on('error', (err) => {
+        console.error('Download stream error:', err);
+        if (!res.headersSent) {
+          res.status(404).json({ error: 'File not found' });
+        }
+      });
+    }
 
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('File download error:', err);
+    if (!res.headersSent) {
+      res.status(500).json({ error: err.message });
+    }
   }
 });
 
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error('Unhandled error:', err);
+  res.status(500).json({ error: 'Internal server error' });
+});
 
 app.listen(8050, () => {
   console.log('Server running on http://localhost:8050');

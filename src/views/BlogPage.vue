@@ -169,24 +169,17 @@ const fetchPost = async () => {
 
 // Function to handle file downloads
 const downloadFile = async (fileId: string, filename: string) => {
-  try {
-    const response = await fetch(`/api/file/${fileId}`)
-    if (!response.ok) throw new Error('File not found')
 
-    const blob = await response.blob()
-    const url = window.URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = filename
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    window.URL.revokeObjectURL(url)
-  } catch (err) {
-    console.error('Error downloading file:', err)
-    alert('Failed to download file')
-  }
+  const url = `/api/file/${fileId}`
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  window.URL.revokeObjectURL(url)
 }
+
 
 // Load highlight.js dynamically
 const loadHighlightJS = async () => {

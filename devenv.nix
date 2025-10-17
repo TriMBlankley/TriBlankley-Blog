@@ -47,6 +47,7 @@
           location /api {
             proxy_pass http://localhost:8050 ;
           }
+          client_max_body_size 100M;
         }
 
       '';
