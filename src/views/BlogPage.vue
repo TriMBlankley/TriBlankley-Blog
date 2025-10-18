@@ -29,11 +29,22 @@ interface PostData {
     fileId: string
     uploadDate: string
   }>
+  postGroup?: {
+    groupId: string
+    groupName: string
+    sequence: number
+  }
 }
 
 const postData = ref<PostData | null>(null)
 const isLoading = ref(true)
 const error = ref<string | null>(null)
+
+// Navigation data
+const topicPosts = ref<PostData[]>([])
+const groupPosts = ref<PostData[]>([])
+const currentTopicIndex = ref(-1)
+const currentGroupIndex = ref(-1)
 
 const goToHome = () => router.push('/')
 
@@ -44,6 +55,104 @@ marked.setOptions({
   headerIds: true,
   mangle: false
 })
+
+// Computed properties for navigation
+const hasPreviousTopicPost = computed(() => currentTopicIndex.value > 0)
+const hasNextTopicPost = computed(() => currentTopicIndex.value < topicPosts.value.length - 1)
+const hasPreviousGroupPost = computed(() => currentGroupIndex.value > 0)
+const hasNextGroupPost = computed(() => currentGroupIndex.value < groupPosts.value.length - 1)
+
+const previousTopicPost = computed(() =>
+  hasPreviousTopicPost.value ? topicPosts.value[currentTopicIndex.value - 1] : null
+)
+const nextTopicPost = computed(() =>
+  hasNextTopicPost.value ? topicPosts.value[currentTopicIndex.value + 1] : null
+)
+const previousGroupPost = computed(() =>
+  hasPreviousGroupPost.value ? groupPosts.value[currentGroupIndex.value - 1] : null
+)
+const nextGroupPost = computed(() =>
+  hasNextGroupPost.value ? groupPosts.value[currentGroupIndex.value + 1] : null
+)
+
+// Navigation functions
+const scrollToTop = () => {
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+}
+
+const goToPreviousTopicPost = () => {
+  if (previousTopicPost.value) {
+    router.push(`/BlogPage/${previousTopicPost.value.postId}`)
+  }
+}
+
+const goToNextTopicPost = () => {
+  if (nextTopicPost.value) {
+    router.push(`/BlogPage/${nextTopicPost.value.postId}`)
+  }
+}
+
+const goToPreviousGroupPost = () => {
+  if (previousGroupPost.value) {
+    router.push(`/BlogPage/${previousGroupPost.value.postId}`)
+  }
+}
+
+const goToNextGroupPost = () => {
+  if (nextGroupPost.value) {
+    router.push(`/BlogPage/${nextGroupPost.value.postId}`)
+  }
+}
+
+// Fetch posts by topic
+// Fetch posts by topic
+const fetchTopicPosts = async () => {
+  if (!postData.value?.postTopics?.length) return
+
+  try {
+    const allPosts = await fetch('/api/posts').then(res => res.json())
+
+    // Filter for published posts that share at least one topic with current post
+    const postsWithSameTopics = allPosts.filter((post: PostData) =>
+      post.isPublished &&
+      post.postId !== postData.value?.postId &&
+      post.postTopics && post.postTopics.length > 0 &&
+      post.postTopics.some(topic => postData.value?.postTopics.includes(topic))
+    )
+
+    // Sort by postId in descending order (newest first) for consistent navigation
+    topicPosts.value = postsWithSameTopics.sort((a: PostData, b: PostData) => b.postId - a.postId)
+
+    // Find current post index in topic posts
+    currentTopicIndex.value = topicPosts.value.findIndex(
+      (post: PostData) => post.postId === postData.value?.postId
+    )
+
+    console.log('Topic posts found:', topicPosts.value.length)
+    console.log('Current topic index:', currentTopicIndex.value)
+  } catch (err) {
+    console.error('Error fetching topic posts:', err)
+  }
+}
+
+// Fetch posts by group
+const fetchGroupPosts = async () => {
+  if (!postData.value?.postGroup?.groupId) return
+
+  try {
+    const response = await fetch(`/api/posts/group/${postData.value.postGroup.groupId}`)
+    if (response.ok) {
+      groupPosts.value = await response.json()
+
+      // Find current post index in group posts
+      currentGroupIndex.value = groupPosts.value.findIndex(
+        (post: PostData) => post.postId === postData.value?.postId
+      )
+    }
+  } catch (err) {
+    console.error('Error fetching group posts:', err)
+  }
+}
 
 // Computed property to get images in upload order
 const attachedImages = computed(() => {
@@ -159,6 +268,9 @@ const fetchPost = async () => {
         )
       }
     }
+
+    // Fetch navigation data after post is loaded
+    await Promise.all([fetchTopicPosts(), fetchGroupPosts()])
   } catch (err) {
     console.error('Error loading post:', err)
     error.value = err instanceof Error ? err.message : 'Unknown error occurred'
@@ -331,7 +443,17 @@ watch(() => route.params.id, async (newId) => {
         </div>
       </div>
 
-      <BottomNav />
+      <BottomNav
+        :has-previous-topic="hasPreviousTopicPost"
+        :has-next-topic="hasNextTopicPost"
+        :has-previous-group="hasPreviousGroupPost"
+        :has-next-group="hasNextGroupPost"
+        @scroll-to-top="scrollToTop"
+        @previous-topic="goToPreviousTopicPost"
+        @next-topic="goToNextTopicPost"
+        @previous-group="goToPreviousGroupPost"
+        @next-group="goToNextGroupPost"
+      />
     </template>
   </div>
 </template>
