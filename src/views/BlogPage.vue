@@ -56,11 +56,16 @@ marked.setOptions({
   mangle: false
 })
 
-// Computed properties for navigation
+// Navigation functions
+const scrollToTop = () => {
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+}
+
+
+
+// The computed properties and navigation functions stay the same
 const hasPreviousTopicPost = computed(() => currentTopicIndex.value > 0)
 const hasNextTopicPost = computed(() => currentTopicIndex.value < topicPosts.value.length - 1)
-const hasPreviousGroupPost = computed(() => currentGroupIndex.value > 0)
-const hasNextGroupPost = computed(() => currentGroupIndex.value < groupPosts.value.length - 1)
 
 const previousTopicPost = computed(() =>
   hasPreviousTopicPost.value ? topicPosts.value[currentTopicIndex.value - 1] : null
@@ -68,91 +73,222 @@ const previousTopicPost = computed(() =>
 const nextTopicPost = computed(() =>
   hasNextTopicPost.value ? topicPosts.value[currentTopicIndex.value + 1] : null
 )
-const previousGroupPost = computed(() =>
-  hasPreviousGroupPost.value ? groupPosts.value[currentGroupIndex.value - 1] : null
-)
-const nextGroupPost = computed(() =>
-  hasNextGroupPost.value ? groupPosts.value[currentGroupIndex.value + 1] : null
-)
 
-// Navigation functions
-const scrollToTop = () => {
-  window.scrollTo({ top: 0, behavior: 'smooth' })
-}
-
-const goToPreviousTopicPost = () => {
-  if (previousTopicPost.value) {
-    router.push(`/BlogPage/${previousTopicPost.value.postId}`)
-  }
-}
-
-const goToNextTopicPost = () => {
-  if (nextTopicPost.value) {
-    router.push(`/BlogPage/${nextTopicPost.value.postId}`)
-  }
-}
-
-const goToPreviousGroupPost = () => {
-  if (previousGroupPost.value) {
-    router.push(`/BlogPage/${previousGroupPost.value.postId}`)
-  }
-}
-
-const goToNextGroupPost = () => {
-  if (nextGroupPost.value) {
-    router.push(`/BlogPage/${nextGroupPost.value.postId}`)
-  }
-}
-
-// Fetch posts by topic
 // Fetch posts by topic
 const fetchTopicPosts = async () => {
-  if (!postData.value?.postTopics?.length) return
+  if (!postData.value?.postTopics?.length) {
+    console.log('❌ No post topics found for current post')
+    return
+  }
 
   try {
+    console.log('🔄 Fetching topic posts...')
+    console.log('📝 Current post topics:', postData.value.postTopics)
+    console.log('🆔 Current post ID:', postData.value.postId)
+
     const allPosts = await fetch('/api/posts').then(res => res.json())
+    console.log('📋 Total posts fetched:', allPosts.length)
 
-    // Filter for published posts that share at least one topic with current post
-    const postsWithSameTopics = allPosts.filter((post: PostData) =>
-      post.isPublished &&
-      post.postId !== postData.value?.postId &&
-      post.postTopics && post.postTopics.length > 0 &&
-      post.postTopics.some(topic => postData.value?.postTopics.includes(topic))
-    )
+    // Include current post in the array to establish proper sequence
+    const postsWithSameTopics = allPosts.filter((post: PostData) => {
+      const hasCommonTopic = post.isPublished &&
+        post.postTopics && post.postTopics.length > 0 &&
+        post.postTopics.some(topic => postData.value?.postTopics.includes(topic))
 
-    // Sort by postId in descending order (newest first) for consistent navigation
-    topicPosts.value = postsWithSameTopics.sort((a: PostData, b: PostData) => b.postId - a.postId)
+      if (hasCommonTopic) {
+        console.log(`✅ Found related post: ${post.postId} - "${post.postTitle}"`)
+        console.log(`   Topics: ${post.postTopics.join(', ')}`)
+      }
+
+      return hasCommonTopic
+    })
+
+    console.log(`🎯 Found ${postsWithSameTopics.length} posts with common topics`)
+
+    // FIX: Sort by postId in ASCENDING order (oldest first) for intuitive navigation
+    topicPosts.value = postsWithSameTopics.sort((a: PostData, b: PostData) => a.postId - b.postId)
 
     // Find current post index in topic posts
     currentTopicIndex.value = topicPosts.value.findIndex(
       (post: PostData) => post.postId === postData.value?.postId
     )
 
-    console.log('Topic posts found:', topicPosts.value.length)
-    console.log('Current topic index:', currentTopicIndex.value)
+    console.log('📊 Topic posts array (oldest first):', topicPosts.value.map(p => ({ id: p.postId, title: p.postTitle })))
+    console.log('📍 Current topic index:', currentTopicIndex.value)
+    console.log('⬅️ Has previous topic post:', hasPreviousTopicPost.value)
+    console.log('➡️ Has next topic post:', hasNextTopicPost.value)
+
+    if (currentTopicIndex.value === -1) {
+      console.log('❌ Current post not found in topic posts array - this should not happen!')
+    }
   } catch (err) {
-    console.error('Error fetching topic posts:', err)
+    console.error('❌ Error fetching topic posts:', err)
   }
 }
 
+const goToPreviousTopicPost = () => {
+  console.log('⬅️ Previous Topic Button Clicked')
+  console.log('Current topic index:', currentTopicIndex.value)
+  console.log('Total topic posts:', topicPosts.value.length)
+  console.log('Previous topic post available:', hasPreviousTopicPost.value)
+
+  if (previousTopicPost.value) {
+    console.log(`🔄 Navigating to PREVIOUS (older) topic post: ${previousTopicPost.value.postId}`)
+    console.log(`Title: "${previousTopicPost.value.postTitle}"`)
+    console.log(`This should be an OLDER post than current`)
+    router.push(`/BlogPage/${previousTopicPost.value.postId}`)
+  } else {
+    console.log('❌ No previous topic post available')
+  }
+}
+
+const goToNextTopicPost = () => {
+  console.log('➡️ Next Topic Button Clicked')
+  console.log('Current topic index:', currentTopicIndex.value)
+  console.log('Total topic posts:', topicPosts.value.length)
+  console.log('Next topic post available:', hasNextTopicPost.value)
+
+  if (nextTopicPost.value) {
+    console.log(`🔄 Navigating to NEXT (newer) topic post: ${nextTopicPost.value.postId}`)
+    console.log(`Title: "${nextTopicPost.value.postTitle}"`)
+    console.log(`This should be a NEWER post than current`)
+    router.push(`/BlogPage/${nextTopicPost.value.postId}`)
+  } else {
+    console.log('❌ No next topic post available')
+  }
+}
+
+
+
+
+
+
+// Update computed properties with logging
+const hasPreviousGroupPost = computed(() => {
+  const result = currentGroupIndex.value > 0
+  console.log('🔍 hasPreviousGroupPost computed:', result, '(currentIndex:', currentGroupIndex.value, ')')
+  return result
+})
+
+const hasNextGroupPost = computed(() => {
+  const result = currentGroupIndex.value < groupPosts.value.length - 1
+  console.log('🔍 hasNextGroupPost computed:', result, '(currentIndex:', currentGroupIndex.value, ', total:', groupPosts.value.length, ')')
+  return result
+})
+
+const previousGroupPost = computed(() => {
+  const result = hasPreviousGroupPost.value ? groupPosts.value[currentGroupIndex.value - 1] : null
+  console.log('🔍 previousGroupPost computed:', result ? `ID ${result.postId}` : 'null')
+  return result
+})
+
+const nextGroupPost = computed(() => {
+  const result = hasNextGroupPost.value ? groupPosts.value[currentGroupIndex.value + 1] : null
+  console.log('🔍 nextGroupPost computed:', result ? `ID ${result.postId}` : 'null')
+  return result
+})
+
 // Fetch posts by group
 const fetchGroupPosts = async () => {
-  if (!postData.value?.postGroup?.groupId) return
+  if (!postData.value?.postGroup?.groupId) {
+    console.log('❌ No post group found for current post')
+    console.log('Post group data:', postData.value?.postGroup)
+    return
+  }
 
   try {
+    console.log('🔄 Fetching group posts...')
+    console.log('📋 Current post group:', postData.value.postGroup)
+    console.log('🆔 Current post ID:', postData.value.postId)
+
     const response = await fetch(`/api/posts/group/${postData.value.postGroup.groupId}`)
     if (response.ok) {
       groupPosts.value = await response.json()
+      console.log('📦 Group posts fetched:', groupPosts.value.length)
+
+      // Log all posts in the group for debugging
+      console.log('📊 All posts in group:')
+      groupPosts.value.forEach((post: PostData, index: number) => {
+        console.log(`   ${index}: ID ${post.postId} - "${post.postTitle}" - Sequence: ${post.postGroup?.sequence || 'N/A'}`)
+      })
 
       // Find current post index in group posts
       currentGroupIndex.value = groupPosts.value.findIndex(
         (post: PostData) => post.postId === postData.value?.postId
       )
+
+      console.log('📍 Current group index:', currentGroupIndex.value)
+      console.log('⬅️ Has previous group post:', hasPreviousGroupPost.value)
+      console.log('➡️ Has next group post:', hasNextGroupPost.value)
+
+      if (currentGroupIndex.value === -1) {
+        console.log('❌ Current post not found in group posts array!')
+        console.log('This might indicate:')
+        console.log('   - The post is not properly associated with the group')
+        console.log('   - There is a mismatch between postId and group membership')
+        console.log('   - The API response does not include the current post')
+      } else {
+        console.log('✅ Current post found in group at index:', currentGroupIndex.value)
+      }
+    } else {
+      console.error('❌ Failed to fetch group posts:', response.status, response.statusText)
     }
   } catch (err) {
-    console.error('Error fetching group posts:', err)
+    console.error('❌ Error fetching group posts:', err)
   }
 }
+
+const goToPreviousGroupPost = () => {
+  console.log('⬅️ Previous Group Button Clicked')
+  console.log('Current group index:', currentGroupIndex.value)
+  console.log('Total group posts:', groupPosts.value.length)
+  console.log('Previous group post available:', hasPreviousGroupPost.value)
+  console.log('Previous group post data:', previousGroupPost.value)
+
+  if (previousGroupPost.value) {
+    console.log(`🔄 Navigating to previous group post: ${previousGroupPost.value.postId}`)
+    console.log(`Title: "${previousGroupPost.value.postTitle}"`)
+    console.log(`Sequence: ${previousGroupPost.value.postGroup?.sequence || 'N/A'}`)
+    router.push(`/BlogPage/${previousGroupPost.value.postId}`)
+  } else {
+    console.log('❌ No previous group post available')
+    console.log('Possible reasons:')
+    console.log('   - This is the first post in the group')
+    console.log('   - Current post not properly indexed in group')
+    console.log('   - Group posts array is empty')
+  }
+}
+
+const goToNextGroupPost = () => {
+  console.log('➡️ Next Group Button Clicked')
+  console.log('Current group index:', currentGroupIndex.value)
+  console.log('Total group posts:', groupPosts.value.length)
+  console.log('Next group post available:', hasNextGroupPost.value)
+  console.log('Next group post data:', nextGroupPost.value)
+
+  if (nextGroupPost.value) {
+    console.log(`🔄 Navigating to next group post: ${nextGroupPost.value.postId}`)
+    console.log(`Title: "${nextGroupPost.value.postTitle}"`)
+    console.log(`Sequence: ${nextGroupPost.value.postGroup?.sequence || 'N/A'}`)
+    router.push(`/BlogPage/${nextGroupPost.value.postId}`)
+  } else {
+    console.log('❌ No next group post available')
+    console.log('Possible reasons:')
+    console.log('   - This is the last post in the group')
+    console.log('   - Current post not properly indexed in group')
+    console.log('   - Group posts array is empty')
+  }
+}
+
+
+
+
+
+
+
+
+
+
 
 // Computed property to get images in upload order
 const attachedImages = computed(() => {
@@ -464,7 +600,7 @@ watch(() => route.params.id, async (newId) => {
   min-height: 100vh;
   margin: 0 auto;
   padding: 20px;
-  background-color: var(--background);
+  background: var(--background);
   border-left: solid 3px;
   border-right: solid 3px;
   border-color: color-mix(in oklab, var(--background), var(--text) 45%);

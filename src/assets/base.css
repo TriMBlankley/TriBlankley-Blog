@@ -51,7 +51,7 @@ body {
 
   /* Color Formatting -----------------*/
   color: var(--text);
-  background: var(--background);
+  background-color: var(--background);
   transition:
     color 0.2s ease,
     background-color 0.2s ease;
@@ -75,4 +75,9 @@ body {
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* FIXES OVERSCROLLING COLOR ISSUES!!!!!!! */
+html {
+  background-color: var(--background);
 }

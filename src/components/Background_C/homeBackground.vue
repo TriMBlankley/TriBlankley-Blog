@@ -14,8 +14,8 @@ const { isDarkMode } = useTheme();
 <style>
 .home-background {
   /* Size ---------- */
-  height: 100vh;
-  width: 100vw;
+  height: 100%;
+  width: 100%;
 
   /* Position -------- */
   background-size: cover;
