@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { useRoute } from 'vue-router';
-import ThemeToggle from '@/components/Settings_C/themeToggle.vue';
+import ThemeToggle from '@/components/Settings_C/ThemeToggle.vue';
 import HomeSettings from '@/components/Settings_C/HomeSettings.vue';
 import SettingsCogSVG from '@/assets/uiElements/settingsCog.svg';
 

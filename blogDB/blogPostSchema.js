@@ -9,7 +9,9 @@ const topicSchema = new mongoose.Schema({
 const postGroupSchema = new mongoose.Schema({
   groupName: { type: String, required: true, unique: true },
   groupDescription: { type: String, default: '' },
-  createdDate: { type: Date, default: Date.now }
+  groupColor: { type: String, default: '#007bff' }, // Added group color field
+  createdDate: { type: Date, default: Date.now },
+  updatedDate: { type: Date, default: Date.now }
 });
 
 const postSchema = new mongoose.Schema({
@@ -18,12 +20,13 @@ const postSchema = new mongoose.Schema({
   postAuthor: { type: String, required: true },
   postDate: { type: String, required: true },
   postContent: { type: String, required: true },
-  contentType: { type: String, default: 'markdown' },
+  contentType: { type: String, default: 'Text' },
   postTopics: { type: [String], default: [] },
   isPublished: { type: Boolean, default: false },
   postGroup: {
     groupId: { type: mongoose.Schema.Types.ObjectId, ref: 'PostGroup' },
     groupName: { type: String },
+    groupColor: { type: String }, // Added group color to post reference
     sequence: { type: Number, default: 0 } // Order within the group
   },
   attachedFiles: [{

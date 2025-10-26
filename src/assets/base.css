@@ -77,7 +77,7 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* FIXES OVERSCROLLING COLOR ISSUES!!!!!!! */
+/* FIXES OVERSCROLLING COLOR ISSUES!!!!!!! deve*/
 html {
   background-color: var(--background);
 }

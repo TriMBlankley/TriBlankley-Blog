@@ -63,6 +63,27 @@
           <span v-if="fieldErrors.postAuthor" class="error-text">{{ fieldErrors.postAuthor }}</span>
         </div>
 
+        <!-- Content Type Selection -->
+        <div class="form-group">
+          <label for="contentType">Content Type *</label>
+          <select
+            id="contentType"
+            v-model="postData.contentType"
+            class="form-input"
+            :class="{ 'error': fieldErrors.contentType }"
+            required
+          >
+            <option value="">Select content type...</option>
+            <option value="Text">Text</option>
+            <option value="Code">Code</option>
+            <option value="File">File</option>
+            <option value="Video">Video</option>
+            <option value="Music">Music</option>
+            <option value="None">None</option>
+          </select>
+          <span v-if="fieldErrors.contentType" class="error-text">{{ fieldErrors.contentType }}</span>
+        </div>
+
         <div class="form-group">
           <label for="isPublished">Publish Status</label>
           <div class="checkbox-group">
@@ -115,14 +136,45 @@
           <div class="group-selection">
             <select v-model="selectedGroupId" class="form-input">
               <option value="">No Group</option>
-              <option v-for="group in availableGroups" :key="group._id" :value="group._id">
+              <option
+                v-for="group in availableGroups"
+                :key="group._id"
+                :value="group._id"
+                :style="{ color: group.groupColor }"
+              >
                 {{ group.groupName }}
               </option>
             </select>
-            <button type="button" @click="showCreateGroup = true" class="btn btn-outline">
+            <button
+              type="button"
+              @click="showCreateGroup = true"
+              class="btn btn-outline"
+            >
               + Create New Group
             </button>
+            <button
+              v-if="selectedGroupId"
+              type="button"
+              @click="editSelectedGroup"
+              class="btn btn-outline"
+            >
+              ✏️ Edit Group
+            </button>
           </div>
+        </div>
+
+        <!-- Selected group display with color -->
+        <div v-if="selectedGroup" class="selected-group-display">
+          <span
+            class="group-tag"
+            :style="{
+              backgroundColor: selectedGroup.groupColor + '20',
+              borderColor: selectedGroup.groupColor,
+              color: selectedGroup.groupColor
+            }"
+          >
+            {{ selectedGroup.groupName }}
+          </span>
         </div>
 
         <!-- Create New Group Modal -->
@@ -144,11 +196,64 @@
               <label>Description</label>
               <textarea v-model="newGroup.groupDescription" class="form-input" placeholder="Optional description"></textarea>
             </div>
+            <div class="form-group">
+              <label>Group Color</label>
+              <div class="color-picker-container">
+                <input
+                  v-model="newGroup.groupColor"
+                  type="color"
+                  class="color-picker"
+                >
+                <span class="color-value">{{ newGroup.groupColor }}</span>
+              </div>
+            </div>
             <div class="modal-actions">
               <button @click="createNewGroup" class="btn btn-primary" :disabled="!newGroup.groupName">
                 Create Group
               </button>
               <button @click="cancelCreateGroup" class="btn btn-secondary">Cancel</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Edit Group Modal -->
+        <div v-if="showEditGroup" class="modal-overlay">
+          <div class="modal-content">
+            <h3>Edit Post Group</h3>
+            <div class="form-group">
+              <label>Group Name *</label>
+              <input
+                v-model="editingGroup.groupName"
+                type="text"
+                class="form-input"
+                placeholder="Enter group name"
+                :class="{ 'error': fieldErrors.editingGroupName }"
+              >
+              <span v-if="fieldErrors.editingGroupName" class="error-text">{{ fieldErrors.editingGroupName }}</span>
+            </div>
+            <div class="form-group">
+              <label>Description</label>
+              <textarea v-model="editingGroup.groupDescription" class="form-input" placeholder="Optional description"></textarea>
+            </div>
+            <div class="form-group">
+              <label>Group Color</label>
+              <div class="color-picker-container">
+                <input
+                  v-model="editingGroup.groupColor"
+                  type="color"
+                  class="color-picker"
+                >
+                <span class="color-value">{{ editingGroup.groupColor }}</span>
+              </div>
+            </div>
+            <div class="modal-actions">
+              <button @click="updateGroup" class="btn btn-primary" :disabled="!editingGroup.groupName">
+                Update Group
+              </button>
+              <button @click="deleteGroup" class="btn btn-danger">
+                Delete Group
+              </button>
+              <button @click="cancelEditGroup" class="btn btn-secondary">Cancel</button>
             </div>
           </div>
         </div>
@@ -247,7 +352,6 @@
         </div>
       </div>
 
-      <!-- Replace the Additional Attachments section in PostCreator.vue -->
       <!-- Additional Attachments -->
       <div class="form-section">
         <h2>Additional Attachments</h2>
@@ -370,6 +474,7 @@ export default {
         postAuthor: '',
         postContent: '',
         postTopics: [], // This will now contain the selected topic
+        contentType: 'Text', // Default to 'Text'
         isPublished: false,
         postGroup: null
       },
@@ -382,9 +487,17 @@ export default {
       selectedGroupId: '',
       newGroup: {
         groupName: '',
-        groupDescription: ''
+        groupDescription: '',
+        groupColor: '#007bff'
       },
       showCreateGroup: false,
+      showEditGroup: false,
+      editingGroup: {
+        _id: '',
+        groupName: '',
+        groupDescription: '',
+        groupColor: '#007bff'
+      },
       isSubmitting: false,
       showPreview: false,
       showSuccessModal: false,
@@ -396,14 +509,14 @@ export default {
     };
   },
 
-
   computed: {
     isFormValid() {
       return (
         this.postData.postTitle.trim() &&
         this.postData.postAuthor.trim() &&
         this.postData.postContent.trim() &&
-        this.selectedTopic.trim()
+        this.selectedTopic.trim() &&
+        this.postData.contentType.trim()
       );
     },
 
@@ -419,6 +532,11 @@ export default {
 
     attachmentImages() {
       return this.attachedFiles.filter(file => file.type.startsWith('image/'));
+    },
+
+    selectedGroup() {
+      if (!this.selectedGroupId) return null;
+      return this.availableGroups.find(group => group._id === this.selectedGroupId);
     }
   },
 
@@ -500,7 +618,7 @@ export default {
         this.availableGroups.push(newGroup);
         this.selectedGroupId = newGroup._id;
         this.showCreateGroup = false;
-        this.newGroup = { groupName: '', groupDescription: '' };
+        this.newGroup = { groupName: '', groupDescription: '', groupColor: '#007bff' };
         this.fieldErrors.groupName = '';
       } catch (error) {
         this.showError('Failed to create group: ' + error.message);
@@ -509,8 +627,105 @@ export default {
 
     cancelCreateGroup() {
       this.showCreateGroup = false;
-      this.newGroup = { groupName: '', groupDescription: '' };
+      this.newGroup = { groupName: '', groupDescription: '', groupColor: '#007bff' };
       this.fieldErrors.groupName = '';
+    },
+
+    editSelectedGroup() {
+      if (!this.selectedGroupId) return;
+
+      const group = this.availableGroups.find(g => g._id === this.selectedGroupId);
+      if (group) {
+        this.editingGroup = { ...group };
+        this.showEditGroup = true;
+      }
+    },
+
+    async updateGroup() {
+      if (!this.editingGroup.groupName.trim()) {
+        this.fieldErrors.editingGroupName = 'Group name is required';
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/post-groups/${this.editingGroup._id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            groupName: this.editingGroup.groupName,
+            groupDescription: this.editingGroup.groupDescription,
+            groupColor: this.editingGroup.groupColor
+          })
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          let errorMessage = 'Failed to update group';
+          try {
+            const errorData = JSON.parse(errorText);
+            errorMessage = errorData.error || errorMessage;
+          } catch {
+            errorMessage = errorText || errorMessage;
+          }
+          throw new Error(errorMessage);
+        }
+
+        const updatedGroup = await response.json();
+
+        // Update the group in the available groups list
+        const index = this.availableGroups.findIndex(g => g._id === updatedGroup._id);
+        if (index !== -1) {
+          this.availableGroups[index] = updatedGroup;
+        }
+
+        this.showEditGroup = false;
+        this.editingGroup = { _id: '', groupName: '', groupDescription: '', groupColor: '#007bff' };
+        this.fieldErrors.editingGroupName = '';
+
+        this.showError('Group updated successfully!', 'success');
+      } catch (error) {
+        this.showError('Failed to update group: ' + error.message);
+      }
+    },
+
+    async deleteGroup() {
+      if (!confirm('Are you sure you want to delete this group? Posts will keep their content but will no longer be associated with this group.')) {
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/post-groups/${this.editingGroup._id}`, {
+          method: 'DELETE'
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(errorText || 'Failed to delete group');
+        }
+
+        // Remove group from available groups
+        this.availableGroups = this.availableGroups.filter(g => g._id !== this.editingGroup._id);
+
+        // Clear selected group if it was the deleted one
+        if (this.selectedGroupId === this.editingGroup._id) {
+          this.selectedGroupId = '';
+        }
+
+        this.showEditGroup = false;
+        this.editingGroup = { _id: '', groupName: '', groupDescription: '', groupColor: '#007bff' };
+
+        this.showError('Group deleted successfully!', 'success');
+      } catch (error) {
+        this.showError('Failed to delete group: ' + error.message);
+      }
+    },
+
+    cancelEditGroup() {
+      this.showEditGroup = false;
+      this.editingGroup = { _id: '', groupName: '', groupDescription: '', groupColor: '#007bff' };
+      this.fieldErrors.editingGroupName = '';
     },
 
     handleMarkdownUpload(event) {
@@ -643,6 +858,10 @@ export default {
         this.fieldErrors.postTopics = 'Please select a post topic';
       }
 
+      if (!this.postData.contentType.trim()) {
+        this.fieldErrors.contentType = 'Please select a content type';
+      }
+
       return Object.keys(this.fieldErrors).length === 0;
     },
 
@@ -713,6 +932,7 @@ export default {
           postData.postGroup = {
             groupId: this.selectedGroupId,
             groupName: selectedGroup.groupName,
+            groupColor: selectedGroup.groupColor, // Add group color
             sequence: 0
           };
         }
@@ -797,7 +1017,15 @@ export default {
       }
     },
 
-    showError(message) {
+    showError(message, type = 'error') {
+      if (type === 'success') {
+        // For success messages, we can use a different styling or just log to console
+        console.log('Success:', message);
+        // You might want to implement a success notification system here
+        this.errorMessage = ''; // Clear any existing error
+        return;
+      }
+
       this.errorMessage = message;
       // Auto-hide error after 10 seconds
       setTimeout(() => {
@@ -819,6 +1047,7 @@ export default {
         postAuthor: '',
         postContent: '',
         postTopics: [],
+        contentType: 'Text', // Reset to default
         isPublished: false,
         postGroup: null
       };
@@ -841,7 +1070,7 @@ export default {
     viewPost() {
       if (this.createdPostId) {
         // Navigate to the post view page
-        this.$router.push(`/post/${this.createdPostId}`);
+        this.$router.push(`/BlogPage/${this.createdPostId}`);
       }
       this.showSuccessModal = false;
     }
@@ -871,6 +1100,47 @@ export default {
   border-radius: 20px;
   font-size: 14px;
   font-weight: 500;
+}
+
+.selected-group-display {
+  margin-top: 10px;
+}
+
+.group-tag {
+  display: inline-block;
+  padding: 8px 16px;
+  border: 2px solid;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.color-picker-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.color-picker {
+  width: 50px;
+  height: 40px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.color-value {
+  font-family: monospace;
+  font-size: 14px;
+}
+
+.btn-danger {
+  background: #dc3545;
+  color: white;
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: #c82333;
 }
 
 /* Keep all the existing styles from the previous component */
@@ -1204,7 +1474,65 @@ export default {
   display: block;
   margin-top: 8px;
   font-size: 12px;
-  color: #6b7280;
-  word-break: break-all;
+  color: #666;
+  word-break: break-word;
+}
+
+.section-description {
+  color: #666;
+  margin-bottom: 15px;
+  line-height: 1.5;
+}
+
+.section-description code {
+  background: #f4f4f4;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-family: monospace;
+}
+
+.preview-section {
+  margin-top: 20px;
+}
+
+.preview-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.preview-toggle {
+  background: #6c757d;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.preview-toggle:hover {
+  background: #545b62;
+}
+
+.markdown-preview {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 20px;
+  background: #f9f9f9;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.checkbox-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.checkbox-label {
+  margin: 0;
+  cursor: pointer;
 }
 </style>

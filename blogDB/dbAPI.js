@@ -93,6 +93,90 @@ app.put('/api/posts/:id/sequence', async (req, res) => {
   }
 });
 
+
+// Add to the existing Post Groups API section in dbAPI.js
+
+// Update post group
+app.put('/api/post-groups/:id', async (req, res) => {
+  try {
+    const { groupName, groupDescription, groupColor } = req.body;
+
+    // Check if group name already exists (excluding current group)
+    if (groupName) {
+      const existingGroup = await PostGroup.findOne({
+        groupName,
+        _id: { $ne: req.params.id }
+      });
+      if (existingGroup) {
+        return res.status(400).json({ error: 'Post group with this name already exists' });
+      }
+    }
+
+    const updatedGroup = await PostGroup.findByIdAndUpdate(
+      req.params.id,
+      {
+        ...(groupName && { groupName }),
+        ...(groupDescription !== undefined && { groupDescription }),
+        ...(groupColor && { groupColor }),
+        updatedDate: new Date()
+      },
+      { new: true }
+    );
+
+    if (!updatedGroup) {
+      return res.status(404).json({ error: 'Post group not found' });
+    }
+
+    // Update group color in all associated posts
+    await blogPost.updateMany(
+      { 'postGroup.groupId': req.params.id },
+      {
+        'postGroup.groupName': updatedGroup.groupName,
+        'postGroup.groupColor': updatedGroup.groupColor
+      }
+    );
+
+    res.json(updatedGroup);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// Delete post group
+app.delete('/api/post-groups/:id', async (req, res) => {
+  try {
+    // Remove group reference from all posts
+    await blogPost.updateMany(
+      { 'postGroup.groupId': req.params.id },
+      { $unset: { postGroup: 1 } }
+    );
+
+    // Delete the group
+    const deletedGroup = await PostGroup.findByIdAndDelete(req.params.id);
+
+    if (!deletedGroup) {
+      return res.status(404).json({ error: 'Post group not found' });
+    }
+
+    res.json({ message: 'Post group deleted successfully' });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// Get single post group
+app.get('/api/post-groups/:id', async (req, res) => {
+  try {
+    const group = await PostGroup.findById(req.params.id);
+    if (!group) {
+      return res.status(404).json({ error: 'Post group not found' });
+    }
+    res.json(group);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Topics API ------------------------------------------------------------------------
 app.get('/api/topics', async (req, res) => {
   try {

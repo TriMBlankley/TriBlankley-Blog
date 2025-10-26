@@ -28,6 +28,8 @@ interface PostData {
     filename: string
     fileId: string
     uploadDate: string
+    fileType?: string
+    sequence?: number
   }>
   postGroup?: {
     groupId: string
@@ -61,8 +63,6 @@ const scrollToTop = () => {
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
-
-
 // The computed properties and navigation functions stay the same
 const hasPreviousTopicPost = computed(() => currentTopicIndex.value > 0)
 const hasNextTopicPost = computed(() => currentTopicIndex.value < topicPosts.value.length - 1)
@@ -83,9 +83,6 @@ const fetchTopicPosts = async () => {
 
   try {
     console.log('🔄 Fetching topic posts...')
-    console.log('📝 Current post topics:', postData.value.postTopics)
-    console.log('🆔 Current post ID:', postData.value.postId)
-
     const allPosts = await fetch('/api/posts').then(res => res.json())
     console.log('📋 Total posts fetched:', allPosts.length)
 
@@ -95,17 +92,12 @@ const fetchTopicPosts = async () => {
         post.postTopics && post.postTopics.length > 0 &&
         post.postTopics.some(topic => postData.value?.postTopics.includes(topic))
 
-      if (hasCommonTopic) {
-        console.log(`✅ Found related post: ${post.postId} - "${post.postTitle}"`)
-        console.log(`   Topics: ${post.postTopics.join(', ')}`)
-      }
-
       return hasCommonTopic
     })
 
     console.log(`🎯 Found ${postsWithSameTopics.length} posts with common topics`)
 
-    // FIX: Sort by postId in ASCENDING order (oldest first) for intuitive navigation
+    // Sort by postId in ASCENDING order (oldest first) for intuitive navigation
     topicPosts.value = postsWithSameTopics.sort((a: PostData, b: PostData) => a.postId - b.postId)
 
     // Find current post index in topic posts
@@ -115,102 +107,52 @@ const fetchTopicPosts = async () => {
 
     console.log('📊 Topic posts array (oldest first):', topicPosts.value.map(p => ({ id: p.postId, title: p.postTitle })))
     console.log('📍 Current topic index:', currentTopicIndex.value)
-    console.log('⬅️ Has previous topic post:', hasPreviousTopicPost.value)
-    console.log('➡️ Has next topic post:', hasNextTopicPost.value)
-
-    if (currentTopicIndex.value === -1) {
-      console.log('❌ Current post not found in topic posts array - this should not happen!')
-    }
   } catch (err) {
     console.error('❌ Error fetching topic posts:', err)
   }
 }
 
 const goToPreviousTopicPost = () => {
-  console.log('⬅️ Previous Topic Button Clicked')
-  console.log('Current topic index:', currentTopicIndex.value)
-  console.log('Total topic posts:', topicPosts.value.length)
-  console.log('Previous topic post available:', hasPreviousTopicPost.value)
-
   if (previousTopicPost.value) {
-    console.log(`🔄 Navigating to PREVIOUS (older) topic post: ${previousTopicPost.value.postId}`)
-    console.log(`Title: "${previousTopicPost.value.postTitle}"`)
-    console.log(`This should be an OLDER post than current`)
     router.push(`/BlogPage/${previousTopicPost.value.postId}`)
-  } else {
-    console.log('❌ No previous topic post available')
   }
 }
 
 const goToNextTopicPost = () => {
-  console.log('➡️ Next Topic Button Clicked')
-  console.log('Current topic index:', currentTopicIndex.value)
-  console.log('Total topic posts:', topicPosts.value.length)
-  console.log('Next topic post available:', hasNextTopicPost.value)
-
   if (nextTopicPost.value) {
-    console.log(`🔄 Navigating to NEXT (newer) topic post: ${nextTopicPost.value.postId}`)
-    console.log(`Title: "${nextTopicPost.value.postTitle}"`)
-    console.log(`This should be a NEWER post than current`)
     router.push(`/BlogPage/${nextTopicPost.value.postId}`)
-  } else {
-    console.log('❌ No next topic post available')
   }
 }
 
-
-
-
-
-
 // Update computed properties with logging
 const hasPreviousGroupPost = computed(() => {
-  const result = currentGroupIndex.value > 0
-  console.log('🔍 hasPreviousGroupPost computed:', result, '(currentIndex:', currentGroupIndex.value, ')')
-  return result
+  return currentGroupIndex.value > 0
 })
 
 const hasNextGroupPost = computed(() => {
-  const result = currentGroupIndex.value < groupPosts.value.length - 1
-  console.log('🔍 hasNextGroupPost computed:', result, '(currentIndex:', currentGroupIndex.value, ', total:', groupPosts.value.length, ')')
-  return result
+  return currentGroupIndex.value < groupPosts.value.length - 1
 })
 
 const previousGroupPost = computed(() => {
-  const result = hasPreviousGroupPost.value ? groupPosts.value[currentGroupIndex.value - 1] : null
-  console.log('🔍 previousGroupPost computed:', result ? `ID ${result.postId}` : 'null')
-  return result
+  return hasPreviousGroupPost.value ? groupPosts.value[currentGroupIndex.value - 1] : null
 })
 
 const nextGroupPost = computed(() => {
-  const result = hasNextGroupPost.value ? groupPosts.value[currentGroupIndex.value + 1] : null
-  console.log('🔍 nextGroupPost computed:', result ? `ID ${result.postId}` : 'null')
-  return result
+  return hasNextGroupPost.value ? groupPosts.value[currentGroupIndex.value + 1] : null
 })
 
 // Fetch posts by group
 const fetchGroupPosts = async () => {
   if (!postData.value?.postGroup?.groupId) {
     console.log('❌ No post group found for current post')
-    console.log('Post group data:', postData.value?.postGroup)
     return
   }
 
   try {
-    console.log('🔄 Fetching group posts...')
-    console.log('📋 Current post group:', postData.value.postGroup)
-    console.log('🆔 Current post ID:', postData.value.postId)
-
     const response = await fetch(`/api/posts/group/${postData.value.postGroup.groupId}`)
     if (response.ok) {
       groupPosts.value = await response.json()
       console.log('📦 Group posts fetched:', groupPosts.value.length)
-
-      // Log all posts in the group for debugging
-      console.log('📊 All posts in group:')
-      groupPosts.value.forEach((post: PostData, index: number) => {
-        console.log(`   ${index}: ID ${post.postId} - "${post.postTitle}" - Sequence: ${post.postGroup?.sequence || 'N/A'}`)
-      })
 
       // Find current post index in group posts
       currentGroupIndex.value = groupPosts.value.findIndex(
@@ -218,18 +160,6 @@ const fetchGroupPosts = async () => {
       )
 
       console.log('📍 Current group index:', currentGroupIndex.value)
-      console.log('⬅️ Has previous group post:', hasPreviousGroupPost.value)
-      console.log('➡️ Has next group post:', hasNextGroupPost.value)
-
-      if (currentGroupIndex.value === -1) {
-        console.log('❌ Current post not found in group posts array!')
-        console.log('This might indicate:')
-        console.log('   - The post is not properly associated with the group')
-        console.log('   - There is a mismatch between postId and group membership')
-        console.log('   - The API response does not include the current post')
-      } else {
-        console.log('✅ Current post found in group at index:', currentGroupIndex.value)
-      }
     } else {
       console.error('❌ Failed to fetch group posts:', response.status, response.statusText)
     }
@@ -239,129 +169,98 @@ const fetchGroupPosts = async () => {
 }
 
 const goToPreviousGroupPost = () => {
-  console.log('⬅️ Previous Group Button Clicked')
-  console.log('Current group index:', currentGroupIndex.value)
-  console.log('Total group posts:', groupPosts.value.length)
-  console.log('Previous group post available:', hasPreviousGroupPost.value)
-  console.log('Previous group post data:', previousGroupPost.value)
-
   if (previousGroupPost.value) {
-    console.log(`🔄 Navigating to previous group post: ${previousGroupPost.value.postId}`)
-    console.log(`Title: "${previousGroupPost.value.postTitle}"`)
-    console.log(`Sequence: ${previousGroupPost.value.postGroup?.sequence || 'N/A'}`)
     router.push(`/BlogPage/${previousGroupPost.value.postId}`)
-  } else {
-    console.log('❌ No previous group post available')
-    console.log('Possible reasons:')
-    console.log('   - This is the first post in the group')
-    console.log('   - Current post not properly indexed in group')
-    console.log('   - Group posts array is empty')
   }
 }
 
 const goToNextGroupPost = () => {
-  console.log('➡️ Next Group Button Clicked')
-  console.log('Current group index:', currentGroupIndex.value)
-  console.log('Total group posts:', groupPosts.value.length)
-  console.log('Next group post available:', hasNextGroupPost.value)
-  console.log('Next group post data:', nextGroupPost.value)
-
   if (nextGroupPost.value) {
-    console.log(`🔄 Navigating to next group post: ${nextGroupPost.value.postId}`)
-    console.log(`Title: "${nextGroupPost.value.postTitle}"`)
-    console.log(`Sequence: ${nextGroupPost.value.postGroup?.sequence || 'N/A'}`)
     router.push(`/BlogPage/${nextGroupPost.value.postId}`)
-  } else {
-    console.log('❌ No next group post available')
-    console.log('Possible reasons:')
-    console.log('   - This is the last post in the group')
-    console.log('   - Current post not properly indexed in group')
-    console.log('   - Group posts array is empty')
   }
 }
 
-
-
-
-
-
-
-
-
-
-
-// Computed property to get images in upload order
-const attachedImages = computed(() => {
+// FIXED: Get sequenced images (images with sequence numbers)
+const sequencedImages = computed(() => {
   if (!postData.value?.attachedFiles) return []
 
-  const images = postData.value.attachedFiles.filter(file =>
-    file.filename.match(/\.(jpg|jpeg|png|gif|bmp|webp|svg)$/i)
+  const sequenced = postData.value.attachedFiles.filter(file =>
+    file.fileType === 'image' && file.sequence !== undefined
   )
 
-  // Sort by upload date to maintain upload order
-  return images.sort((a, b) =>
+  // Sort by sequence number
+  return sequenced.sort((a, b) => (a.sequence || 0) - (b.sequence || 0))
+})
+
+// FIXED: Get additional images (images without sequence numbers)
+const additionalImages = computed(() => {
+  if (!postData.value?.attachedFiles) return []
+
+  const additional = postData.value.attachedFiles.filter(file =>
+    file.fileType === 'image' && file.sequence === undefined
+  )
+
+  // Sort by upload date
+  return additional.sort((a, b) =>
     new Date(a.uploadDate).getTime() - new Date(b.uploadDate).getTime()
   )
 })
 
+// FIXED: Get other attached files (non-images)
 const otherAttachedFiles = computed(() => {
   if (!postData.value?.attachedFiles) return []
 
   const otherFiles = postData.value.attachedFiles.filter(file =>
-    !file.filename.match(/\.(jpg|jpeg|png|gif|bmp|webp|svg)$/i)
+    file.fileType !== 'image'
   )
 
-  // Sort other files by upload date as well
+  // Sort by upload date
   return otherFiles.sort((a, b) =>
     new Date(a.uploadDate).getTime() - new Date(b.uploadDate).getTime()
   )
 })
 
-// Function to replace markdown image syntax with actual file URLs
-const processMarkdownContent = (content: string, images: any[]) => {
+// FIXED: Improved markdown image processing
+const processMarkdownContent = (content: string) => {
   let processedContent = content
 
-  // First, find all image references in the markdown to see which ones are used
-  const usedImageIndices = new Set()
-  const imagePattern = /!\[([^\]]*)\]\(image(\d+)\)/g
-  let match
-
-  while ((match = imagePattern.exec(content)) !== null) {
-    const imageNumber = parseInt(match[2])
-    usedImageIndices.add(imageNumber)
-  }
-
-  // Replace image references with actual URLs
-  images.forEach((image, index) => {
+  // Process sequenced images first (image1, image2, etc.)
+  sequencedImages.value.forEach((image, index) => {
     const imageNumber = index + 1
-    const imagePattern = new RegExp(`!\\[([^\\]]*)\\]\\(image${imageNumber}\\)`, 'g')
+    const imagePattern = new RegExp(`!\\[([^\\]]*)\\]\\(image${imageNumber}\\)`, 'gi')
     const imageUrl = `/api/file/${image.fileId}`
+
     processedContent = processedContent.replace(
       imagePattern,
       `![$1](${imageUrl})`
     )
   })
 
+  // Also handle generic image references that might not follow the image1 pattern
+  // This handles cases where markdown might have direct references
+  const genericImagePattern = /!\[([^\]]*)\]\(([^)]+)\)/g
+  processedContent = processedContent.replace(genericImagePattern, (match, altText, src) => {
+    // If it's already a full URL or data URL, leave it as is
+    if (src.startsWith('http') || src.startsWith('/api/file/') || src.startsWith('data:')) {
+      return match
+    }
+
+    // Try to find a matching image by filename
+    const matchingImage = [...sequencedImages.value, ...additionalImages.value].find(
+      img => img.filename === src || img.filename.includes(src)
+    )
+
+    if (matchingImage) {
+      return `![${altText}](/api/file/${matchingImage.fileId})`
+    }
+
+    return match
+  })
+
   return processedContent
 }
 
-// Computed property to get images that weren't used in markdown
-const unusedImages = computed(() => {
-  if (!postData.value?.postContent || !attachedImages.value.length) return attachedImages.value
-
-  const usedImageNumbers = new Set()
-  const imagePattern = /!\[([^\]]*)\]\(image(\d+)\)/g
-  let match
-
-  while ((match = imagePattern.exec(postData.value.postContent)) !== null) {
-    usedImageNumbers.add(parseInt(match[2]))
-  }
-
-  // Return images that weren't referenced in markdown
-  return attachedImages.value.filter((image, index) => !usedImageNumbers.has(index + 1))
-})
-
-// Function to fetch and render post
+// FIXED: Function to fetch and render post
 const fetchPost = async () => {
   try {
     isLoading.value = true
@@ -376,6 +275,10 @@ const fetchPost = async () => {
     }
 
     postData.value = await response.json()
+    console.log('📄 Post data loaded:', postData.value)
+    console.log('🖼️ Attached files:', postData.value.attachedFiles)
+    console.log('🔢 Sequenced images:', sequencedImages.value)
+    console.log('➕ Additional images:', additionalImages.value)
 
     // Check if post is published
     if (postData.value && !postData.value.isPublished) {
@@ -383,18 +286,13 @@ const fetchPost = async () => {
       return
     }
 
-    // Render content based on content type
+    // Render content
     if (postData.value?.postContent) {
       let contentToRender = postData.value.postContent
 
-      if (postData.value.contentType === 'markdown') {
-        // Process markdown to replace image placeholders with actual file URLs
-        contentToRender = processMarkdownContent(
-          postData.value.postContent,
-          attachedImages.value
-        )
-
-        // Parse markdown to HTML
+      // Process markdown for all content types that might contain markdown
+      if (['markdown', 'Text', 'Code'].includes(postData.value.contentType)) {
+        contentToRender = processMarkdownContent(postData.value.postContent)
         const rawHtml = marked.parse(contentToRender)
         renderedContent.value = DOMPurify.sanitize(rawHtml)
       } else {
@@ -417,7 +315,6 @@ const fetchPost = async () => {
 
 // Function to handle file downloads
 const downloadFile = async (fileId: string, filename: string) => {
-
   const url = `/api/file/${fileId}`
   const link = document.createElement('a')
   link.href = url
@@ -427,7 +324,6 @@ const downloadFile = async (fileId: string, filename: string) => {
   document.body.removeChild(link)
   window.URL.revokeObjectURL(url)
 }
-
 
 // Load highlight.js dynamically
 const loadHighlightJS = async () => {
@@ -455,8 +351,11 @@ const loadHighlightJS = async () => {
 }
 
 const getImageNumber = (image: any) => {
-  const index = attachedImages.value.findIndex(img => img.fileId === image.fileId)
-  return index + 1
+  const sequencedIndex = sequencedImages.value.findIndex(img => img.fileId === image.fileId)
+  if (sequencedIndex !== -1) return sequencedIndex + 1
+
+  const additionalIndex = additionalImages.value.findIndex(img => img.fileId === image.fileId)
+  return additionalIndex + 1
 }
 
 onMounted(async () => {
@@ -471,8 +370,6 @@ watch(() => route.params.id, async (newId) => {
   }
 })
 </script>
-
-
 
 <template>
   <div class="blog-page">
@@ -526,15 +423,15 @@ watch(() => route.params.id, async (newId) => {
           v-html="renderedContent"
         ></div>
 
-        <!-- Additional images gallery (images not used in markdown) -->
-        <div v-if="unusedImages.length > 0" class="additional-images">
+        <!-- Additional images gallery (images not sequenced) -->
+        <div v-if="additionalImages.length > 0" class="additional-images">
           <h3>Additional Images</h3>
           <p class="section-description">
             The following images were uploaded with this post but not embedded in the content.
           </p>
           <div class="images-grid">
             <div
-              v-for="(image, index) in unusedImages"
+              v-for="(image, index) in additionalImages"
               :key="image.fileId"
               class="image-item"
             >
@@ -557,6 +454,7 @@ watch(() => route.params.id, async (newId) => {
             </div>
           </div>
         </div>
+
         <!-- Other attached files section -->
         <div v-if="otherAttachedFiles.length > 0" class="attached-files">
           <h3>Attached Files</h3>
@@ -600,12 +498,12 @@ watch(() => route.params.id, async (newId) => {
   min-height: 100vh;
   margin: 0 auto;
   padding: 20px;
-  background: var(--background);
-  border-left: solid 3px;
-  border-right: solid 3px;
+  border: solid 5px;
+  border-radius: 15px;
   border-color: color-mix(in oklab, var(--background), var(--text) 45%);
   position: relative;
   scroll-behavior: smooth;
+  background-color: var(--background);
 }
 
 .logo-and-settings {
@@ -936,6 +834,4 @@ watch(() => route.params.id, async (newId) => {
 .download-btn:hover {
   background: color-mix(in oklab, var(--focused), black 20%);
 }
-
-
 </style>

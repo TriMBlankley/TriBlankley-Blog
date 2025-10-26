@@ -1,14 +1,15 @@
 <script setup lang="ts">
 import { ref } from 'vue';
-import TopicEditor from './TopicEditor.vue';
-import ThemeToggle from '@/components/Settings_C/themeToggle.vue';
+import TopicEditor from '@/components/Settings_C/TopicEditor.vue';
+import ThemeToggle from '@/components/Settings_C/ThemeToggle.vue';
 import PostCreator from '@/components/Settings_C/PostCreator.vue';
 import PostEditor from '@/components/Settings_C/PostEditor.vue';
+import GroupEditor from '@/components/Settings_C/GroupEditor.vue';
 const emit = defineEmits<{
   (e: 'close'): void;
 }>();
 
-const activeTab = ref<'settings' | 'blogTopics' | 'postCreator' | 'postEditor'>('settings'); // Update this line
+const activeTab = ref<'settings' | 'blogTopics' | 'postCreator' | 'postEditor' | 'groupEditor'>('settings'); // Update this line
 
 const handleClose = () => {
   emit('close');
@@ -40,6 +41,12 @@ const handleClose = () => {
           Blog Topics
         </button>
         <button
+          @click="activeTab = 'groupEditor'"
+          :class="{ active: activeTab === 'groupEditor' }"
+        >
+          Group Editor
+        </button>
+        <button
           @click="activeTab = 'postCreator'"
           :class="{ active: activeTab === 'postCreator' }"
         >
@@ -51,6 +58,9 @@ const handleClose = () => {
         >
           Post Editor
         </button>
+
+
+
       </div>
 
       <div class="class-options">
@@ -63,6 +73,9 @@ const handleClose = () => {
 
         <!-- Blog Topics content will appear here -->
         <TopicEditor v-if="activeTab === 'blogTopics'" />
+
+        <!-- Group Editor -->
+        <GroupEditor v-if="activeTab === 'groupEditor'" />
 
         <!-- Blog Post Creator -->
         <PostCreator v-if="activeTab === 'postCreator'" />
@@ -79,6 +92,7 @@ const handleClose = () => {
     /* Size ------------- */
 
     /* Position ------------- */
+    z-index: 10000;
 
     /* Color ------------- */
 
