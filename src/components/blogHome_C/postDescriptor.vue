@@ -153,26 +153,24 @@ const groupColorStyle = computed(() => {
   <div class="post" @click="navigateToPost" role="button" tabindex="0">
     <div class="postIcon" :class="{ 'has-image': hasImage }" :style="postIconStyle">
       <component v-if="shouldShowSVG" :is="contentTypeSVG" class="content-type-svg" />
-      <div v-if="hasGroup" class="group-indicator" :style="groupColorStyle"></div>
+
     </div>
 
     <div class="postDescriptor">
       <div class="post-header">
+        <div v-if="hasGroup" class="group-indicator" :style="groupColorStyle"></div>
         <h1>{{ post.postTitle }}</h1>
-        <!-- <span class="content-type-badge">{{ contentTypeDisplay }}</span> -->
+
+        <div class="post-meta">
+          <span>By {{ post.postAuthor }}</span>
+          <span>{{ post.postDate }}</span>
+        </div>
+
       </div>
-      <div class="post-meta">
-        <span>By {{ post.postAuthor }}</span>
-        <span>{{ post.postDate }}</span>
-      </div>
+
       <p style="overflow: hidden;">
         {{ truncatedContent }}
       </p>
-      <div class="post-topics" v-if="post.postTopics && post.postTopics.length > 0">
-        <span v-for="topic in post.postTopics" :key="topic" class="topic-tag">
-          {{ topic }}
-        </span>
-      </div>
     </div>
   </div>
 </template>
@@ -210,7 +208,9 @@ const groupColorStyle = computed(() => {
 
 .post-header {
   display: flex;
-  justify-content: space-between;
+  flex-direction: row;
+  flex-wrap: wrap;
+  /* justify-content: space-between; */
   align-items: flex-start;
   gap: 10px;
 }
@@ -218,6 +218,7 @@ const groupColorStyle = computed(() => {
 .post-header h1 {
   margin: 0;
   flex: 1;
+
 }
 
 .content-type-badge {
@@ -253,14 +254,12 @@ const groupColorStyle = computed(() => {
 
 /* Group indicator styles */
 .group-indicator {
-  position: absolute;
-  top: 2px;
-  right: 1.5px;
+  margin: auto -5px auto auto;
   width: 20px;
-  height: 20px;
+  height: 80%;
   border-radius: 5px;
   border: 2px solid color-mix(in oklab, var(--background), transparent 50%);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+
   z-index: 3; /* Ensure it appears above the overlay and SVG */
 }
 
@@ -290,6 +289,7 @@ const groupColorStyle = computed(() => {
 
 .post-meta {
   display: flex;
+  flex-direction: column;
   gap: 1rem;
   font-size: 0.875rem;
   color: var(--text-offset);

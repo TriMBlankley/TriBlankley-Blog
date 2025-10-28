@@ -1,10 +1,15 @@
 <script setup lang="ts">
-import { ref, onMounted, watch, computed } from 'vue'
+import { ref, onMounted, watch, computed, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+
+import "@/assets/base.css"
 import { marked } from 'marked'
 import DOMPurify from 'dompurify'
 
 const hljs = ref<any>(null)
+
+// Import highlight.js styles
+import 'highlight.js/styles/github-dark.css'
 
 import PostTitle from '@/components/BlogPost_C/postTitle.vue'
 import SettingsCog from '@/components/Settings_C/settingsCog.vue'
@@ -50,13 +55,41 @@ const currentGroupIndex = ref(-1)
 
 const goToHome = () => router.push('/')
 
-// Configure marked
-marked.setOptions({
-  breaks: true,
-  gfm: true,
-  headerIds: true,
-  mangle: false
-})
+// Configure marked with highlight.js - SIMPLIFIED VERSION
+const configureMarked = () => {
+  marked.setOptions({
+    breaks: true,
+    gfm: true,
+    headerIds: true,
+    mangle: false,
+    highlight: function(code, lang) {
+      if (!hljs.value) {
+        return code
+      }
+
+      // Check if language is supported
+      if (lang && hljs.value.getLanguage(lang)) {
+        try {
+          return hljs.value.highlight(code, { language: lang }).value
+        } catch (err) {
+          console.warn('Error highlighting code:', err)
+          return code
+        }
+      }
+
+      // Try to auto-detect language if no language specified
+      try {
+        const detected = hljs.value.highlightAuto(code)
+        return detected.value
+      } catch (err) {
+        return code
+      }
+    }
+  })
+}
+
+// Initialize marked configuration
+configureMarked()
 
 // Navigation functions
 const scrollToTop = () => {
@@ -86,7 +119,6 @@ const fetchTopicPosts = async () => {
     const allPosts = await fetch('/api/posts').then(res => res.json())
     console.log('📋 Total posts fetched:', allPosts.length)
 
-    // Include current post in the array to establish proper sequence
     const postsWithSameTopics = allPosts.filter((post: PostData) => {
       const hasCommonTopic = post.isPublished &&
         post.postTopics && post.postTopics.length > 0 &&
@@ -97,15 +129,13 @@ const fetchTopicPosts = async () => {
 
     console.log(`🎯 Found ${postsWithSameTopics.length} posts with common topics`)
 
-    // Sort by postId in ASCENDING order (oldest first) for intuitive navigation
     topicPosts.value = postsWithSameTopics.sort((a: PostData, b: PostData) => a.postId - b.postId)
 
-    // Find current post index in topic posts
     currentTopicIndex.value = topicPosts.value.findIndex(
       (post: PostData) => post.postId === postData.value?.postId
     )
 
-    console.log('📊 Topic posts array (oldest first):', topicPosts.value.map(p => ({ id: p.postId, title: p.postTitle })))
+    console.log('📊 Topic posts array:', topicPosts.value.map(p => ({ id: p.postId, title: p.postTitle })))
     console.log('📍 Current topic index:', currentTopicIndex.value)
   } catch (err) {
     console.error('❌ Error fetching topic posts:', err)
@@ -154,7 +184,6 @@ const fetchGroupPosts = async () => {
       groupPosts.value = await response.json()
       console.log('📦 Group posts fetched:', groupPosts.value.length)
 
-      // Find current post index in group posts
       currentGroupIndex.value = groupPosts.value.findIndex(
         (post: PostData) => post.postId === postData.value?.postId
       )
@@ -188,7 +217,6 @@ const sequencedImages = computed(() => {
     file.fileType === 'image' && file.sequence !== undefined
   )
 
-  // Sort by sequence number
   return sequenced.sort((a, b) => (a.sequence || 0) - (b.sequence || 0))
 })
 
@@ -200,7 +228,6 @@ const additionalImages = computed(() => {
     file.fileType === 'image' && file.sequence === undefined
   )
 
-  // Sort by upload date
   return additional.sort((a, b) =>
     new Date(a.uploadDate).getTime() - new Date(b.uploadDate).getTime()
   )
@@ -214,17 +241,15 @@ const otherAttachedFiles = computed(() => {
     file.fileType !== 'image'
   )
 
-  // Sort by upload date
   return otherFiles.sort((a, b) =>
     new Date(a.uploadDate).getTime() - new Date(b.uploadDate).getTime()
   )
 })
 
-// FIXED: Improved markdown image processing
+// FIXED: Improved markdown image processing and content handling
 const processMarkdownContent = (content: string) => {
   let processedContent = content
 
-  // Process sequenced images first (image1, image2, etc.)
   sequencedImages.value.forEach((image, index) => {
     const imageNumber = index + 1
     const imagePattern = new RegExp(`!\\[([^\\]]*)\\]\\(image${imageNumber}\\)`, 'gi')
@@ -236,16 +261,12 @@ const processMarkdownContent = (content: string) => {
     )
   })
 
-  // Also handle generic image references that might not follow the image1 pattern
-  // This handles cases where markdown might have direct references
   const genericImagePattern = /!\[([^\]]*)\]\(([^)]+)\)/g
   processedContent = processedContent.replace(genericImagePattern, (match, altText, src) => {
-    // If it's already a full URL or data URL, leave it as is
     if (src.startsWith('http') || src.startsWith('/api/file/') || src.startsWith('data:')) {
       return match
     }
 
-    // Try to find a matching image by filename
     const matchingImage = [...sequencedImages.value, ...additionalImages.value].find(
       img => img.filename === src || img.filename.includes(src)
     )
@@ -258,6 +279,69 @@ const processMarkdownContent = (content: string) => {
   })
 
   return processedContent
+}
+
+// FIXED: Load highlight.js dynamically with better error handling
+const loadHighlightJS = async () => {
+  if (typeof window !== 'undefined') {
+    try {
+      // Import highlight.js with specific languages to reduce bundle size
+      const hljsModule = await import('highlight.js/lib/core')
+      hljs.value = hljsModule.default
+
+      // Import specific languages you need
+      const rustLang = await import('highlight.js/lib/languages/rust')
+      const cLang = await import('highlight.js/lib/languages/c')
+      const haskellLang = await import('highlight.js/lib/languages/haskell')
+      const pythonLang = await import('highlight.js/lib/languages/python')
+      const javascriptLang = await import('highlight.js/lib/languages/javascript')
+      const typescriptLang = await import('highlight.js/lib/languages/typescript')
+      const xmlLang = await import('highlight.js/lib/languages/xml')
+
+      // Register languages
+      hljs.value.registerLanguage('rust', rustLang.default)
+      hljs.value.registerLanguage('c', cLang.default)
+      hljs.value.registerLanguage('haskell', haskellLang.default)
+      hljs.value.registerLanguage('python', pythonLang.default)
+      hljs.value.registerLanguage('javascript', javascriptLang.default)
+      hljs.value.registerLanguage('typescript', typescriptLang.default)
+      hljs.value.registerLanguage('html', xmlLang.default)
+
+      console.log('✅ Highlight.js loaded successfully with languages:', [
+        'rust', 'c', 'haskell', 'python', 'javascript', 'typescript', 'html'
+      ])
+
+      // Re-configure marked with the loaded highlight.js
+      configureMarked()
+
+      // If we already have content, re-render it with syntax highlighting
+      if (postData.value?.postContent) {
+        await renderMarkdownContent(postData.value.postContent)
+      }
+
+    } catch (err) {
+      console.warn('❌ Failed to load highlight.js:', err)
+      hljs.value = null
+    }
+  }
+}
+
+// FIXED: Separate markdown rendering function
+const renderMarkdownContent = async (content: string) => {
+  let processedContent = processMarkdownContent(content)
+
+  try {
+    const rawHtml = await marked.parse(processedContent)
+    renderedContent.value = DOMPurify.sanitize(rawHtml)
+
+    // Wait for DOM update and then apply copy buttons
+    await nextTick()
+    addCopyButtons()
+  } catch (err) {
+    console.error('Error rendering markdown:', err)
+    // Fallback: render without highlighting
+    renderedContent.value = DOMPurify.sanitize(processedContent)
+  }
 }
 
 // FIXED: Function to fetch and render post
@@ -276,34 +360,16 @@ const fetchPost = async () => {
 
     postData.value = await response.json()
     console.log('📄 Post data loaded:', postData.value)
-    console.log('🖼️ Attached files:', postData.value.attachedFiles)
-    console.log('🔢 Sequenced images:', sequencedImages.value)
-    console.log('➕ Additional images:', additionalImages.value)
 
-    // Check if post is published
     if (postData.value && !postData.value.isPublished) {
       error.value = 'This post is not published yet'
       return
     }
 
-    // Render content
     if (postData.value?.postContent) {
-      let contentToRender = postData.value.postContent
-
-      // Process markdown for all content types that might contain markdown
-      if (['markdown', 'Text', 'Code'].includes(postData.value.contentType)) {
-        contentToRender = processMarkdownContent(postData.value.postContent)
-        const rawHtml = marked.parse(contentToRender)
-        renderedContent.value = DOMPurify.sanitize(rawHtml)
-      } else {
-        // For plain text or other content types
-        renderedContent.value = DOMPurify.sanitize(
-          postData.value.postContent.replace(/\n/g, '<br>')
-        )
-      }
+      await renderMarkdownContent(postData.value.postContent)
     }
 
-    // Fetch navigation data after post is loaded
     await Promise.all([fetchTopicPosts(), fetchGroupPosts()])
   } catch (err) {
     console.error('Error loading post:', err)
@@ -311,6 +377,41 @@ const fetchPost = async () => {
   } finally {
     isLoading.value = false
   }
+}
+
+// Add copy button functionality
+const addCopyButtons = () => {
+  const preElements = document.querySelectorAll('.markdown-content pre')
+  preElements.forEach((pre) => {
+    if (pre.querySelector('.copy-btn')) return
+
+    const code = pre.querySelector('code')
+    if (!code) return
+
+    const copyBtn = document.createElement('button')
+    copyBtn.className = 'copy-btn'
+    copyBtn.textContent = 'Copy'
+    copyBtn.onclick = async () => {
+      try {
+        // Get the raw text content, not HTML
+        const textToCopy = code.textContent || ''
+        await navigator.clipboard.writeText(textToCopy)
+        copyBtn.textContent = 'Copied!'
+        setTimeout(() => {
+          copyBtn.textContent = 'Copy'
+        }, 2000)
+      } catch (err) {
+        console.error('Failed to copy code:', err)
+        copyBtn.textContent = 'Failed'
+        setTimeout(() => {
+          copyBtn.textContent = 'Copy'
+        }, 2000)
+      }
+    }
+
+    pre.style.position = 'relative'
+    pre.appendChild(copyBtn)
+  })
 }
 
 // Function to handle file downloads
@@ -323,31 +424,6 @@ const downloadFile = async (fileId: string, filename: string) => {
   link.click()
   document.body.removeChild(link)
   window.URL.revokeObjectURL(url)
-}
-
-// Load highlight.js dynamically
-const loadHighlightJS = async () => {
-  if (typeof window !== 'undefined') {
-    try {
-      const hljsModule = await import('highlight.js')
-      hljs.value = hljsModule.default
-
-      marked.setOptions({
-        highlight: function(code, lang) {
-          if (hljs.value && lang && hljs.value.getLanguage(lang)) {
-            try {
-              return hljs.value.highlight(code, { language: lang }).value
-            } catch (err) {
-              console.warn('Error highlighting code:', err)
-            }
-          }
-          return code
-        }
-      })
-    } catch (err) {
-      console.warn('Failed to load highlight.js:', err)
-    }
-  }
 }
 
 const getImageNumber = (image: any) => {
@@ -401,17 +477,6 @@ watch(() => route.params.id, async (newId) => {
         :postAuthor="postData.postAuthor"
         :postDate="postData.postDate"
       />
-
-      <!-- Display topics if available -->
-      <div v-if="postData.postTopics && postData.postTopics.length > 0" class="post-topics">
-        <span
-          v-for="topic in postData.postTopics"
-          :key="topic"
-          class="topic-tag"
-        >
-          {{ topic }}
-        </span>
-      </div>
 
       <div class="separator"></div>
 
@@ -685,6 +750,7 @@ watch(() => route.params.id, async (newId) => {
 
 .markdown-content :deep(p) {
   margin: 1em 0;
+  text-indent: 2em;
 }
 
 .markdown-content :deep(a) {
@@ -692,8 +758,15 @@ watch(() => route.params.id, async (newId) => {
   text-decoration: none;
 }
 
+.markdown-content :deep(strong) {
+  font-weight: bold;
+}
+
 .markdown-content :deep(a:hover) {
   text-decoration: underline;
+  color: color-mix(in oklab, var(--text), var(--focused) 60%);
+  background-color: color-mix(in oklab, var(--background), var(--focused) 40%);
+  border-radius: 5px;
 }
 
 .markdown-content :deep(ul),
@@ -707,6 +780,14 @@ watch(() => route.params.id, async (newId) => {
   margin: 1em 0;
   padding-left: 1em;
   color: color-mix(in oklab, var(--text), transparent 30%);
+}
+
+.markdown-content :deep(hr) {
+  border: none;
+  height: 2px;
+  background-color: color-mix(in oklab, var(--text), transparent 70%);
+  margin: 2em 0;
+  border-radius: 1px;
 }
 
 .markdown-content :deep(table) {
@@ -727,25 +808,53 @@ watch(() => route.params.id, async (newId) => {
   font-weight: 600;
 }
 
+/* Enhanced code block styling */
 .markdown-content :deep(pre) {
-  background-color: color-mix(in oklab, var(--background), black 5%);
+  position: relative;
+  background-color: #1e1e1e !important;
+  color: #d4d4d4 !important;
   padding: 1em;
   border-radius: 6px;
   overflow-x: auto;
   margin: 1em 0;
+  border: 1px solid color-mix(in oklab, var(--text), transparent 80%);
 }
 
 .markdown-content :deep(code) {
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-  background-color: color-mix(in oklab, var(--background), black 5%);
-  padding: 0.2em 0.4em;
-  border-radius: 3px;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace, 'OpenDyslexicMono';
+  background-color: transparent !important;
+  padding: 0;
+  border-radius: 0;
   font-size: 0.9em;
 }
 
 .markdown-content :deep(pre code) {
   background: none;
   padding: 0;
+  display: block;
+  color: inherit;
+}
+
+/* Copy button styling */
+.markdown-content :deep(.copy-btn) {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: color-mix(in oklab, var(--focused), transparent 20%);
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity 0.2s ease;
+  z-index: 10;
+}
+
+.markdown-content :deep(.copy-btn:hover) {
+  opacity: 1;
+  background: var(--focused);
 }
 
 .markdown-content :deep(img) {
@@ -753,10 +862,6 @@ watch(() => route.params.id, async (newId) => {
   height: auto;
   border-radius: 6px;
   margin: 1em 0;
-}
-
-[v-cloak] {
-  display: none;
 }
 
 /* Additional images gallery */

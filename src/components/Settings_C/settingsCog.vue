@@ -46,7 +46,7 @@ const closeHomeSettings = () => {
 .settings-container {
   position: relative;
   display: inline-block;
-  z-index: 1001; /* Higher than blog-home content */
+  z-index: 100; /* Higher than blog-home content */
 }
 
 .settings-button {
@@ -69,12 +69,10 @@ const closeHomeSettings = () => {
   position: absolute;
   top: 100%;
   right: 0;
-  z-index: 1001;
   background: var(--focused);
   padding: 5px;
   border-radius: 8px;
   border: 1px solid var(--focused);
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   margin-top: 5px;
 }
 
@@ -88,7 +86,6 @@ const closeHomeSettings = () => {
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 1000; /* High z-index but lower than container */
 }
 
 .settings-modal {
@@ -101,5 +98,6 @@ const closeHomeSettings = () => {
   max-height: 90vh;
   overflow-y: auto;
   position: relative; /* Ensure stacking context */
+  z-index: 1000;
 }
 </style>

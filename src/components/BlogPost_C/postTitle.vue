@@ -32,13 +32,15 @@ defineProps({
 
     /* Behaviour ------------- */
     display: flex;
-    justify-content: space-between;
+    flex-direction: column;
+    flex-wrap: wrap;
     align-items: flex-start;
 }
 
 .post-header h1 {
     /* Behaviour ------------- */
     flex: 0 0 auto; /* Don't grow or shrink */
+
 }
 
 .post-data {

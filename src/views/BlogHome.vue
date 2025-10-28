@@ -208,6 +208,7 @@ watch(activeTabColor, (color) => {
   min-height: 0; /* Important for flex children to respect overflow */
 
   /* Position ------------- */
+  z-index: 1;
 
   /* Color ------------- */
   background: var(--focused);
@@ -245,6 +246,7 @@ watch(activeTabColor, (color) => {
   /* Position ------------- */
   position: sticky;
   top: 0;
+  z-index: 10;
   /* top, right, bottom, left */
   margin: 0 v-bind(left_right_margin) auto auto;
 
@@ -259,7 +261,6 @@ watch(activeTabColor, (color) => {
   /* Size ------------- */
 
   /* Position ------------- */
-  z-index: 10;
   /* top, right, bottom, left */
   margin-top: .5em;
 
@@ -278,7 +279,6 @@ watch(activeTabColor, (color) => {
   width: 200px;
 
   /* Position ------------- */
-  z-index: 1;
   /* top, right, bottom, left */
   margin: 1em 0 auto .5em;
 
