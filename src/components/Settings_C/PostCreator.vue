@@ -1,465 +1,4 @@
 <!-- [file name]: PostCreator.vue -->
-<template>
-  <div class="blog-post-creator">
-    <div class="creator-header">
-      <h1>Create New Blog Post</h1>
-    </div>
-
-    <!-- Loading Overlay -->
-    <div v-if="isSubmitting" class="loading-overlay">
-      <div class="loading-content">
-        <div class="spinner"></div>
-        <h3>Uploading Post...</h3>
-        <p>Please wait while we process your content and files</p>
-        <div class="upload-progress">
-          <div class="progress-bar">
-            <div class="progress-fill" :style="{ width: uploadProgress + '%' }"></div>
-          </div>
-          <span>{{ uploadProgress }}% Complete</span>
-        </div>
-        <div class="current-task">{{ currentTask }}</div>
-      </div>
-    </div>
-
-    <!-- Error Display -->
-    <div v-if="errorMessage" class="error-alert">
-      <div class="error-content">
-        <h3>❌ Error</h3>
-        <p>{{ errorMessage }}</p>
-        <button @click="clearError" class="btn btn-secondary">Dismiss</button>
-      </div>
-    </div>
-
-    <form @submit.prevent="submitPost" class="post-form">
-      <!-- Basic Post Information -->
-      <div class="form-section">
-        <h2>Post Information</h2>
-
-        <div class="form-group">
-          <label for="postTitle">Post Title *</label>
-          <input
-            id="postTitle"
-            v-model="postData.postTitle"
-            type="text"
-            required
-            placeholder="Enter post title"
-            class="form-input"
-            :class="{ 'error': fieldErrors.postTitle }"
-          >
-          <span v-if="fieldErrors.postTitle" class="error-text">{{ fieldErrors.postTitle }}</span>
-        </div>
-
-        <div class="form-group">
-          <label for="postAuthor">Author *</label>
-          <input
-            id="postAuthor"
-            v-model="postData.postAuthor"
-            type="text"
-            required
-            placeholder="Enter author name"
-            class="form-input"
-            :class="{ 'error': fieldErrors.postAuthor }"
-          >
-          <span v-if="fieldErrors.postAuthor" class="error-text">{{ fieldErrors.postAuthor }}</span>
-        </div>
-
-        <!-- Content Type Selection -->
-        <div class="form-group">
-          <label for="contentType">Content Type *</label>
-          <select
-            id="contentType"
-            v-model="postData.contentType"
-            class="form-input"
-            :class="{ 'error': fieldErrors.contentType }"
-            required
-          >
-            <option value="">Select content type...</option>
-            <option value="Text">Text</option>
-            <option value="Code">Code</option>
-            <option value="File">File</option>
-            <option value="Video">Video</option>
-            <option value="Music">Music</option>
-            <option value="None">None</option>
-          </select>
-          <span v-if="fieldErrors.contentType" class="error-text">{{ fieldErrors.contentType }}</span>
-        </div>
-
-        <div class="form-group">
-          <label for="isPublished">Publish Status</label>
-          <div class="checkbox-group">
-            <input
-              id="isPublished"
-              v-model="postData.isPublished"
-              type="checkbox"
-            >
-            <label for="isPublished" class="checkbox-label">
-              Publish immediately
-            </label>
-          </div>
-        </div>
-      </div>
-
-      <!-- Post Topic Selection -->
-      <div class="form-section">
-        <h2>Post Topic *</h2>
-        <div class="form-group">
-          <label>Select Post Topic</label>
-          <select
-            v-model="selectedTopic"
-            class="form-input"
-            :class="{ 'error': fieldErrors.postTopics }"
-            required
-          >
-            <option value="">Select a topic...</option>
-            <option v-for="topic in availableTopics" :key="topic.topicName" :value="topic.topicName">
-              {{ topic.topicName }}
-            </option>
-          </select>
-          <span v-if="fieldErrors.postTopics" class="error-text">{{ fieldErrors.postTopics }}</span>
-        </div>
-
-        <div v-if="selectedTopic" class="selected-topic-display">
-          <span class="topic-tag" :style="{
-            backgroundColor: getTopicColor(selectedTopic) + '20',
-            borderColor: getTopicColor(selectedTopic)
-          }">
-            {{ selectedTopic }}
-          </span>
-        </div>
-      </div>
-
-      <!-- Post Group Selection -->
-      <div class="form-section">
-        <h2>Post Group (Optional)</h2>
-        <div class="form-group">
-          <label>Assign to Post Group</label>
-          <div class="group-selection">
-            <select v-model="selectedGroupId" class="form-input">
-              <option value="">No Group</option>
-              <option
-                v-for="group in availableGroups"
-                :key="group._id"
-                :value="group._id"
-                :style="{ color: group.groupColor }"
-              >
-                {{ group.groupName }}
-              </option>
-            </select>
-            <button
-              type="button"
-              @click="showCreateGroup = true"
-              class="btn btn-outline"
-            >
-              + Create New Group
-            </button>
-            <button
-              v-if="selectedGroupId"
-              type="button"
-              @click="editSelectedGroup"
-              class="btn btn-outline"
-            >
-              ✏️ Edit Group
-            </button>
-          </div>
-        </div>
-
-        <!-- Selected group display with color -->
-        <div v-if="selectedGroup" class="selected-group-display">
-          <span
-            class="group-tag"
-            :style="{
-              backgroundColor: selectedGroup.groupColor + '20',
-              borderColor: selectedGroup.groupColor,
-              color: selectedGroup.groupColor
-            }"
-          >
-            {{ selectedGroup.groupName }}
-          </span>
-        </div>
-
-        <!-- Create New Group Modal -->
-        <div v-if="showCreateGroup" class="modal-overlay">
-          <div class="modal-content">
-            <h3>Create New Post Group</h3>
-            <div class="form-group">
-              <label>Group Name *</label>
-              <input
-                v-model="newGroup.groupName"
-                type="text"
-                class="form-input"
-                placeholder="Enter group name"
-                :class="{ 'error': fieldErrors.groupName }"
-              >
-              <span v-if="fieldErrors.groupName" class="error-text">{{ fieldErrors.groupName }}</span>
-            </div>
-            <div class="form-group">
-              <label>Description</label>
-              <textarea v-model="newGroup.groupDescription" class="form-input" placeholder="Optional description"></textarea>
-            </div>
-            <div class="form-group">
-              <label>Group Color</label>
-              <div class="color-picker-container">
-                <input
-                  v-model="newGroup.groupColor"
-                  type="color"
-                  class="color-picker"
-                >
-                <span class="color-value">{{ newGroup.groupColor }}</span>
-              </div>
-            </div>
-            <div class="modal-actions">
-              <button @click="createNewGroup" class="btn btn-primary" :disabled="!newGroup.groupName">
-                Create Group
-              </button>
-              <button @click="cancelCreateGroup" class="btn btn-secondary">Cancel</button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Edit Group Modal -->
-        <div v-if="showEditGroup" class="modal-overlay">
-          <div class="modal-content">
-            <h3>Edit Post Group</h3>
-            <div class="form-group">
-              <label>Group Name *</label>
-              <input
-                v-model="editingGroup.groupName"
-                type="text"
-                class="form-input"
-                placeholder="Enter group name"
-                :class="{ 'error': fieldErrors.editingGroupName }"
-              >
-              <span v-if="fieldErrors.editingGroupName" class="error-text">{{ fieldErrors.editingGroupName }}</span>
-            </div>
-            <div class="form-group">
-              <label>Description</label>
-              <textarea v-model="editingGroup.groupDescription" class="form-input" placeholder="Optional description"></textarea>
-            </div>
-            <div class="form-group">
-              <label>Group Color</label>
-              <div class="color-picker-container">
-                <input
-                  v-model="editingGroup.groupColor"
-                  type="color"
-                  class="color-picker"
-                >
-                <span class="color-value">{{ editingGroup.groupColor }}</span>
-              </div>
-            </div>
-            <div class="modal-actions">
-              <button @click="updateGroup" class="btn btn-primary" :disabled="!editingGroup.groupName">
-                Update Group
-              </button>
-              <button @click="deleteGroup" class="btn btn-danger">
-                Delete Group
-              </button>
-              <button @click="cancelEditGroup" class="btn btn-secondary">Cancel</button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Markdown Content -->
-      <div class="form-section">
-        <h2>Post Content</h2>
-
-        <div class="md-upload-area">
-          <label class="file-upload-label">
-            <input
-              type="file"
-              accept=".md,.txt"
-              @change="handleMarkdownUpload"
-              class="file-input"
-            >
-            <div class="upload-box" :class="{ 'has-file': markdownFile, 'error': fieldErrors.postContent }">
-              <span v-if="!markdownFile" class="upload-placeholder">
-                📄 Upload Markdown File (.md) *
-              </span>
-              <span v-else class="file-info">
-                ✅ {{ markdownFile.name }} ({{ formatFileSize(markdownFile.size) }})
-              </span>
-            </div>
-          </label>
-          <span v-if="fieldErrors.postContent" class="error-text">{{ fieldErrors.postContent }}</span>
-        </div>
-
-        <!-- Markdown Preview -->
-        <div v-if="postData.postContent" class="preview-section">
-          <div class="preview-header">
-            <h3>Content Preview</h3>
-            <button type="button" @click="showPreview = !showPreview" class="preview-toggle">
-              {{ showPreview ? 'Hide Preview' : 'Show Preview' }}
-            </button>
-          </div>
-
-          <div v-if="showPreview" class="preview-content">
-            <div v-html="compiledMarkdown" class="markdown-preview"></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Image Upload for Sequencing -->
-      <div class="form-section">
-        <h2>Images for Sequencing</h2>
-        <p class="section-description">
-          Upload images that will be referenced in your markdown as Image 1, Image 2, etc.
-          Use <code>![Image Description](image{{ uploadedImages.length > 0 ? uploadedImages.length + 1 : 1 }})</code> in your markdown to reference the next image.
-        </p>
-
-        <div class="file-upload-area">
-          <label class="file-upload-label">
-            <input
-              type="file"
-              multiple
-              accept="image/*"
-              @change="handleImageUpload"
-              :disabled="uploadedImages.length >= 20"
-              class="file-input"
-            >
-            <div class="upload-box" :class="{ 'disabled': uploadedImages.length >= 20 }">
-              <span class="upload-placeholder">
-                🖼️ Upload Images ({{ uploadedImages.length }}/20)
-              </span>
-            </div>
-          </label>
-        </div>
-
-        <!-- Image Sequence List -->
-        <div v-if="uploadedImages.length > 0" class="image-sequence-list">
-          <h3>Image Sequence</h3>
-          <div class="image-sequence-grid">
-            <div
-              v-for="(image, index) in uploadedImages"
-              :key="index"
-              class="sequence-item"
-            >
-              <div class="sequence-number">Image {{ index + 1 }}</div>
-              <img :src="getImagePreview(image.file)" :alt="image.file.name" class="sequence-preview">
-              <div class="image-details">
-                <span class="image-name">{{ image.file.name }}</span>
-                <span class="image-size">{{ formatFileSize(image.file.size) }}</span>
-              </div>
-              <button
-                type="button"
-                @click="removeImage(index)"
-                class="remove-btn"
-                title="Remove image"
-              >
-                🗑️
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Additional Attachments -->
-      <div class="form-section">
-        <h2>Additional Attachments</h2>
-        <p class="section-description">
-          Upload any additional files (images, PDFs, documents, etc.) that will be displayed at the bottom of the post.
-          Maximum file size: 100MB per file.
-        </p>
-
-        <div class="file-upload-area">
-          <label class="file-upload-label">
-            <input
-              type="file"
-              multiple
-              accept="image/*,.pdf,.doc,.docx,.zip,.txt,.gif,.png,.jpg,.jpeg"
-              @change="handleAttachmentUpload"
-              :disabled="attachedFiles.length >= 10"
-              class="file-input"
-            >
-            <div class="upload-box" :class="{ 'disabled': attachedFiles.length >= 10 }">
-              <span class="upload-placeholder">
-                📎 Add Attachments ({{ attachedFiles.length }}/10)
-              </span>
-            </div>
-          </label>
-        </div>
-
-        <!-- Attachment List -->
-        <div v-if="attachedFiles.length > 0" class="file-list">
-          <div
-            v-for="(file, index) in attachedFiles"
-            :key="index"
-            class="file-item"
-          >
-            <div class="file-info">
-              <span class="file-icon">{{ getFileIcon(file.type) }}</span>
-              <div class="file-details">
-                <span class="file-name">{{ file.name }}</span>
-                <span class="file-size">{{ formatFileSize(file.size) }}</span>
-                <span v-if="file.type.startsWith('image/')" class="file-type-badge">Image</span>
-              </div>
-            </div>
-            <button
-              type="button"
-              @click="removeAttachment(index)"
-              class="remove-btn"
-              title="Remove file"
-            >
-              🗑️
-            </button>
-          </div>
-        </div>
-
-        <!-- Image Previews for Attachments -->
-        <div v-if="hasAttachmentImages" class="image-previews">
-          <h3>Attachment Image Previews</h3>
-          <div class="image-grid">
-            <div
-              v-for="(file, index) in attachmentImages"
-              :key="index"
-              class="image-preview-item"
-            >
-              <img :src="getImagePreview(file)" :alt="file.name" class="preview-image">
-              <span class="image-name">{{ file.name }}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Form Actions -->
-      <div class="form-actions">
-        <button
-          type="button"
-          @click="resetForm"
-          class="btn btn-secondary"
-          :disabled="isSubmitting"
-        >
-          Reset
-        </button>
-
-        <button
-          type="submit"
-          :disabled="!isFormValid || isSubmitting"
-          class="btn btn-primary"
-        >
-          <span v-if="isSubmitting">Creating Post...</span>
-          <span v-else>Create Post</span>
-        </button>
-      </div>
-    </form>
-
-    <!-- Success Modal -->
-    <div v-if="showSuccessModal" class="modal-overlay">
-      <div class="modal-content">
-        <h2>🎉 Post Created Successfully!</h2>
-        <p>Your blog post has been created and all files have been uploaded.</p>
-        <div class="modal-actions">
-          <button @click="createAnotherPost" class="btn btn-primary">
-            Create Another Post
-          </button>
-          <button @click="viewPost" class="btn btn-secondary">
-            View Post
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-</template>
-
 <script>
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
@@ -480,7 +19,7 @@ export default {
       },
       selectedTopic: '', // Single topic selection
       markdownFile: null,
-      uploadedImages: [], // For sequenced images
+      sequencedAttachments: [], // NEW: Replaces uploadedImages for sequenced attachments
       attachedFiles: [], // For additional attachments
       availableTopics: [],
       availableGroups: [],
@@ -760,31 +299,87 @@ export default {
       reader.readAsText(file);
     },
 
-    handleImageUpload(event) {
+    // NEW: Handle sequenced attachment upload (replaces handleImageUpload)
+    handleSequencedAttachmentUpload(event) {
       const files = Array.from(event.target.files);
-      const remainingSlots = 20 - this.uploadedImages.length;
+      const remainingSlots = 20 - this.sequencedAttachments.length;
 
       if (files.length > remainingSlots) {
-        this.showError(`You can only upload ${remainingSlots} more images.`);
+        this.showError(`You can only upload ${remainingSlots} more sequenced attachments.`);
         return;
       }
 
-      // Validate file sizes (10MB limit for images)
-      const oversizedFiles = files.filter(file => file.size > 10 * 1024 * 1024);
+      // Validate file sizes (100MB limit for all sequenced attachments)
+      const oversizedFiles = files.filter(file => file.size > 100 * 1024 * 1024);
       if (oversizedFiles.length > 0) {
-        this.showError('Some images exceed the 10MB size limit');
+        this.showError('Some files exceed the 100MB size limit');
         return;
       }
 
-      // Add images with their sequence numbers
+      // Add files with their sequence numbers and auto-detect type
       files.forEach(file => {
-        this.uploadedImages.push({
+        this.sequencedAttachments.push({
           file: file,
-          sequence: this.uploadedImages.length + 1
+          sequence: this.sequencedAttachments.length + 1,
+          attachmentType: this.detectAttachmentType(file)
         });
       });
 
       event.target.value = '';
+    },
+
+    // NEW: Detect attachment type based on file
+    detectAttachmentType(file) {
+      if (file.type.startsWith('image/')) return 'image';
+      if (file.type.startsWith('audio/')) return 'audio';
+      if (file.type.startsWith('video/')) return 'video';
+
+      // Fallback based on extension
+      const fileName = file.name.toLowerCase();
+      if (fileName.endsWith('.mp3') || fileName.endsWith('.wav') || fileName.endsWith('.ogg') ||
+          fileName.endsWith('.flac') || fileName.endsWith('.aac')) {
+        return 'audio';
+      }
+      if (fileName.endsWith('.mp4') || fileName.endsWith('.avi') || fileName.endsWith('.mov') ||
+          fileName.endsWith('.mkv') || fileName.endsWith('.webm') || fileName.endsWith('.m4v')) {
+        return 'video';
+      }
+
+      return 'image'; // Default to image for compatibility
+    },
+
+    // NEW: Update attachment type
+    updateAttachmentType(index, newType) {
+      this.sequencedAttachments[index].attachmentType = newType;
+    },
+
+    // NEW: Remove sequenced attachment
+    removeSequencedAttachment(index) {
+      this.sequencedAttachments.splice(index, 1);
+      // Update sequence numbers
+      this.sequencedAttachments.forEach((attachment, idx) => {
+        attachment.sequence = idx + 1;
+      });
+    },
+
+    // NEW: Get icon for sequenced attachment
+    getSequencedAttachmentIcon(attachmentType) {
+      switch (attachmentType) {
+        case 'image': return '🖼️';
+        case 'audio': return '🎵';
+        case 'video': return '🎬';
+        default: return '📎';
+      }
+    },
+
+    // NEW: Get type label for sequenced attachment
+    getSequencedAttachmentTypeLabel(attachmentType) {
+      switch (attachmentType) {
+        case 'image': return 'Image';
+        case 'audio': return 'Audio';
+        case 'video': return 'Video';
+        default: return 'File';
+      }
     },
 
     handleAttachmentUpload(event) {
@@ -796,35 +391,80 @@ export default {
         return;
       }
 
-      // Validate file sizes (100MB limit for attachments - increased from 50MB)
+      // Validate file sizes (100MB limit for attachments)
       const oversizedFiles = files.filter(file => file.size > 100 * 1024 * 1024);
       if (oversizedFiles.length > 0) {
         this.showError('Some files exceed the 100MB size limit');
         return;
       }
 
+      // Validate for potentially dangerous file types if needed
+      const dangerousFiles = files.filter(file => this.isPotentiallyDangerous(file));
+      if (dangerousFiles.length > 0) {
+        if (!confirm('Warning: You are uploading executable files. Make sure you trust these files. Continue?')) {
+          return;
+        }
+      }
+
       this.attachedFiles.push(...files);
       event.target.value = '';
     },
 
-    removeImage(index) {
-      this.uploadedImages.splice(index, 1);
-      // Update sequence numbers
-      this.uploadedImages.forEach((img, idx) => {
-        img.sequence = idx + 1;
-      });
+    isPotentiallyDangerous(file) {
+      const dangerousExtensions = ['.exe', '.bat', '.cmd', '.sh', '.ps1', '.js', '.vbs'];
+      const fileName = file.name.toLowerCase();
+      return dangerousExtensions.some(ext => fileName.endsWith(ext));
+    },
+
+    getFileIcon(fileType, fileName = '') {
+      // Generic file type detection
+      if (fileType.startsWith('image/')) return '🖼️';
+      if (fileType.includes('pdf')) return '📄';
+      if (fileType.includes('zip') || fileType.includes('rar') || fileType.includes('tar') ||
+        fileType.includes('7z') || fileName.endsWith('.zip') || fileName.endsWith('.rar')) return '📦';
+      if (fileType.includes('document') || fileType.includes('word') ||
+        fileName.endsWith('.doc') || fileName.endsWith('.docx')) return '📝';
+      if (fileType.includes('spreadsheet') || fileType.includes('excel') ||
+        fileName.endsWith('.xls') || fileName.endsWith('.xlsx')) return '📊';
+      if (fileType.includes('presentation') || fileType.includes('powerpoint') ||
+        fileName.endsWith('.ppt') || fileName.endsWith('.pptx')) return '📑';
+      if (fileType.includes('text/') || fileName.endsWith('.txt')) return '📃';
+      if (fileType.includes('audio/')) return '🎵';
+      if (fileType.includes('video/')) return '🎬';
+      if (fileName.endsWith('.exe') || fileName.endsWith('.msi')) return '⚙️';
+      if (fileName.endsWith('.js')) return '📜';
+      if (fileName.endsWith('.py')) return '🐍';
+      if (fileName.endsWith('.java')) return '☕';
+
+      return '📎'; // Default file icon
+    },
+
+    getFileTypeLabel(fileType, fileName = '') {
+      if (fileType.startsWith('image/')) return 'Image';
+      if (fileType.includes('pdf')) return 'PDF';
+      if (fileType.includes('zip') || fileType.includes('rar') || fileType.includes('tar') ||
+        fileType.includes('7z') || fileName.endsWith('.zip') || fileName.endsWith('.rar')) return 'Archive';
+      if (fileType.includes('document') || fileType.includes('word') ||
+        fileName.endsWith('.doc') || fileName.endsWith('.docx')) return 'Word Doc';
+      if (fileType.includes('spreadsheet') || fileType.includes('excel') ||
+        fileName.endsWith('.xls') || fileName.endsWith('.xlsx')) return 'Spreadsheet';
+      if (fileType.includes('presentation') || fileType.includes('powerpoint') ||
+        fileName.endsWith('.ppt') || fileName.endsWith('.pptx')) return 'Presentation';
+      if (fileType.includes('text/') || fileName.endsWith('.txt')) return 'Text';
+      if (fileType.includes('audio/')) return 'Audio';
+      if (fileType.includes('video/')) return 'Video';
+      if (fileName.endsWith('.exe') || fileName.endsWith('.msi')) return 'Executable';
+      if (fileName.endsWith('.js')) return 'JavaScript';
+      if (fileName.endsWith('.py')) return 'Python';
+      if (fileName.endsWith('.java')) return 'Java';
+
+      // Extract extension for unknown types
+      const extension = fileName.split('.').pop();
+      return extension ? extension.toUpperCase() : 'File';
     },
 
     removeAttachment(index) {
       this.attachedFiles.splice(index, 1);
-    },
-
-    getFileIcon(fileType) {
-      if (fileType.startsWith('image/')) return '🖼️';
-      if (fileType.includes('pdf')) return '📄';
-      if (fileType.includes('zip')) return '📦';
-      if (fileType.includes('document')) return '📝';
-      return '📎';
     },
 
     getImagePreview(file) {
@@ -871,7 +511,7 @@ export default {
       }
     },
 
-    async uploadFileToGridFS(postId, file, fileType = 'attachment', sequence = 0) {
+    async uploadFileToGridFS(postId, file, fileType = 'attachment', sequence = 0, attachmentType = 'image') {
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = async () => {
@@ -886,7 +526,8 @@ export default {
                 filename: file.name,
                 base64Data: base64Data,
                 fileType: fileType,
-                sequence: sequence
+                sequence: sequence,
+                attachmentType: attachmentType // NEW: Include attachment type
               })
             });
 
@@ -965,23 +606,24 @@ export default {
         this.createdPostId = createdPost.postId;
         this.uploadProgress = 30;
 
-        // 2. Upload sequenced images
-        if (this.uploadedImages.length > 0) {
-          this.currentTask = 'Uploading sequenced images...';
-          const imageCount = this.uploadedImages.length;
+        // 2. Upload sequenced attachments (images, audio, video)
+        if (this.sequencedAttachments.length > 0) {
+          this.currentTask = 'Uploading sequenced attachments...';
+          const attachmentCount = this.sequencedAttachments.length;
 
-          for (let i = 0; i < this.uploadedImages.length; i++) {
-            const image = this.uploadedImages[i];
-            this.currentTask = `Uploading sequenced image ${i + 1} of ${imageCount}...`;
+          for (let i = 0; i < this.sequencedAttachments.length; i++) {
+            const attachment = this.sequencedAttachments[i];
+            this.currentTask = `Uploading sequenced ${attachment.attachmentType} ${i + 1} of ${attachmentCount}...`;
 
             await this.uploadFileToGridFS(
               createdPost.postId,
-              image.file,
-              'image',
-              image.sequence
+              attachment.file,
+              'image', // Keep as 'image' for GridFS compatibility
+              attachment.sequence,
+              attachment.attachmentType // NEW: Pass attachment type
             );
 
-            this.uploadProgress = 30 + (i / imageCount) * 30;
+            this.uploadProgress = 30 + (i / attachmentCount) * 30;
           }
         }
 
@@ -1053,7 +695,7 @@ export default {
       };
       this.selectedTopic = '';
       this.markdownFile = null;
-      this.uploadedImages = [];
+      this.sequencedAttachments = []; // NEW: Clear sequenced attachments
       this.attachedFiles = [];
       this.selectedGroupId = '';
       this.showPreview = false;
@@ -1078,41 +720,794 @@ export default {
 
   beforeUnmount() {
     // Clean up object URLs to prevent memory leaks
-    this.uploadedImages.forEach(image => {
-      if (image.file.type.startsWith('image/')) {
-        URL.revokeObjectURL(this.getImagePreview(image.file));
+    this.sequencedAttachments.forEach(attachment => {
+      if (attachment.file.type.startsWith('image/')) {
+        URL.revokeObjectURL(this.getImagePreview(attachment.file));
       }
     });
   }
 };
 </script>
 
+<template>
+  <div class="blog-post-creator">
+    <div class="creator-header">
+      <h1>Create New Blog Post</h1>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div v-if="isSubmitting" class="loading-overlay">
+      <div class="loading-content">
+        <div class="spinner"></div>
+        <h3>Uploading Post...</h3>
+        <p>Please wait while we process your content and files</p>
+        <div class="upload-progress">
+          <div class="progress-bar">
+            <div class="progress-fill" :style="{ width: uploadProgress + '%' }"></div>
+          </div>
+          <span>{{ uploadProgress }}% Complete</span>
+        </div>
+        <div class="current-task">{{ currentTask }}</div>
+      </div>
+    </div>
+
+    <!-- Error Display -->
+    <div v-if="errorMessage" class="error-alert">
+      <div class="error-content">
+        <h3>❌ Error</h3>
+        <p>{{ errorMessage }}</p>
+        <button @click="clearError" class="btn btn-secondary">Dismiss</button>
+      </div>
+    </div>
+
+    <form @submit.prevent="submitPost" class="post-form">
+      <!-- Basic Post Information -->
+      <div class="form-section">
+        <h2>Post Information</h2>
+
+        <div class="form-group">
+          <label for="postTitle">Post Title *</label>
+          <input id="postTitle" v-model="postData.postTitle" type="text" required placeholder="Enter post title"
+            class="form-input" :class="{ 'error': fieldErrors.postTitle }">
+          <span v-if="fieldErrors.postTitle" class="error-text">{{ fieldErrors.postTitle }}</span>
+        </div>
+
+        <div class="form-group">
+          <label for="postAuthor">Author *</label>
+          <input id="postAuthor" v-model="postData.postAuthor" type="text" required placeholder="Enter author name"
+            class="form-input" :class="{ 'error': fieldErrors.postAuthor }">
+          <span v-if="fieldErrors.postAuthor" class="error-text">{{ fieldErrors.postAuthor }}</span>
+        </div>
+
+        <!-- Content Type Selection -->
+        <div class="form-group">
+          <label for="contentType">Content Type *</label>
+          <select id="contentType" v-model="postData.contentType" class="form-input"
+            :class="{ 'error': fieldErrors.contentType }" required>
+            <option value="">Select content type...</option>
+            <option value="Text">Text</option>
+            <option value="Code">Code</option>
+            <option value="File">File</option>
+            <option value="Video">Video</option>
+            <option value="Music">Music</option>
+            <option value="None">None</option>
+          </select>
+          <span v-if="fieldErrors.contentType" class="error-text">{{ fieldErrors.contentType }}</span>
+        </div>
+
+        <div class="form-group">
+          <label for="isPublished">Publish Status</label>
+          <div class="checkbox-group">
+            <input id="isPublished" v-model="postData.isPublished" type="checkbox">
+            <label for="isPublished" class="checkbox-label">
+              Publish immediately
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Post Topic Selection -->
+      <div class="form-section">
+        <h2>Post Topic *</h2>
+        <div class="form-group">
+          <label>Select Post Topic</label>
+          <select v-model="selectedTopic" class="form-input" :class="{ 'error': fieldErrors.postTopics }" required>
+            <option value="">Select a topic...</option>
+            <option v-for="topic in availableTopics" :key="topic.topicName" :value="topic.topicName">
+              {{ topic.topicName }}
+            </option>
+          </select>
+          <span v-if="fieldErrors.postTopics" class="error-text">{{ fieldErrors.postTopics }}</span>
+        </div>
+
+        <div v-if="selectedTopic" class="selected-topic-display">
+          <span class="topic-tag" :style="{
+            backgroundColor: getTopicColor(selectedTopic) + '20',
+            borderColor: getTopicColor(selectedTopic)
+          }">
+            {{ selectedTopic }}
+          </span>
+        </div>
+      </div>
+
+      <!-- Post Group Selection -->
+      <div class="form-section">
+        <h2>Post Group (Optional)</h2>
+        <div class="form-group">
+          <label>Assign to Post Group</label>
+          <div class="group-selection">
+            <select v-model="selectedGroupId" class="form-input">
+              <option value="">No Group</option>
+              <option v-for="group in availableGroups" :key="group._id" :value="group._id"
+                :style="{ color: group.groupColor }">
+                {{ group.groupName }}
+              </option>
+            </select>
+            <button type="button" @click="showCreateGroup = true" class="btn btn-outline">
+              + Create New Group
+            </button>
+            <button v-if="selectedGroupId" type="button" @click="editSelectedGroup" class="btn btn-outline">
+              ✏️ Edit Group
+            </button>
+          </div>
+        </div>
+
+        <!-- Selected group display with color -->
+        <div v-if="selectedGroup" class="selected-group-display">
+          <span class="group-tag" :style="{
+            backgroundColor: selectedGroup.groupColor + '20',
+            borderColor: selectedGroup.groupColor,
+            color: selectedGroup.groupColor
+          }">
+            {{ selectedGroup.groupName }}
+          </span>
+        </div>
+
+        <!-- Create New Group Modal -->
+        <div v-if="showCreateGroup" class="modal-overlay">
+          <div class="modal-content">
+            <h3>Create New Post Group</h3>
+            <div class="form-group">
+              <label>Group Name *</label>
+              <input v-model="newGroup.groupName" type="text" class="form-input" placeholder="Enter group name"
+                :class="{ 'error': fieldErrors.groupName }">
+              <span v-if="fieldErrors.groupName" class="error-text">{{ fieldErrors.groupName }}</span>
+            </div>
+            <div class="form-group">
+              <label>Description</label>
+              <textarea v-model="newGroup.groupDescription" class="form-input"
+                placeholder="Optional description"></textarea>
+            </div>
+            <div class="form-group">
+              <label>Group Color</label>
+              <div class="color-picker-container">
+                <input v-model="newGroup.groupColor" type="color" class="color-picker">
+                <span class="color-value">{{ newGroup.groupColor }}</span>
+              </div>
+            </div>
+            <div class="modal-actions">
+              <button @click="createNewGroup" class="btn btn-primary" :disabled="!newGroup.groupName">
+                Create Group
+              </button>
+              <button @click="cancelCreateGroup" class="btn btn-secondary">Cancel</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Edit Group Modal -->
+        <div v-if="showEditGroup" class="modal-overlay">
+          <div class="modal-content">
+            <h3>Edit Post Group</h3>
+            <div class="form-group">
+              <label>Group Name *</label>
+              <input v-model="editingGroup.groupName" type="text" class="form-input" placeholder="Enter group name"
+                :class="{ 'error': fieldErrors.editingGroupName }">
+              <span v-if="fieldErrors.editingGroupName" class="error-text">{{ fieldErrors.editingGroupName }}</span>
+            </div>
+            <div class="form-group">
+              <label>Description</label>
+              <textarea v-model="editingGroup.groupDescription" class="form-input"
+                placeholder="Optional description"></textarea>
+            </div>
+            <div class="form-group">
+              <label>Group Color</label>
+              <div class="color-picker-container">
+                <input v-model="editingGroup.groupColor" type="color" class="color-picker">
+                <span class="color-value">{{ editingGroup.groupColor }}</span>
+              </div>
+            </div>
+            <div class="modal-actions">
+              <button @click="updateGroup" class="btn btn-primary" :disabled="!editingGroup.groupName">
+                Update Group
+              </button>
+              <button @click="deleteGroup" class="btn btn-danger">
+                Delete Group
+              </button>
+              <button @click="cancelEditGroup" class="btn btn-secondary">Cancel</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Markdown Content -->
+      <div class="form-section">
+        <h2>Post Content</h2>
+
+        <div class="md-upload-area">
+          <label class="file-upload-label">
+            <input type="file" accept=".md,.txt" @change="handleMarkdownUpload" class="file-input">
+            <div class="upload-box" :class="{ 'has-file': markdownFile, 'error': fieldErrors.postContent }">
+              <span v-if="!markdownFile" class="upload-placeholder">
+                📄 Upload Markdown File (.md) *
+              </span>
+              <span v-else class="file-info">
+                ✅ {{ markdownFile.name }} ({{ formatFileSize(markdownFile.size) }})
+              </span>
+            </div>
+          </label>
+          <span v-if="fieldErrors.postContent" class="error-text">{{ fieldErrors.postContent }}</span>
+        </div>
+
+        <!-- Markdown Preview -->
+        <div v-if="postData.postContent" class="preview-section">
+          <div class="preview-header">
+            <h3>Content Preview</h3>
+            <button type="button" @click="showPreview = !showPreview" class="preview-toggle">
+              {{ showPreview ? 'Hide Preview' : 'Show Preview' }}
+            </button>
+          </div>
+
+          <div v-if="showPreview" class="preview-content">
+            <div v-html="compiledMarkdown" class="markdown-preview"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sequenced Attachments (REPLACES Images for Sequencing) -->
+      <div class="form-section">
+        <h2>Sequenced Attachments</h2>
+        <p class="section-description">
+          Upload images, audio, or video files that will be referenced in your markdown as Image 1, Audio 1, Video 1, etc.
+          Use <code>![Description](image{{ sequencedAttachments.filter(a => a.attachmentType === 'image').length + 1 }})</code> for images,
+          <code>[Description](audio{{ sequencedAttachments.filter(a => a.attachmentType === 'audio').length + 1 }})</code> for audio, or
+          <code>[Description](video{{ sequencedAttachments.filter(a => a.attachmentType === 'video').length + 1 }})</code> for video in your markdown.
+        </p>
+
+        <div class="file-upload-area">
+          <label class="file-upload-label">
+            <input type="file" multiple accept="image/*,audio/*,video/*" @change="handleSequencedAttachmentUpload"
+              :disabled="sequencedAttachments.length >= 20" class="file-input">
+            <div class="upload-box" :class="{ 'disabled': sequencedAttachments.length >= 20 }">
+              <span class="upload-placeholder">
+                📁 Upload Sequenced Attachments ({{ sequencedAttachments.length }}/20)
+              </span>
+            </div>
+          </label>
+        </div>
+
+        <!-- Sequenced Attachments List -->
+        <div v-if="sequencedAttachments.length > 0" class="attachments-list">
+          <div v-for="(attachment, index) in sequencedAttachments" :key="index" class="attachment-item sequenced">
+            <div class="attachment-info">
+              <div class="attachment-header">
+                <span class="attachment-icon">{{ getSequencedAttachmentIcon(attachment.attachmentType) }}</span>
+                <span class="attachment-name">{{ attachment.file.name }}</span>
+                <span class="attachment-sequence">#{{ attachment.sequence }}</span>
+              </div>
+              <div class="attachment-details">
+                <span class="file-size">{{ formatFileSize(attachment.file.size) }}</span>
+                <select :value="attachment.attachmentType" @change="updateAttachmentType(index, $event.target.value)"
+                  class="attachment-type-select">
+                  <option value="image">Image</option>
+                  <option value="audio">Audio</option>
+                  <option value="video">Video</option>
+                </select>
+              </div>
+            </div>
+            <button type="button" @click="removeSequencedAttachment(index)" class="remove-btn" title="Remove attachment">
+              ✕
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Additional Attachments -->
+      <div class="form-section">
+        <h2>Additional Attachments</h2>
+        <p class="section-description">
+          Upload additional files that will be available for download with your post.
+        </p>
+
+        <div class="file-upload-area">
+          <label class="file-upload-label">
+            <input type="file" multiple @change="handleAttachmentUpload" :disabled="attachedFiles.length >= 10"
+              class="file-input">
+            <div class="upload-box" :class="{ 'disabled': attachedFiles.length >= 10 }">
+              <span class="upload-placeholder">
+                📎 Upload Additional Files ({{ attachedFiles.length }}/10)
+              </span>
+            </div>
+          </label>
+        </div>
+
+        <!-- Attachments List -->
+        <div v-if="attachedFiles.length > 0" class="attachments-list">
+          <div v-for="(file, index) in attachedFiles" :key="index" class="attachment-item">
+            <div class="attachment-info">
+              <div class="attachment-header">
+                <span class="attachment-icon">{{ getFileIcon(file.type, file.name) }}</span>
+                <span class="attachment-name">{{ file.name }}</span>
+              </div>
+              <div class="attachment-details">
+                <span class="file-size">{{ formatFileSize(file.size) }}</span>
+                <span class="file-type">{{ getFileTypeLabel(file.type, file.name) }}</span>
+              </div>
+            </div>
+            <button type="button" @click="removeAttachment(index)" class="remove-btn" title="Remove attachment">
+              ✕
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Form Actions -->
+      <div class="form-actions">
+        <button type="button" @click="resetForm" class="btn btn-secondary" :disabled="isSubmitting">
+          Reset Form
+        </button>
+        <button type="submit" class="btn btn-primary" :disabled="!isFormValid || isSubmitting">
+          {{ isSubmitting ? 'Creating Post...' : 'Create Post' }}
+        </button>
+      </div>
+    </form>
+
+    <!-- Success Modal -->
+    <div v-if="showSuccessModal" class="modal-overlay">
+      <div class="modal-content success-modal">
+        <div class="success-icon">✅</div>
+        <h3>Post Created Successfully!</h3>
+        <p>Your blog post has been created and files have been uploaded.</p>
+        <div class="success-actions">
+          <button @click="createAnotherPost" class="btn btn-outline">
+            Create Another Post
+          </button>
+          <button @click="viewPost" class="btn btn-primary">
+            View Post
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
 <style scoped>
-/* Add these additional styles for the topic selection */
-.selected-topic-display {
-  margin-top: 10px;
+.blog-post-creator {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
-.topic-tag {
-  display: inline-block;
-  padding: 8px 16px;
-  border: 2px solid;
-  border-radius: 20px;
+.creator-header {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.creator-header h1 {
+  color: #333;
+  font-size: 2.5rem;
+  margin-bottom: 10px;
+}
+
+.form-section {
+  background: white;
+  border-radius: 8px;
+  padding: 25px;
+  margin-bottom: 25px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e0e0e0;
+}
+
+.form-section h2 {
+  color: #333;
+  margin-bottom: 20px;
+  font-size: 1.4rem;
+  border-bottom: 2px solid #007bff;
+  padding-bottom: 8px;
+}
+
+.section-description {
+  color: #666;
+  margin-bottom: 15px;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: #333;
+}
+
+.form-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 2px solid #e0e0e0;
+  border-radius: 6px;
   font-size: 14px;
-  font-weight: 500;
+  transition: border-color 0.3s ease;
+  box-sizing: border-box;
 }
 
+.form-input:focus {
+  outline: none;
+  border-color: #007bff;
+}
+
+.form-input.error {
+  border-color: #dc3545;
+}
+
+.error-text {
+  color: #dc3545;
+  font-size: 0.85rem;
+  margin-top: 5px;
+  display: block;
+}
+
+.checkbox-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.checkbox-label {
+  margin-bottom: 0;
+  font-weight: normal;
+  cursor: pointer;
+}
+
+.selected-topic-display,
 .selected-group-display {
-  margin-top: 10px;
+  margin-top: 15px;
 }
 
+.topic-tag,
 .group-tag {
   display: inline-block;
-  padding: 8px 16px;
-  border: 2px solid;
+  padding: 6px 12px;
   border-radius: 20px;
-  font-size: 14px;
+  font-size: 0.9rem;
   font-weight: 500;
+  border: 2px solid;
+}
+
+.group-selection {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.group-selection .form-input {
+  flex: 1;
+}
+
+.btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  display: inline-block;
+  text-align: center;
+}
+
+.btn-primary {
+  background-color: #007bff;
+  color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: #0056b3;
+}
+
+.btn-secondary {
+  background-color: #6c757d;
+  color: white;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background-color: #545b62;
+}
+
+.btn-outline {
+  background-color: transparent;
+  border: 2px solid #007bff;
+  color: #007bff;
+}
+
+.btn-outline:hover:not(:disabled) {
+  background-color: #007bff;
+  color: white;
+}
+
+.btn-danger {
+  background-color: #dc3545;
+  color: white;
+}
+
+.btn-danger:hover:not(:disabled) {
+  background-color: #c82333;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.file-upload-area {
+  margin-bottom: 20px;
+}
+
+.file-upload-label {
+  cursor: pointer;
+}
+
+.file-input {
+  display: none;
+}
+
+.upload-box {
+  border: 2px dashed #007bff;
+  border-radius: 6px;
+  padding: 30px;
+  text-align: center;
+  transition: all 0.3s ease;
+  background-color: #f8f9fa;
+}
+
+.upload-box:hover:not(.disabled) {
+  background-color: #e9ecef;
+}
+
+.upload-box.has-file {
+  border-color: #28a745;
+  background-color: #d4edda;
+}
+
+.upload-box.disabled {
+  border-color: #6c757d;
+  background-color: #e9ecef;
+  cursor: not-allowed;
+}
+
+.upload-placeholder {
+  color: #007bff;
+  font-weight: 500;
+}
+
+.upload-box.has-file .upload-placeholder {
+  color: #28a745;
+}
+
+.upload-box.disabled .upload-placeholder {
+  color: #6c757d;
+}
+
+.file-info {
+  color: #28a745;
+  font-weight: 500;
+}
+
+.attachments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.attachment-item {
+  display: flex;
+  justify-content: between;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  background-color: #f8f9fa;
+}
+
+.attachment-item.sequenced {
+  border-left: 4px solid #007bff;
+}
+
+.attachment-info {
+  flex: 1;
+}
+
+.attachment-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 5px;
+}
+
+.attachment-icon {
+  font-size: 1.2rem;
+}
+
+.attachment-name {
+  font-weight: 500;
+  color: #333;
+}
+
+.attachment-sequence {
+  background-color: #007bff;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: bold;
+}
+
+.attachment-details {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+}
+
+.file-size,
+.file-type {
+  color: #666;
+  font-size: 0.85rem;
+}
+
+.attachment-type-select {
+  padding: 2px 6px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.8rem;
+}
+
+.remove-btn {
+  background: none;
+  border: none;
+  color: #dc3545;
+  cursor: pointer;
+  font-size: 1.2rem;
+  padding: 5px;
+  border-radius: 4px;
+}
+
+.remove-btn:hover {
+  background-color: #f8d7da;
+}
+
+.preview-section {
+  margin-top: 20px;
+}
+
+.preview-header {
+  display: flex;
+  justify-content: between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.preview-toggle {
+  background: none;
+  border: 1px solid #007bff;
+  color: #007bff;
+  padding: 5px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.preview-toggle:hover {
+  background-color: #007bff;
+  color: white;
+}
+
+.preview-content {
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  padding: 20px;
+  background-color: white;
+}
+
+.markdown-preview {
+  line-height: 1.6;
+}
+
+.markdown-preview h1,
+.markdown-preview h2,
+.markdown-preview h3 {
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+}
+
+.markdown-preview p {
+  margin-bottom: 1em;
+}
+
+.markdown-preview code {
+  background-color: #f4f4f4;
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-family: 'Courier New', monospace;
+}
+
+.markdown-preview pre {
+  background-color: #f8f9fa;
+  padding: 15px;
+  border-radius: 6px;
+  overflow-x: auto;
+}
+
+.markdown-preview pre code {
+  background: none;
+  padding: 0;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 15px;
+  margin-top: 30px;
+  padding-top: 20px;
+  border-top: 1px solid #e0e0e0;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 8px;
+  padding: 30px;
+  max-width: 500px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 20px;
+}
+
+.success-modal {
+  text-align: center;
+}
+
+.success-icon {
+  font-size: 4rem;
+  margin-bottom: 20px;
+}
+
+.success-actions {
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+  margin-top: 25px;
 }
 
 .color-picker-container {
@@ -1123,61 +1518,59 @@ export default {
 
 .color-picker {
   width: 50px;
-  height: 40px;
+  height: 30px;
   border: none;
   border-radius: 4px;
   cursor: pointer;
 }
 
 .color-value {
-  font-family: monospace;
-  font-size: 14px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.9rem;
+  color: #666;
 }
 
-.btn-danger {
-  background: #dc3545;
-  color: white;
-}
-
-.btn-danger:hover:not(:disabled) {
-  background: #c82333;
-}
-
-/* Keep all the existing styles from the previous component */
 .loading-overlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.7);
+  background-color: rgba(255, 255, 255, 0.9);
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 1000;
+  z-index: 2000;
 }
 
 .loading-content {
-  background: white;
-  padding: 30px;
-  border-radius: 8px;
   text-align: center;
+  background: white;
+  padding: 40px;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   max-width: 400px;
+  width: 90%;
 }
 
 .spinner {
   border: 4px solid #f3f3f3;
   border-top: 4px solid #007bff;
   border-radius: 50%;
-  width: 40px;
-  height: 40px;
+  width: 50px;
+  height: 50px;
   animation: spin 1s linear infinite;
   margin: 0 auto 20px;
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 .upload-progress {
@@ -1185,354 +1578,60 @@ export default {
 }
 
 .progress-bar {
-  background: #f0f0f0;
-  border-radius: 10px;
+  width: 100%;
   height: 10px;
+  background-color: #e0e0e0;
+  border-radius: 5px;
+  overflow: hidden;
   margin-bottom: 10px;
 }
 
 .progress-fill {
-  background: #007bff;
   height: 100%;
-  border-radius: 10px;
+  background-color: #007bff;
   transition: width 0.3s ease;
 }
 
 .current-task {
-  font-style: italic;
   color: #666;
+  font-style: italic;
   margin-top: 10px;
 }
 
 .error-alert {
-  background: #fee;
-  border: 1px solid #fcc;
-  border-radius: 8px;
-  padding: 16px;
+  background-color: #f8d7da;
+  border: 1px solid #f5c6cb;
+  border-radius: 6px;
+  padding: 15px;
   margin-bottom: 20px;
+  color: #721c24;
 }
 
 .error-content h3 {
-  color: #c00;
-  margin-bottom: 8px;
+  margin: 0 0 10px 0;
+  color: #721c24;
 }
 
-.form-input.error {
-  border-color: #c00;
-}
+@media (max-width: 768px) {
+  .blog-post-creator {
+    padding: 10px;
+  }
 
-.error-text {
-  color: #c00;
-  font-size: 14px;
-  margin-top: 5px;
-  display: block;
-}
+  .form-section {
+    padding: 15px;
+  }
 
-.group-selection {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-}
+  .group-selection {
+    flex-direction: column;
+  }
 
-.group-selection select {
-  flex: 1;
-}
+  .form-actions {
+    flex-direction: column;
+  }
 
-.btn-outline {
-  background: transparent;
-  border: 1px solid #007bff;
-  color: #007bff;
-}
-
-.btn-outline:hover {
-  background: #007bff;
-  color: white;
-}
-
-.image-sequence-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 15px;
-  margin-top: 15px;
-}
-
-.sequence-item {
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  padding: 10px;
-  text-align: center;
-}
-
-.sequence-number {
-  font-weight: bold;
-  margin-bottom: 8px;
-  color: #007bff;
-}
-
-.sequence-preview {
-  max-width: 100%;
-  height: 100px;
-  object-fit: contain;
-  margin-bottom: 8px;
-}
-
-.file-list {
-  margin-top: 15px;
-}
-
-.file-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  margin-bottom: 8px;
-}
-
-.file-info {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.remove-btn {
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-size: 16px;
-  padding: 5px;
-}
-
-.remove-btn:hover {
-  color: #c00;
-}
-
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-}
-
-.modal-content {
-  background: white;
-  padding: 30px;
-  border-radius: 8px;
-  max-width: 500px;
-  width: 90%;
-}
-
-.modal-actions {
-  display: flex;
-  gap: 10px;
-  justify-content: flex-end;
-  margin-top: 20px;
-}
-
-.form-section {
-  margin-bottom: 30px;
-  padding: 20px;
-  border: 1px solid #eee;
-  border-radius: 8px;
-}
-
-.form-group {
-  margin-bottom: 20px;
-}
-
-.form-input {
-  width: 100%;
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 16px;
-}
-
-.file-upload-label {
-  display: block;
-}
-
-.file-input {
-  display: none;
-}
-
-.upload-box {
-  border: 2px dashed #ddd;
-  border-radius: 8px;
-  padding: 40px 20px;
-  text-align: center;
-  cursor: pointer;
-  transition: border-color 0.3s ease;
-}
-
-.upload-box:hover {
-  border-color: #007bff;
-}
-
-.upload-box.has-file {
-  border-color: #28a745;
-  background: #f8fff9;
-}
-
-.upload-box.error {
-  border-color: #c00;
-  background: #fee;
-}
-
-.upload-box.disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.btn {
-  padding: 10px 20px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 16px;
-  transition: background-color 0.3s ease;
-}
-
-.btn-primary {
-  background: #007bff;
-  color: white;
-}
-
-.btn-primary:hover:not(:disabled) {
-  background: #0056b3;
-}
-
-.btn-secondary {
-  background: #6c757d;
-  color: white;
-}
-
-.btn-secondary:hover:not(:disabled) {
-  background: #545b62;
-}
-
-.btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.form-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 15px;
-  margin-top: 30px;
-  padding-top: 20px;
-  border-top: 1px solid #eee;
-}
-
-/* Add these styles to the existing CSS */
-.file-type-badge {
-  background: #007bff;
-  color: white;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 12px;
-  margin-left: 8px;
-}
-
-.image-previews {
-  margin-top: 20px;
-}
-
-.image-previews h3 {
-  margin-bottom: 15px;
-  color: #333;
-}
-
-.image-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 16px;
-  margin-top: 12px;
-}
-
-.image-preview-item {
-  text-align: center;
-}
-
-.preview-image {
-  width: 100%;
-  height: 120px;
-  object-fit: cover;
-  border-radius: 6px;
-  border: 1px solid #e1e5e9;
-}
-
-.image-name {
-  display: block;
-  margin-top: 8px;
-  font-size: 12px;
-  color: #666;
-  word-break: break-word;
-}
-
-.section-description {
-  color: #666;
-  margin-bottom: 15px;
-  line-height: 1.5;
-}
-
-.section-description code {
-  background: #f4f4f4;
-  padding: 2px 6px;
-  border-radius: 3px;
-  font-family: monospace;
-}
-
-.preview-section {
-  margin-top: 20px;
-}
-
-.preview-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 15px;
-}
-
-.preview-toggle {
-  background: #6c757d;
-  color: white;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 14px;
-}
-
-.preview-toggle:hover {
-  background: #545b62;
-}
-
-.markdown-preview {
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  padding: 20px;
-  background: #f9f9f9;
-  max-height: 400px;
-  overflow-y: auto;
-}
-
-.checkbox-group {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.checkbox-label {
-  margin: 0;
-  cursor: pointer;
+  .modal-actions,
+  .success-actions {
+    flex-direction: column;
+  }
 }
 </style>

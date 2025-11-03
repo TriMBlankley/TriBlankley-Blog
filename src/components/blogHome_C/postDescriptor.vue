@@ -158,13 +158,13 @@ const groupColorStyle = computed(() => {
 
     <div class="postDescriptor">
       <div class="post-header">
-        <div v-if="hasGroup" class="group-indicator" :style="groupColorStyle"></div>
         <h1>{{ post.postTitle }}</h1>
 
         <div class="post-meta">
           <span>By {{ post.postAuthor }}</span>
           <span>{{ post.postDate }}</span>
         </div>
+        <div v-if="hasGroup" class="group-indicator" :style="groupColorStyle"></div>
 
       </div>
 
@@ -247,14 +247,14 @@ const groupColorStyle = computed(() => {
 
 .content-type-svg {
   height: 100%;
-  margin: 5px;
-  width: 8em;
-  max-width: 100%;
+  margin: 1em auto;
+  width: 7.5em;
+  max-width: 90%;
 }
 
 /* Group indicator styles */
 .group-indicator {
-  margin: auto -5px auto auto;
+  margin: auto 5px auto auto;
   width: 20px;
   height: 80%;
   border-radius: 5px;

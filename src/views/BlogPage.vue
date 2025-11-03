@@ -3,22 +3,19 @@ import { ref, onMounted, watch, computed, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import "@/assets/base.css"
-import { marked } from 'marked'
-import DOMPurify from 'dompurify'
 
-const hljs = ref<any>(null)
-
-// Import highlight.js styles
-import 'highlight.js/styles/github-dark.css'
-
-import PostTitle from '@/components/BlogPost_C/postTitle.vue'
-import SettingsCog from '@/components/Settings_C/settingsCog.vue'
-import BottomNav from '@/components/BlogPost_C/bottomNav.vue'
 import TbBlogLogo from "@/assets/uiElements/tbBlogLogo.svg"
+import SettingsCog from '@/components/Settings_C/settingsCog.vue'
+
+import PostTitle from '@/components/BlogPost_C/PostTitle.vue'
+import BottomNav from '@/components/BlogPost_C/BottomNav.vue'
+import MarkdownRenderer from '@/components/BlogPost_C/MarkdownRenderer.vue'
+import GalleryRenderer from '@/components/BlogPost_C/GalleryRenderer.vue'
+import AttachmentHandler from '@/components/BlogPost_C/AttachmentHandler.vue'
+import AvWidget from '@/components/BlogPost_C/AvWidget.vue'
 
 const router = useRouter()
 const route = useRoute()
-const renderedContent = ref('')
 
 interface PostData {
   postId: number
@@ -34,6 +31,7 @@ interface PostData {
     fileId: string
     uploadDate: string
     fileType?: string
+    attachmentType?: string
     sequence?: number
   }>
   postGroup?: {
@@ -55,48 +53,12 @@ const currentGroupIndex = ref(-1)
 
 const goToHome = () => router.push('/')
 
-// Configure marked with highlight.js - SIMPLIFIED VERSION
-const configureMarked = () => {
-  marked.setOptions({
-    breaks: true,
-    gfm: true,
-    headerIds: true,
-    mangle: false,
-    highlight: function(code, lang) {
-      if (!hljs.value) {
-        return code
-      }
-
-      // Check if language is supported
-      if (lang && hljs.value.getLanguage(lang)) {
-        try {
-          return hljs.value.highlight(code, { language: lang }).value
-        } catch (err) {
-          console.warn('Error highlighting code:', err)
-          return code
-        }
-      }
-
-      // Try to auto-detect language if no language specified
-      try {
-        const detected = hljs.value.highlightAuto(code)
-        return detected.value
-      } catch (err) {
-        return code
-      }
-    }
-  })
-}
-
-// Initialize marked configuration
-configureMarked()
-
 // Navigation functions
 const scrollToTop = () => {
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
-// The computed properties and navigation functions stay the same
+// Computed properties for navigation
 const hasPreviousTopicPost = computed(() => currentTopicIndex.value > 0)
 const hasNextTopicPost = computed(() => currentTopicIndex.value < topicPosts.value.length - 1)
 
@@ -106,6 +68,27 @@ const previousTopicPost = computed(() =>
 const nextTopicPost = computed(() =>
   hasNextTopicPost.value ? topicPosts.value[currentTopicIndex.value + 1] : null
 )
+
+const hasPreviousGroupPost = computed(() => currentGroupIndex.value > 0)
+const hasNextGroupPost = computed(() => currentGroupIndex.value < groupPosts.value.length - 1)
+
+const previousGroupPost = computed(() =>
+  hasPreviousGroupPost.value ? groupPosts.value[currentGroupIndex.value - 1] : null
+)
+const nextGroupPost = computed(() =>
+  hasNextGroupPost.value ? groupPosts.value[currentGroupIndex.value + 1] : null
+)
+
+// Get audio files from attached files
+const audioFiles = computed(() => {
+  if (!postData.value?.attachedFiles) return []
+
+  return postData.value.attachedFiles.filter(file =>
+    file.fileType === 'audio' ||
+    file.attachmentType === 'audio' ||
+    file.filename.match(/\.(mp3|wav|ogg|flac|aac)$/i)
+  )
+})
 
 // Fetch posts by topic
 const fetchTopicPosts = async () => {
@@ -142,35 +125,6 @@ const fetchTopicPosts = async () => {
   }
 }
 
-const goToPreviousTopicPost = () => {
-  if (previousTopicPost.value) {
-    router.push(`/BlogPage/${previousTopicPost.value.postId}`)
-  }
-}
-
-const goToNextTopicPost = () => {
-  if (nextTopicPost.value) {
-    router.push(`/BlogPage/${nextTopicPost.value.postId}`)
-  }
-}
-
-// Update computed properties with logging
-const hasPreviousGroupPost = computed(() => {
-  return currentGroupIndex.value > 0
-})
-
-const hasNextGroupPost = computed(() => {
-  return currentGroupIndex.value < groupPosts.value.length - 1
-})
-
-const previousGroupPost = computed(() => {
-  return hasPreviousGroupPost.value ? groupPosts.value[currentGroupIndex.value - 1] : null
-})
-
-const nextGroupPost = computed(() => {
-  return hasNextGroupPost.value ? groupPosts.value[currentGroupIndex.value + 1] : null
-})
-
 // Fetch posts by group
 const fetchGroupPosts = async () => {
   if (!postData.value?.postGroup?.groupId) {
@@ -197,6 +151,18 @@ const fetchGroupPosts = async () => {
   }
 }
 
+const goToPreviousTopicPost = () => {
+  if (previousTopicPost.value) {
+    router.push(`/BlogPage/${previousTopicPost.value.postId}`)
+  }
+}
+
+const goToNextTopicPost = () => {
+  if (nextTopicPost.value) {
+    router.push(`/BlogPage/${nextTopicPost.value.postId}`)
+  }
+}
+
 const goToPreviousGroupPost = () => {
   if (previousGroupPost.value) {
     router.push(`/BlogPage/${previousGroupPost.value.postId}`)
@@ -209,142 +175,38 @@ const goToNextGroupPost = () => {
   }
 }
 
-// FIXED: Get sequenced images (images with sequence numbers)
-const sequencedImages = computed(() => {
-  if (!postData.value?.attachedFiles) return []
-
-  const sequenced = postData.value.attachedFiles.filter(file =>
-    file.fileType === 'image' && file.sequence !== undefined
-  )
-
-  return sequenced.sort((a, b) => (a.sequence || 0) - (b.sequence || 0))
-})
-
-// FIXED: Get additional images (images without sequence numbers)
-const additionalImages = computed(() => {
-  if (!postData.value?.attachedFiles) return []
-
-  const additional = postData.value.attachedFiles.filter(file =>
-    file.fileType === 'image' && file.sequence === undefined
-  )
-
-  return additional.sort((a, b) =>
-    new Date(a.uploadDate).getTime() - new Date(b.uploadDate).getTime()
-  )
-})
-
-// FIXED: Get other attached files (non-images)
-const otherAttachedFiles = computed(() => {
-  if (!postData.value?.attachedFiles) return []
-
-  const otherFiles = postData.value.attachedFiles.filter(file =>
-    file.fileType !== 'image'
-  )
-
-  return otherFiles.sort((a, b) =>
-    new Date(a.uploadDate).getTime() - new Date(b.uploadDate).getTime()
-  )
-})
-
-// FIXED: Improved markdown image processing and content handling
-const processMarkdownContent = (content: string) => {
-  let processedContent = content
-
-  sequencedImages.value.forEach((image, index) => {
-    const imageNumber = index + 1
-    const imagePattern = new RegExp(`!\\[([^\\]]*)\\]\\(image${imageNumber}\\)`, 'gi')
-    const imageUrl = `/api/file/${image.fileId}`
-
-    processedContent = processedContent.replace(
-      imagePattern,
-      `![$1](${imageUrl})`
-    )
-  })
-
-  const genericImagePattern = /!\[([^\]]*)\]\(([^)]+)\)/g
-  processedContent = processedContent.replace(genericImagePattern, (match, altText, src) => {
-    if (src.startsWith('http') || src.startsWith('/api/file/') || src.startsWith('data:')) {
-      return match
-    }
-
-    const matchingImage = [...sequencedImages.value, ...additionalImages.value].find(
-      img => img.filename === src || img.filename.includes(src)
-    )
-
-    if (matchingImage) {
-      return `![${altText}](/api/file/${matchingImage.fileId})`
-    }
-
-    return match
-  })
-
-  return processedContent
-}
-
-// FIXED: Load highlight.js dynamically with better error handling
-const loadHighlightJS = async () => {
-  if (typeof window !== 'undefined') {
-    try {
-      // Import highlight.js with specific languages to reduce bundle size
-      const hljsModule = await import('highlight.js/lib/core')
-      hljs.value = hljsModule.default
-
-      // Import specific languages you need
-      const rustLang = await import('highlight.js/lib/languages/rust')
-      const cLang = await import('highlight.js/lib/languages/c')
-      const haskellLang = await import('highlight.js/lib/languages/haskell')
-      const pythonLang = await import('highlight.js/lib/languages/python')
-      const javascriptLang = await import('highlight.js/lib/languages/javascript')
-      const typescriptLang = await import('highlight.js/lib/languages/typescript')
-      const xmlLang = await import('highlight.js/lib/languages/xml')
-
-      // Register languages
-      hljs.value.registerLanguage('rust', rustLang.default)
-      hljs.value.registerLanguage('c', cLang.default)
-      hljs.value.registerLanguage('haskell', haskellLang.default)
-      hljs.value.registerLanguage('python', pythonLang.default)
-      hljs.value.registerLanguage('javascript', javascriptLang.default)
-      hljs.value.registerLanguage('typescript', typescriptLang.default)
-      hljs.value.registerLanguage('html', xmlLang.default)
-
-      console.log('✅ Highlight.js loaded successfully with languages:', [
-        'rust', 'c', 'haskell', 'python', 'javascript', 'typescript', 'html'
-      ])
-
-      // Re-configure marked with the loaded highlight.js
-      configureMarked()
-
-      // If we already have content, re-render it with syntax highlighting
-      if (postData.value?.postContent) {
-        await renderMarkdownContent(postData.value.postContent)
-      }
-
-    } catch (err) {
-      console.warn('❌ Failed to load highlight.js:', err)
-      hljs.value = null
-    }
-  }
-}
-
-// FIXED: Separate markdown rendering function
-const renderMarkdownContent = async (content: string) => {
-  let processedContent = processMarkdownContent(content)
-
+// Function to handle file downloads
+const downloadFile = async (fileId: string, filename: string) => {
   try {
-    const rawHtml = await marked.parse(processedContent)
-    renderedContent.value = DOMPurify.sanitize(rawHtml)
+    const url = `/api/file/${fileId}`
+    const response = await fetch(url)
 
-    // Wait for DOM update and then apply copy buttons
-    await nextTick()
-    addCopyButtons()
+    if (!response.ok) {
+      throw new Error(`Download failed: ${response.statusText}`)
+    }
+
+    const blob = await response.blob()
+    const downloadUrl = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = downloadUrl
+    link.download = filename
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    window.URL.revokeObjectURL(downloadUrl)
   } catch (err) {
-    console.error('Error rendering markdown:', err)
-    // Fallback: render without highlighting
-    renderedContent.value = DOMPurify.sanitize(processedContent)
+    console.error('Error downloading file:', err)
+    // Fallback to direct link
+    const link = document.createElement('a')
+    link.href = `/api/file/${fileId}`
+    link.download = filename
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
   }
 }
 
-// FIXED: Function to fetch and render post
+// Fetch post data
 const fetchPost = async () => {
   try {
     isLoading.value = true
@@ -360,14 +222,11 @@ const fetchPost = async () => {
 
     postData.value = await response.json()
     console.log('📄 Post data loaded:', postData.value)
+    console.log('🎵 Audio files found:', audioFiles.value)
 
     if (postData.value && !postData.value.isPublished) {
       error.value = 'This post is not published yet'
       return
-    }
-
-    if (postData.value?.postContent) {
-      await renderMarkdownContent(postData.value.postContent)
     }
 
     await Promise.all([fetchTopicPosts(), fetchGroupPosts()])
@@ -379,63 +238,7 @@ const fetchPost = async () => {
   }
 }
 
-// Add copy button functionality
-const addCopyButtons = () => {
-  const preElements = document.querySelectorAll('.markdown-content pre')
-  preElements.forEach((pre) => {
-    if (pre.querySelector('.copy-btn')) return
-
-    const code = pre.querySelector('code')
-    if (!code) return
-
-    const copyBtn = document.createElement('button')
-    copyBtn.className = 'copy-btn'
-    copyBtn.textContent = 'Copy'
-    copyBtn.onclick = async () => {
-      try {
-        // Get the raw text content, not HTML
-        const textToCopy = code.textContent || ''
-        await navigator.clipboard.writeText(textToCopy)
-        copyBtn.textContent = 'Copied!'
-        setTimeout(() => {
-          copyBtn.textContent = 'Copy'
-        }, 2000)
-      } catch (err) {
-        console.error('Failed to copy code:', err)
-        copyBtn.textContent = 'Failed'
-        setTimeout(() => {
-          copyBtn.textContent = 'Copy'
-        }, 2000)
-      }
-    }
-
-    pre.style.position = 'relative'
-    pre.appendChild(copyBtn)
-  })
-}
-
-// Function to handle file downloads
-const downloadFile = async (fileId: string, filename: string) => {
-  const url = `/api/file/${fileId}`
-  const link = document.createElement('a')
-  link.href = url
-  link.download = filename
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
-  window.URL.revokeObjectURL(url)
-}
-
-const getImageNumber = (image: any) => {
-  const sequencedIndex = sequencedImages.value.findIndex(img => img.fileId === image.fileId)
-  if (sequencedIndex !== -1) return sequencedIndex + 1
-
-  const additionalIndex = additionalImages.value.findIndex(img => img.fileId === image.fileId)
-  return additionalIndex + 1
-}
-
 onMounted(async () => {
-  await loadHighlightJS()
   await fetchPost()
 })
 
@@ -483,63 +286,37 @@ watch(() => route.params.id, async (newId) => {
       <!-- Main content area -->
       <div class="content-container">
         <!-- Markdown content -->
-        <div
-          class="markdown-content"
-          v-html="renderedContent"
-        ></div>
+        <MarkdownRenderer
+          :postContent="postData.postContent"
+          :attachedFiles="postData.attachedFiles"
+        />
 
-        <!-- Additional images gallery (images not sequenced) -->
-        <div v-if="additionalImages.length > 0" class="additional-images">
-          <h3>Additional Images</h3>
-          <p class="section-description">
-            The following images were uploaded with this post but not embedded in the content.
-          </p>
-          <div class="images-grid">
-            <div
-              v-for="(image, index) in additionalImages"
-              :key="image.fileId"
-              class="image-item"
-            >
-              <img
-                :src="`/api/file/${image.fileId}`"
-                :alt="image.filename"
-                class="gallery-image"
-                @click="downloadFile(image.fileId, image.filename)"
-              />
-              <div class="image-info">
-                <span class="image-name">{{ image.filename }}</span>
-                <span class="image-number">Image {{ getImageNumber(image) }}</span>
-                <button
-                  @click="downloadFile(image.fileId, image.filename)"
-                  class="download-btn"
-                >
-                  Download
-                </button>
-              </div>
-            </div>
+        <!-- Audio widgets for audio files -->
+        <div v-if="audioFiles.length > 0" class="audio-section">
+          <h3 class="audio-section-title">Audio Files</h3>
+          <div class="audio-widgets-container">
+            <AvWidget
+              v-for="audioFile in audioFiles"
+              :key="audioFile.fileId"
+              :audioUrl="`/api/file/${audioFile.fileId}`"
+              :filename="audioFile.filename"
+              :fileId="audioFile.fileId"
+              @download="downloadFile"
+            />
           </div>
         </div>
 
-        <!-- Other attached files section -->
-        <div v-if="otherAttachedFiles.length > 0" class="attached-files">
-          <h3>Attached Files</h3>
-          <div class="files-list">
-            <div
-              v-for="file in otherAttachedFiles"
-              :key="file.fileId"
-              class="file-item"
-              @click="downloadFile(file.fileId, file.filename)"
-            >
-              <div class="file-icon">📎</div>
-              <div class="file-details">
-                <span class="file-name">{{ file.filename }}</span>
-                <span class="file-date">
-                  Uploaded: {{ new Date(file.uploadDate).toLocaleDateString() }}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
+        <!-- Image gallery -->
+        <GalleryRenderer
+          :attachedFiles="postData.attachedFiles"
+          @download-file="downloadFile"
+        />
+
+        <!-- Attached files -->
+        <AttachmentHandler
+          :attachedFiles="postData.attachedFiles"
+          @download-file="downloadFile"
+        />
       </div>
 
       <BottomNav
@@ -649,294 +426,27 @@ watch(() => route.params.id, async (newId) => {
   color: white;
 }
 
-/* Topics styling */
-.post-topics {
-  margin: 15px 0;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.topic-tag {
-  background-color: color-mix(in oklab, var(--focused), transparent 80%);
-  color: var(--text);
-  padding: 4px 12px;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 500;
-  border: 1px solid var(--focused);
-}
-
 /* Content container */
 .content-container {
   margin-bottom: 35px;
 }
 
-/* Attached files styling */
-.attached-files {
-  margin-top: 30px;
-  padding-top: 20px;
-  border-top: 1px solid color-mix(in oklab, var(--text), transparent 80%);
+/* Audio section styles */
+.audio-section {
+  margin: 30px 0;
 }
 
-.attached-files h3 {
-  margin-bottom: 15px;
+.audio-section-title {
   color: var(--text);
-}
-
-.files-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.file-item {
-  display: flex;
-  align-items: center;
-  padding: 12px;
-  border: 1px solid color-mix(in oklab, var(--text), transparent 70%);
-  border-radius: 8px;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-}
-
-.file-item:hover {
-  background-color: color-mix(in oklab, var(--focused), transparent 90%);
-}
-
-.file-icon {
-  font-size: 20px;
-  margin-right: 12px;
-}
-
-.file-details {
-  display: flex;
-  flex-direction: column;
-}
-
-.file-name {
-  font-weight: 500;
-  color: var(--text);
-}
-
-.file-date {
-  font-size: 12px;
-  color: color-mix(in oklab, var(--text), transparent 40%);
-}
-
-/* Markdown content styling */
-.markdown-content {
-  line-height: 1.7;
-  color: var(--text);
-}
-
-.markdown-content :deep(h1) {
-  font-size: 2em;
-  margin: 0.67em 0;
-  color: var(--text);
-}
-
-.markdown-content :deep(h2) {
   font-size: 1.5em;
-  margin: 0.83em 0;
-  color: var(--text);
-}
-
-.markdown-content :deep(h3) {
-  font-size: 1.17em;
-  margin: 1em 0;
-  color: var(--text);
-}
-
-.markdown-content :deep(p) {
-  margin: 1em 0;
-  text-indent: 2em;
-}
-
-.markdown-content :deep(a) {
-  color: var(--focused);
-  text-decoration: none;
-}
-
-.markdown-content :deep(strong) {
-  font-weight: bold;
-}
-
-.markdown-content :deep(a:hover) {
-  text-decoration: underline;
-  color: color-mix(in oklab, var(--text), var(--focused) 60%);
-  background-color: color-mix(in oklab, var(--background), var(--focused) 40%);
-  border-radius: 5px;
-}
-
-.markdown-content :deep(ul),
-.markdown-content :deep(ol) {
-  margin: 1em 0;
-  padding-left: 2em;
-}
-
-.markdown-content :deep(blockquote) {
-  border-left: 4px solid var(--focused);
-  margin: 1em 0;
-  padding-left: 1em;
-  color: color-mix(in oklab, var(--text), transparent 30%);
-}
-
-.markdown-content :deep(hr) {
-  border: none;
-  height: 2px;
-  background-color: color-mix(in oklab, var(--text), transparent 70%);
-  margin: 2em 0;
-  border-radius: 1px;
-}
-
-.markdown-content :deep(table) {
-  border-collapse: collapse;
-  width: 100%;
-  margin: 1em 0;
-}
-
-.markdown-content :deep(table th),
-.markdown-content :deep(table td) {
-  border: 1px solid color-mix(in oklab, var(--text), transparent 70%);
-  padding: 8px 12px;
-  text-align: left;
-}
-
-.markdown-content :deep(table th) {
-  background-color: color-mix(in oklab, var(--focused), transparent 90%);
-  font-weight: 600;
-}
-
-/* Enhanced code block styling */
-.markdown-content :deep(pre) {
-  position: relative;
-  background-color: #1e1e1e !important;
-  color: #d4d4d4 !important;
-  padding: 1em;
-  border-radius: 6px;
-  overflow-x: auto;
-  margin: 1em 0;
-  border: 1px solid color-mix(in oklab, var(--text), transparent 80%);
-}
-
-.markdown-content :deep(code) {
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace, 'OpenDyslexicMono';
-  background-color: transparent !important;
-  padding: 0;
-  border-radius: 0;
-  font-size: 0.9em;
-}
-
-.markdown-content :deep(pre code) {
-  background: none;
-  padding: 0;
-  display: block;
-  color: inherit;
-}
-
-/* Copy button styling */
-.markdown-content :deep(.copy-btn) {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  background: color-mix(in oklab, var(--focused), transparent 20%);
-  color: white;
-  border: none;
-  padding: 6px 12px;
-  border-radius: 4px;
-  font-size: 12px;
-  cursor: pointer;
-  opacity: 0.7;
-  transition: opacity 0.2s ease;
-  z-index: 10;
-}
-
-.markdown-content :deep(.copy-btn:hover) {
-  opacity: 1;
-  background: var(--focused);
-}
-
-.markdown-content :deep(img) {
-  max-width: 100%;
-  height: auto;
-  border-radius: 6px;
-  margin: 1em 0;
-}
-
-/* Additional images gallery */
-.additional-images {
-  margin-top: 40px;
-  padding-top: 30px;
-  border-top: 1px solid color-mix(in oklab, var(--text), transparent 80%);
-}
-
-.additional-images h3 {
-  margin-bottom: 10px;
-  color: var(--text);
-}
-
-.section-description {
-  color: color-mix(in oklab, var(--text), transparent 40%);
-  font-size: 14px;
   margin-bottom: 20px;
+  border-bottom: 2px solid var(--focused);
+  padding-bottom: 8px;
 }
 
-.images-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 20px;
-  margin-top: 15px;
-}
-
-.image-item {
-  border: 1px solid color-mix(in oklab, var(--text), transparent 80%);
-  border-radius: 8px;
-  overflow: hidden;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.image-item:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-.gallery-image {
-  width: 100%;
-  height: 150px;
-  object-fit: cover;
-  cursor: pointer;
-  display: block;
-}
-
-.image-info {
-  padding: 12px;
+.audio-widgets-container {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background-color: color-mix(in oklab, var(--background), black 3%);
-}
-
-.image-name {
-  font-size: 12px;
-  color: var(--text);
-  flex: 1;
-  margin-right: 10px;
-  word-break: break-all;
-}
-
-.download-btn {
-  background: var(--focused);
-  color: white;
-  border: none;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 11px;
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.download-btn:hover {
-  background: color-mix(in oklab, var(--focused), black 20%);
+  flex-direction: column;
+  gap: 16px;
 }
 </style>

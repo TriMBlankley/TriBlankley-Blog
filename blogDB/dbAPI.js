@@ -267,10 +267,11 @@ app.delete('/api/posts/:id', async (req, res) => {
 });
 
 // Enhanced File Upload endpoint with sequencing -------------------------------------
+// In dbAPI.js - Update the upload endpoint
 app.post('/api/upload/:postId', async (req, res) => {
   try {
     const { postId } = req.params;
-    const { filename, base64Data, fileType = 'attachment', sequence = 0 } = req.body;
+    const { filename, base64Data, fileType = 'attachment', sequence } = req.body; // Remove default value
 
     // Validate post exists
     const post = await blogPost.findOne({ postId: parseInt(postId) });
@@ -287,17 +288,25 @@ app.post('/api/upload/:postId', async (req, res) => {
 
       uploadStream.on('finish', async (file) => {
         try {
+          // Create the file object without setting sequence if it's undefined
+          const fileData = {
+            filename: filename,
+            fileId: uploadStream.id,
+            fileType: fileType,
+            uploadDate: new Date()
+          };
+
+          // Only add sequence if it's defined (not undefined)
+          if (sequence !== undefined) {
+            fileData.sequence = sequence;
+          }
+
           // Add file reference to post with file type and sequence
           await blogPost.findOneAndUpdate(
             { postId: parseInt(postId) },
             {
               $push: {
-                attachedFiles: {
-                  filename: filename,
-                  fileId: uploadStream.id,
-                  fileType: fileType,
-                  sequence: sequence
-                }
+                attachedFiles: fileData
               }
             }
           );

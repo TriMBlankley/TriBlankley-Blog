@@ -1,3 +1,4 @@
+// [file name]: blogPostSchema.js
 import mongoose from 'mongoose'
 
 const topicSchema = new mongoose.Schema({
@@ -34,7 +35,7 @@ const postSchema = new mongoose.Schema({
     fileId: mongoose.Types.ObjectId,
     uploadDate: { type: Date, default: Date.now },
     fileType: { type: String, enum: ['image', 'attachment'], default: 'attachment' },
-    sequence: { type: Number, default: 0 } // For image sequencing
+    sequence: { type: Number, default: undefined } // Remove default value to allow undefined
   }]
 });
 
