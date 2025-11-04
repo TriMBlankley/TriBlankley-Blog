@@ -6,10 +6,11 @@ When a post contains an audio file, it can be shown by containing a music note o
 
 Here is the soundtrack from firelink shrine, in Dark Souls 1:
 
+[Firelink OST](Audio2)
 
 And here is the soundtrack for Majula, the hub area in Dark Souls 2:
 
-[Firelink Shrine from Dark Souls 1](Image1)
+[Majula OST](Audio2)
 
 
 

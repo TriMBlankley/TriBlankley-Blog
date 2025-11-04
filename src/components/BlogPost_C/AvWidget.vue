@@ -1,564 +1,562 @@
 <!-- [file name]: AvWidget.vue -->
-<script>
-export default {
-  name: 'AvWidget',
-  props: {
-    src: {
-      type: String,
-      required: true
-    },
-    type: {
-      type: String,
-      required: true,
-      validator: (value) => ['audio', 'video'].includes(value)
-    },
-    title: {
-      type: String,
-      default: ''
-    },
-    autoplay: {
-      type: Boolean,
-      default: false
-    },
-    loop: {
-      type: Boolean,
-      default: false
-    },
-    muted: {
-      type: Boolean,
-      default: false
-    },
-    controls: {
-      type: Boolean,
-      default: true
-    },
-    poster: {
-      type: String,
-      default: ''
-    }
-  },
-  data() {
-    return {
-      isPlaying: false,
-      currentTime: 0,
-      duration: 0,
-      volume: 1,
-      isMuted: false,
-      playbackRate: 1.0,
-      isLoading: true,
-      hasError: false,
-      isDragging: false,
-      showControls: true,
-      controlsTimeout: null,
-      isFullscreen: false
-    };
-  },
-  computed: {
-    progressPercentage() {
-      if (this.duration === 0) return 0;
-      return (this.currentTime / this.duration) * 100;
-    },
-    formattedCurrentTime() {
-      return this.formatTime(this.currentTime);
-    },
-    formattedDuration() {
-      return this.formatTime(this.duration);
-    },
-    volumeIcon() {
-      if (this.isMuted || this.volume === 0) return '🔇';
-      if (this.volume < 0.33) return '🔈';
-      if (this.volume < 0.66) return '🔉';
-      return '🔊';
-    },
-    playPauseIcon() {
-      return this.isPlaying ? '⏸️' : '▶️';
-    },
-    mediaElement() {
-      return this.$refs.media;
-    },
-    containerElement() {
-      return this.$refs.container;
-    }
-  },
-  watch: {
-    src() {
-      this.resetState();
-      this.loadMedia();
-    },
-    muted(newVal) {
-      this.isMuted = newVal;
-      if (this.mediaElement) {
-        this.mediaElement.muted = newVal;
-      }
-    }
-  },
-  mounted() {
-    this.isMuted = this.muted;
-    this.loadMedia();
-    this.setupEventListeners();
-  },
-  beforeUnmount() {
-    this.cleanupEventListeners();
-    if (this.controlsTimeout) {
-      clearTimeout(this.controlsTimeout);
-    }
-  },
-  methods: {
-    async loadMedia() {
-      this.isLoading = true;
-      this.hasError = false;
+<script setup lang="ts">
+import { ref, onMounted, watch, nextTick } from 'vue'
 
-      try {
-        // Media will load automatically when src is set
-        // The loadedmetadata event will handle the rest
-      } catch (error) {
-        console.error('Error loading media:', error);
-        this.hasError = true;
-        this.isLoading = false;
-      }
-    },
-    setupEventListeners() {
-      const media = this.mediaElement;
-      if (!media) return;
+interface Props {
+  audioUrl: string
+  filename: string
+  fileId: string
+}
 
-      media.addEventListener('loadedmetadata', this.onLoadedMetadata);
-      media.addEventListener('timeupdate', this.onTimeUpdate);
-      media.addEventListener('play', this.onPlay);
-      media.addEventListener('pause', this.onPause);
-      media.addEventListener('ended', this.onEnded);
-      media.addEventListener('volumechange', this.onVolumeChange);
-      media.addEventListener('waiting', this.onWaiting);
-      media.addEventListener('canplay', this.onCanPlay);
-      media.addEventListener('error', this.onError);
+const props = defineProps<Props>()
+const emit = defineEmits(['download'])
 
-      // Mouse movement detection for controls
-      if (this.containerElement) {
-        this.containerElement.addEventListener('mousemove', this.showControlsTemporarily);
-        this.containerElement.addEventListener('mouseleave', this.hideControls);
-      }
-    },
-    cleanupEventListeners() {
-      const media = this.mediaElement;
-      if (!media) return;
+const audioElement = ref<HTMLAudioElement | null>(null)
+const isPlaying = ref(false)
+const currentTime = ref(0)
+const duration = ref(0)
+const volume = ref(1)
+const isMuted = ref(false)
+const isLoading = ref(true)
+const hasError = ref(false)
+const audioLoaded = ref(false)
+const isSeeking = ref(false)
 
-      media.removeEventListener('loadedmetadata', this.onLoadedMetadata);
-      media.removeEventListener('timeupdate', this.onTimeUpdate);
-      media.removeEventListener('play', this.onPlay);
-      media.removeEventListener('pause', this.onPause);
-      media.removeEventListener('ended', this.onEnded);
-      media.removeEventListener('volumechange', this.onVolumeChange);
-      media.removeEventListener('waiting', this.onWaiting);
-      media.removeEventListener('canplay', this.onCanPlay);
-      media.removeEventListener('error', this.onError);
+console.log('🔊 AvWidget mounted with props:', {
+  audioUrl: props.audioUrl,
+  filename: props.filename,
+  fileId: props.fileId
+})
 
-      if (this.containerElement) {
-        this.containerElement.removeEventListener('mousemove', this.showControlsTemporarily);
-        this.containerElement.removeEventListener('mouseleave', this.hideControls);
-      }
-    },
-    onLoadedMetadata() {
-      this.duration = this.mediaElement.duration;
-      this.isLoading = false;
-    },
-    onTimeUpdate() {
-      this.currentTime = this.mediaElement.currentTime;
-    },
-    onPlay() {
-      this.isPlaying = true;
-    },
-    onPause() {
-      this.isPlaying = false;
-    },
-    onEnded() {
-      this.isPlaying = false;
-      this.currentTime = 0;
-    },
-    onVolumeChange() {
-      this.volume = this.mediaElement.volume;
-      this.isMuted = this.mediaElement.muted;
-    },
-    onWaiting() {
-      this.isLoading = true;
-    },
-    onCanPlay() {
-      this.isLoading = false;
-    },
-    onError() {
-      this.hasError = true;
-      this.isLoading = false;
-      console.error('Media error:', this.mediaElement.error);
-    },
-    togglePlayPause() {
-      if (this.isPlaying) {
-        this.pause();
-      } else {
-        this.play();
-      }
-    },
-    play() {
-      this.mediaElement.play().catch(error => {
-        console.error('Error playing media:', error);
-        this.hasError = true;
-      });
-    },
-    pause() {
-      this.mediaElement.pause();
-    },
-    seek(event) {
-      if (!this.isDragging) return;
+// Format time for display
+const formatTime = (seconds: number) => {
+  if (isNaN(seconds)) return '0:00'
+  const minutes = Math.floor(seconds / 60)
+  const remainingSeconds = Math.floor(seconds % 60)
+  return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`
+}
 
-      const progressBar = event.currentTarget;
-      const rect = progressBar.getBoundingClientRect();
-      const percent = (event.clientX - rect.left) / rect.width;
-      const newTime = percent * this.duration;
+const formattedCurrentTime = ref('0:00')
+const formattedDuration = ref('0:00')
 
-      this.mediaElement.currentTime = newTime;
-      this.currentTime = newTime;
-    },
-    startDragging(event) {
-      this.isDragging = true;
-      this.seek(event);
+// Update formatted times when values change
+watch([currentTime, duration], () => {
+  formattedCurrentTime.value = formatTime(currentTime.value)
+  formattedDuration.value = formatTime(duration.value)
+})
 
-      // Add global mouse event listeners
-      document.addEventListener('mousemove', this.drag);
-      document.addEventListener('mouseup', this.stopDragging);
-    },
-    drag(event) {
-      if (!this.isDragging) return;
-      this.seek(event);
-    },
-    stopDragging() {
-      this.isDragging = false;
-      document.removeEventListener('mousemove', this.drag);
-      document.removeEventListener('mouseup', this.stopDragging);
-    },
-    setVolume(event) {
-      const volumeSlider = event.currentTarget;
-      const rect = volumeSlider.getBoundingClientRect();
-      const percent = (event.clientX - rect.left) / rect.width;
-      const newVolume = Math.max(0, Math.min(1, percent));
+// Audio event handlers
+const onLoadedMetadata = () => {
+  console.log('✅ Audio metadata loaded')
+  duration.value = audioElement.value?.duration || 0
+  isLoading.value = false
+  audioLoaded.value = true
+  console.log('📊 Audio duration:', duration.value)
+}
 
-      this.mediaElement.volume = newVolume;
-      this.volume = newVolume;
+const onTimeUpdate = () => {
+  if (!isSeeking.value) {
+    currentTime.value = audioElement.value?.currentTime || 0
+  }
+}
 
-      // Unmute if volume is set above 0
-      if (newVolume > 0 && this.isMuted) {
-        this.toggleMute();
-      }
-    },
-    toggleMute() {
-      this.mediaElement.muted = !this.mediaElement.muted;
-      this.isMuted = this.mediaElement.muted;
-    },
-    changePlaybackRate(rate) {
-      this.playbackRate = rate;
-      this.mediaElement.playbackRate = rate;
-    },
-    formatTime(seconds) {
-      if (isNaN(seconds)) return '0:00';
+const onPlay = () => {
+  console.log('▶️ Audio started playing')
+  isPlaying.value = true
+}
 
-      const minutes = Math.floor(seconds / 60);
-      const remainingSeconds = Math.floor(seconds % 60);
-      return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
-    },
-    showControlsTemporarily() {
-      this.showControls = true;
+const onPause = () => {
+  console.log('⏸️ Audio paused')
+  isPlaying.value = false
+}
 
-      if (this.controlsTimeout) {
-        clearTimeout(this.controlsTimeout);
-      }
+const onEnded = () => {
+  console.log('⏹️ Audio ended')
+  isPlaying.value = false
+  currentTime.value = 0
+}
 
-      this.controlsTimeout = setTimeout(() => {
-        if (this.isPlaying) {
-          this.showControls = false;
-        }
-      }, 3000);
-    },
-    hideControls() {
-      if (this.isPlaying) {
-        this.showControls = false;
-      }
-    },
-    toggleFullscreen() {
-      if (!this.containerElement) return;
+const onVolumeChange = () => {
+  if (audioElement.value) {
+    volume.value = audioElement.value.volume
+    isMuted.value = audioElement.value.muted
+    console.log('🔈 Volume changed:', { volume: volume.value, muted: isMuted.value })
+  }
+}
 
-      if (!document.fullscreenElement) {
-        if (this.containerElement.requestFullscreen) {
-          this.containerElement.requestFullscreen();
-        } else if (this.containerElement.webkitRequestFullscreen) {
-          this.containerElement.webkitRequestFullscreen();
-        } else if (this.containerElement.msRequestFullscreen) {
-          this.containerElement.msRequestFullscreen();
-        }
-        this.isFullscreen = true;
-      } else {
-        if (document.exitFullscreen) {
-          document.exitFullscreen();
-        } else if (document.webkitExitFullscreen) {
-          document.webkitExitFullscreen();
-        } else if (document.msExitFullscreen) {
-          document.msExitFullscreen();
-        }
-        this.isFullscreen = false;
-      }
-    },
-    handleFullscreenChange() {
-      this.isFullscreen = !!document.fullscreenElement;
-    },
-    resetState() {
-      this.isPlaying = false;
-      this.currentTime = 0;
-      this.duration = 0;
-      this.isLoading = true;
-      this.hasError = false;
-    },
-    retry() {
-      this.resetState();
-      this.loadMedia();
+const onError = (event: Event) => {
+  console.error('❌ Audio error occurred:', event)
+  const audio = audioElement.value
+  if (audio && audio.error) {
+    console.error('Audio error details:', {
+      code: audio.error.code,
+      message: getErrorMessage(audio.error.code),
+      networkState: audio.networkState,
+      readyState: audio.readyState,
+      src: audio.src
+    })
+
+    // Handle specific error codes
+    if (audio.error.code === MediaError.MEDIA_ERR_NETWORK) {
+      console.log('🌐 Network error - retrying...')
+      retry()
+      return
     }
   }
-};
+  hasError.value = true
+  isLoading.value = false
+}
+
+const getErrorMessage = (code: number): string => {
+  switch (code) {
+    case MediaError.MEDIA_ERR_ABORTED:
+      return 'The user canceled the audio.'
+    case MediaError.MEDIA_ERR_NETWORK:
+      return 'A network error occurred.'
+    case MediaError.MEDIA_ERR_DECODE:
+      return 'The audio is corrupt or unsupported.'
+    case MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED:
+      return 'The audio format is not supported.'
+    default:
+      return 'An unknown error occurred.'
+  }
+}
+
+const onLoadStart = () => {
+  console.log('🔄 Audio load started')
+  isLoading.value = true
+  hasError.value = false
+}
+
+const onCanPlay = () => {
+  console.log('🎵 Audio can play')
+  isLoading.value = false
+  hasError.value = false
+}
+
+const onCanPlayThrough = () => {
+  console.log('🎵 Audio can play through')
+  isLoading.value = false
+  hasError.value = false
+}
+
+const onWaiting = () => {
+  console.log('⏳ Audio waiting/buffering')
+  isLoading.value = true
+}
+
+const onStalled = () => {
+  console.log('🚧 Audio stalled')
+  isLoading.value = true
+}
+
+const onProgress = () => {
+  if (audioElement.value) {
+    const buffered = audioElement.value.buffered
+    if (buffered.length > 0) {
+      console.log('📊 Buffered range:', {
+        start: buffered.start(0),
+        end: buffered.end(0)
+      })
+    }
+  }
+}
+
+// Control methods
+const togglePlayPause = () => {
+  if (!audioElement.value) {
+    console.error('❌ No audio element found for play/pause')
+    return
+  }
+
+  console.log('🎛️ Toggle play/pause, current state:', isPlaying.value)
+
+  if (isPlaying.value) {
+    audioElement.value.pause()
+  } else {
+    audioElement.value.play().catch(error => {
+      console.error('❌ Error playing audio:', error)
+      hasError.value = true
+    })
+  }
+}
+
+const safeSeek = async (newTime: number) => {
+  if (!audioElement.value || !duration.value) {
+    console.log('⏰ Cannot seek: no audio element or duration')
+    return
+  }
+
+  // Clamp the time to valid range
+  newTime = Math.max(0, Math.min(duration.value, newTime))
+
+  console.log('⏩ Attempting to seek to:', newTime, 'seconds')
+
+  // Store current play state
+  const wasPlaying = isPlaying.value
+
+  // Pause while seeking to avoid conflicts
+  if (wasPlaying) {
+    audioElement.value.pause()
+  }
+
+  isSeeking.value = true
+
+  try {
+    audioElement.value.currentTime = newTime
+    currentTime.value = newTime
+
+    // Wait a bit for the seek to complete
+    await new Promise(resolve => setTimeout(resolve, 100))
+
+    // Resume playing if it was playing before
+    if (wasPlaying) {
+      await audioElement.value.play()
+    }
+
+    console.log('✅ Seek successful')
+
+  } catch (error) {
+    console.error('❌ Seek failed:', error)
+
+    // If seek fails, try to recover by loading the audio again
+    if (audioElement.value.readyState >= 2) { // HAVE_CURRENT_DATA or better
+      console.log('🔄 Attempting recovery after seek failure')
+      audioElement.value.load()
+      if (wasPlaying) {
+        setTimeout(() => {
+          audioElement.value?.play().catch(console.error)
+        }, 500)
+      }
+    }
+  } finally {
+    isSeeking.value = false
+  }
+}
+
+const seek = (event: MouseEvent) => {
+  if (!audioElement.value || !duration.value) {
+    console.log('⏰ Cannot seek: no audio element or duration')
+    return
+  }
+
+  const progressBar = event.currentTarget as HTMLElement
+  const rect = progressBar.getBoundingClientRect()
+  const percent = (event.clientX - rect.left) / rect.width
+  const newTime = percent * duration.value
+
+  console.log('⏩ Seeking to:', newTime, 'seconds (', percent * 100, '%)')
+  safeSeek(newTime)
+}
+
+const setVolume = (event: MouseEvent) => {
+  if (!audioElement.value) return
+
+  const volumeSlider = event.currentTarget as HTMLElement
+  const rect = volumeSlider.getBoundingClientRect()
+  const percent = (event.clientX - rect.left) / rect.width
+  const newVolume = Math.max(0, Math.min(1, percent))
+
+  console.log('🔊 Setting volume to:', newVolume)
+  audioElement.value.volume = newVolume
+  volume.value = newVolume
+
+  // Unmute if volume is set above 0
+  if (newVolume > 0 && isMuted.value) {
+    toggleMute()
+  }
+}
+
+const toggleMute = () => {
+  if (!audioElement.value) return
+  console.log('🔇 Toggling mute, current:', isMuted.value)
+  audioElement.value.muted = !audioElement.value.muted
+  isMuted.value = audioElement.value.muted
+}
+
+const retry = () => {
+  console.log('🔄 Retrying audio load')
+  hasError.value = false
+  isLoading.value = true
+  audioLoaded.value = false
+  if (audioElement.value) {
+    // Reset the audio element completely
+    audioElement.value.load()
+  }
+}
+
+const downloadFile = () => {
+  console.log('📥 Download requested for:', props.filename)
+  emit('download', props.fileId, props.filename)
+}
+
+// Volume icon based on volume level
+const volumeIcon = ref('🔊')
+watch([volume, isMuted], () => {
+  if (isMuted.value || volume.value === 0) {
+    volumeIcon.value = '🔇'
+  } else if (volume.value < 0.33) {
+    volumeIcon.value = '🔈'
+  } else if (volume.value < 0.66) {
+    volumeIcon.value = '🔉'
+  } else {
+    volumeIcon.value = '🔊'
+  }
+})
+
+// Setup event listeners when audio element is available
+const setupAudioElement = () => {
+  if (!audioElement.value) {
+    console.error('❌ Audio element ref is still null in setupAudioElement')
+    return
+  }
+
+  console.log('🎧 Audio element found, attaching event listeners')
+
+  const audio = audioElement.value
+
+  // Remove any existing listeners first
+  audio.removeEventListener('loadedmetadata', onLoadedMetadata)
+  audio.removeEventListener('timeupdate', onTimeUpdate)
+  audio.removeEventListener('play', onPlay)
+  audio.removeEventListener('pause', onPause)
+  audio.removeEventListener('ended', onEnded)
+  audio.removeEventListener('volumechange', onVolumeChange)
+  audio.removeEventListener('error', onError)
+  audio.removeEventListener('loadstart', onLoadStart)
+  audio.removeEventListener('canplay', onCanPlay)
+  audio.removeEventListener('canplaythrough', onCanPlayThrough)
+  audio.removeEventListener('waiting', onWaiting)
+  audio.removeEventListener('stalled', onStalled)
+  audio.removeEventListener('progress', onProgress)
+
+  // Add event listeners
+  audio.addEventListener('loadedmetadata', onLoadedMetadata)
+  audio.addEventListener('timeupdate', onTimeUpdate)
+  audio.addEventListener('play', onPlay)
+  audio.addEventListener('pause', onPause)
+  audio.addEventListener('ended', onEnded)
+  audio.addEventListener('volumechange', onVolumeChange)
+  audio.addEventListener('error', onError)
+  audio.addEventListener('loadstart', onLoadStart)
+  audio.addEventListener('canplay', onCanPlay)
+  audio.addEventListener('canplaythrough', onCanPlayThrough)
+  audio.addEventListener('waiting', onWaiting)
+  audio.addEventListener('stalled', onStalled)
+  audio.addEventListener('progress', onProgress)
+
+  console.log('🔗 Event listeners attached to audio element')
+  console.log('🎵 Audio source:', audio.src)
+
+  // Check initial state
+  console.log('📊 Initial audio state:', {
+    readyState: audio.readyState,
+    networkState: audio.networkState,
+    duration: audio.duration,
+    paused: audio.paused
+  })
+
+  // If audio is already loaded, update state
+  if (audio.readyState >= 1) {
+    console.log('⚡ Audio already has metadata')
+    onLoadedMetadata()
+  }
+}
+
+// Use template ref with a callback to ensure we get the element
+const setAudioRef = (el: HTMLAudioElement | null) => {
+  console.log('🎯 Setting audio ref:', el)
+  audioElement.value = el
+  if (el) {
+    // Small delay to ensure the element is fully in the DOM
+    setTimeout(() => {
+      setupAudioElement()
+    }, 10)
+  }
+}
+
+// Setup when component mounts
+onMounted(async () => {
+  console.log('🏗️ AvWidget mounted')
+
+  // Try multiple times to find the audio element
+  const maxAttempts = 5
+  let attempts = 0
+
+  const trySetup = () => {
+    attempts++
+    console.log(`🔍 Attempt ${attempts} to find audio element`)
+
+    if (audioElement.value) {
+      console.log('✅ Audio element found on attempt', attempts)
+      setupAudioElement()
+      return
+    }
+
+    if (attempts < maxAttempts) {
+      console.log('⏳ Audio element not found, retrying...')
+      setTimeout(trySetup, 100)
+    } else {
+      console.error('❌ Failed to find audio element after', maxAttempts, 'attempts')
+      hasError.value = true
+      isLoading.value = false
+    }
+  }
+
+  // Start trying to find the audio element
+  trySetup()
+})
+
+// Watch for URL changes
+watch(() => props.audioUrl, (newUrl) => {
+  console.log('🔄 Audio URL changed to:', newUrl)
+  if (audioElement.value) {
+    audioElement.value.load()
+  }
+})
 </script>
 
 <template>
-  <div
-    ref="container"
-    class="av-widget"
-    :class="{
-      'audio-widget': type === 'audio',
-      'video-widget': type === 'video',
-      'has-error': hasError,
-      'is-loading': isLoading,
-      'is-fullscreen': isFullscreen
-    }"
-    @mousemove="showControlsTemporarily"
-    @mouseleave="hideControls"
-  >
+  <div class="audio-widget">
+    <!-- Hidden audio element that's always in the DOM -->
+    <audio
+      :ref="setAudioRef"
+      :src="audioUrl"
+      preload="auto"
+      class="audio-element"
+      crossorigin="anonymous"
+      style="display: none"
+    ></audio>
+
     <!-- Loading State -->
     <div v-if="isLoading && !hasError" class="loading-state">
       <div class="spinner"></div>
-      <p>Loading {{ type }}...</p>
+      <p>Loading audio...</p>
+      <p class="debug-info">URL: {{ audioUrl }}</p>
+      <p class="debug-info">Element: {{ audioElement ? 'Found' : 'Not Found' }}</p>
+      <p class="debug-info">Loaded: {{ audioLoaded ? 'Yes' : 'No' }}</p>
+      <p class="debug-info" v-if="isSeeking">Seeking...</p>
     </div>
 
     <!-- Error State -->
     <div v-else-if="hasError" class="error-state">
       <div class="error-icon">❌</div>
-      <p>Failed to load {{ type }}</p>
+      <p>Failed to load audio</p>
       <button @click="retry" class="retry-btn">Retry</button>
+      <p class="debug-info">URL: {{ audioUrl }}</p>
+      <p class="debug-info">Element: {{ audioElement ? 'Found' : 'Not Found' }}</p>
     </div>
 
-    <!-- Media Content -->
-    <div v-else class="media-content">
-      <!-- Audio Player -->
-      <audio
-        v-if="type === 'audio'"
-        ref="media"
-        :src="src"
-        :autoplay="autoplay"
-        :loop="loop"
-        :muted="muted"
-        :controls="false"
-        preload="metadata"
-        class="media-element"
-      ></audio>
+    <!-- Audio Player Controls -->
+    <div v-else class="audio-player">
+      <div class="audio-controls">
+        <!-- Play/Pause Button -->
+        <button
+          @click="togglePlayPause"
+          class="control-btn play-pause-btn"
+          :title="isPlaying ? 'Pause' : 'Play'"
+          :disabled="!audioElement || !audioLoaded || isSeeking"
+        >
+          {{ isPlaying ? '⏸️' : '▶️' }}
+        </button>
 
-      <!-- Video Player -->
-      <video
-        v-else
-        ref="media"
-        :src="src"
-        :autoplay="autoplay"
-        :loop="loop"
-        :muted="muted"
-        :controls="false"
-        :poster="poster"
-        preload="metadata"
-        class="media-element"
-      ></video>
+        <!-- Time Display -->
+        <span class="time-display">
+          {{ formattedCurrentTime }} / {{ formattedDuration }}
+        </span>
 
-      <!-- Custom Controls Overlay -->
-      <div
-        v-if="controls"
-        class="controls-overlay"
-        :class="{ 'controls-visible': showControls || !isPlaying }"
-      >
-        <!-- Top Bar (Video Title) -->
-        <div v-if="title && type === 'video'" class="top-bar">
-          <h3 class="media-title">{{ title }}</h3>
-        </div>
-
-        <!-- Center Play/Pause Button (Large) -->
-        <div class="center-controls">
-          <button
-            v-if="!isPlaying"
-            @click="togglePlayPause"
-            class="center-play-btn"
-            :title="isPlaying ? 'Pause' : 'Play'"
-          >
-            ▶️
-          </button>
-        </div>
-
-        <!-- Bottom Controls Bar -->
-        <div class="bottom-controls">
-          <!-- Play/Pause Button -->
-          <button
-            @click="togglePlayPause"
-            class="control-btn"
-            :title="isPlaying ? 'Pause' : 'Play'"
-          >
-            {{ playPauseIcon }}
-          </button>
-
-          <!-- Time Display -->
-          <span class="time-display">
-            {{ formattedCurrentTime }} / {{ formattedDuration }}
-          </span>
-
-          <!-- Progress Bar -->
+        <!-- Progress Bar -->
+        <div
+          class="progress-bar"
+          @click="seek"
+          :class="{ 'disabled': !audioElement || !audioLoaded || isSeeking }"
+        >
+          <div class="progress-background"></div>
           <div
-            class="progress-bar"
-            @mousedown="startDragging"
-            @click="seek"
-          >
-            <div class="progress-background"></div>
-            <div
-              class="progress-fill"
-              :style="{ width: progressPercentage + '%' }"
-            ></div>
-            <div
-              class="progress-thumb"
-              :style="{ left: progressPercentage + '%' }"
-            ></div>
-          </div>
-
-          <!-- Volume Controls -->
-          <div class="volume-controls">
-            <button
-              @click="toggleMute"
-              class="control-btn"
-              :title="isMuted ? 'Unmute' : 'Mute'"
-            >
-              {{ volumeIcon }}
-            </button>
-            <div
-              class="volume-slider"
-              @click="setVolume"
-            >
-              <div class="volume-background"></div>
-              <div
-                class="volume-fill"
-                :style="{ width: (isMuted ? 0 : volume) * 100 + '%' }"
-              ></div>
-            </div>
-          </div>
-
-          <!-- Playback Rate -->
-          <select
-            v-model="playbackRate"
-            @change="changePlaybackRate(parseFloat($event.target.value))"
-            class="playback-rate-select"
-            title="Playback Speed"
-          >
-            <option value="0.5">0.5x</option>
-            <option value="0.75">0.75x</option>
-            <option value="1.0">1x</option>
-            <option value="1.25">1.25x</option>
-            <option value="1.5">1.5x</option>
-            <option value="2.0">2x</option>
-          </select>
-
-          <!-- Fullscreen Button (Video only) -->
-          <button
-            v-if="type === 'video'"
-            @click="toggleFullscreen"
-            class="control-btn"
-            :title="isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'"
-          >
-            {{ isFullscreen ? '⤵️' : '⤴️' }}
-          </button>
+            class="progress-fill"
+            :style="{ width: duration ? (currentTime / duration) * 100 + '%' : '0%' }"
+          ></div>
+          <div class="progress-thumb" :style="{ left: duration ? (currentTime / duration) * 100 + '%' : '0%' }"></div>
         </div>
+
+        <!-- Volume Controls -->
+        <div class="volume-controls">
+          <button
+            @click="toggleMute"
+            class="control-btn volume-btn"
+            :title="isMuted ? 'Unmute' : 'Mute'"
+            :disabled="!audioElement || !audioLoaded || isSeeking"
+          >
+            {{ volumeIcon }}
+          </button>
+          <div
+            class="volume-slider"
+            @click="setVolume"
+            :class="{ 'disabled': !audioElement || !audioLoaded || isSeeking }"
+          >
+            <div class="volume-background"></div>
+            <div
+              class="volume-fill"
+              :style="{ width: (isMuted ? 0 : volume) * 100 + '%' }"
+            ></div>
+          </div>
+        </div>
+
+        <!-- Download Button -->
+        <button
+          @click="downloadFile"
+          class="control-btn download-btn"
+          title="Download"
+          :disabled="isSeeking"
+        >
+          ⬇️
+        </button>
       </div>
 
-      <!-- Fallback to native controls if custom controls fail -->
-      <div v-if="hasError && controls" class="native-controls-fallback">
-        <audio
-          v-if="type === 'audio'"
-          :src="src"
-          :autoplay="autoplay"
-          :loop="loop"
-          :muted="muted"
-          :controls="true"
-          class="native-media"
-        ></audio>
-        <video
-          v-else
-          :src="src"
-          :autoplay="autoplay"
-          :loop="loop"
-          :muted="muted"
-          :controls="true"
-          :poster="poster"
-          class="native-media"
-        ></video>
+      <!-- Filename -->
+      <div class="filename">
+        {{ filename }}
+        <span v-if="isSeeking" class="seeking-indicator">(seeking...)</span>
       </div>
     </div>
   </div>
 </template>
 
 <style scoped>
-.av-widget {
-  position: relative;
-  background: #1a1a1a;
-  border-radius: 8px;
-  overflow: hidden;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-}
-
 .audio-widget {
-  min-height: 80px;
-  padding: 15px;
+  background: var(--background);
+  border: 2px solid color-mix(in oklab, var(--background), var(--text) 25%);
+  border-radius: 10px;
+  padding: 16px;
+  margin: 12px 0;
+  font-family: inherit;
 }
 
-.video-widget {
-  aspect-ratio: 16 / 9;
-  width: 100%;
-}
-
-.av-widget.is-fullscreen {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  z-index: 10000;
-  border-radius: 0;
-}
-
-.media-element {
-  width: 100%;
-  height: 100%;
-  display: block;
-}
-
-/* Loading State */
 .loading-state {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 40px;
-  color: #ccc;
+  padding: 20px;
+  color: var(--text);
+}
+
+.debug-info {
+  font-size: 0.7rem;
+  color: color-mix(in oklab, var(--text), transparent 50%);
+  margin-top: 4px;
+  word-break: break-all;
+  text-align: center;
 }
 
 .spinner {
-  border: 3px solid #333;
-  border-top: 3px solid #007bff;
+  border: 3px solid color-mix(in oklab, var(--background), var(--text) 20%);
+  border-top: 3px solid var(--focused);
   border-radius: 50%;
-  width: 30px;
-  height: 30px;
+  width: 24px;
+  height: 24px;
   animation: spin 1s linear infinite;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
 @keyframes spin {
@@ -566,152 +564,106 @@ export default {
   100% { transform: rotate(360deg); }
 }
 
-/* Error State */
 .error-state {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 40px;
-  color: #ff6b6b;
+  padding: 20px;
+  color: var(--text);
   text-align: center;
 }
 
 .error-icon {
-  font-size: 2rem;
-  margin-bottom: 10px;
+  font-size: 1.5rem;
+  margin-bottom: 8px;
 }
 
 .retry-btn {
-  background: #007bff;
+  background: var(--focused);
   color: white;
   border: none;
-  padding: 8px 16px;
+  padding: 6px 12px;
   border-radius: 4px;
   cursor: pointer;
-  margin-top: 10px;
+  margin-top: 8px;
+  font-size: 0.9rem;
 }
 
 .retry-btn:hover {
-  background: #0056b3;
+  background: color-mix(in oklab, var(--focused), black 20%);
 }
 
-/* Controls Overlay */
-.controls-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(
-    to bottom,
-    rgba(0, 0, 0, 0.3) 0%,
-    transparent 20%,
-    transparent 80%,
-    rgba(0, 0, 0, 0.6) 100%
-  );
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  pointer-events: none;
+.audio-element {
+  display: none;
 }
 
-.controls-overlay.controls-visible {
-  opacity: 1;
-  pointer-events: all;
-}
-
-.controls-overlay:hover {
-  opacity: 1;
-}
-
-/* Top Bar */
-.top-bar {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  padding: 15px;
-  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.7) 0%, transparent 100%);
-}
-
-.media-title {
-  color: white;
-  margin: 0;
-  font-size: 1.1rem;
-  font-weight: 500;
-  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
-}
-
-/* Center Controls */
-.center-controls {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-}
-
-.center-play-btn {
-  background: rgba(0, 123, 255, 0.9);
-  border: none;
-  border-radius: 50%;
-  width: 70px;
-  height: 70px;
-  font-size: 1.8rem;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  backdrop-filter: blur(10px);
-}
-
-.center-play-btn:hover {
-  background: rgba(0, 123, 255, 1);
-  transform: scale(1.1);
-}
-
-/* Bottom Controls */
-.bottom-controls {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  padding: 15px;
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, transparent 100%);
+.audio-controls {
   display: flex;
   align-items: center;
   gap: 12px;
+  margin-bottom: 8px;
 }
 
 .control-btn {
-  background: none;
-  border: none;
-  color: white;
-  font-size: 1.2rem;
-  cursor: pointer;
-  padding: 5px;
+  background: color-mix(in oklab, var(--background), var(--text) 10%);
+  border: 1px solid color-mix(in oklab, var(--background), var(--text) 25%);
+  color: var(--text);
+  padding: 6px;
   border-radius: 4px;
-  transition: background-color 0.2s ease;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
 }
 
-.control-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
+.control-btn:hover:not(:disabled) {
+  background: color-mix(in oklab, var(--background), var(--focused) 20%);
+  border-color: var(--focused);
+}
+
+.control-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.play-pause-btn {
+  font-size: 1.1rem;
+  min-width: 36px;
+}
+
+.volume-btn {
+  font-size: 1rem;
+  min-width: 32px;
+}
+
+.download-btn {
+  font-size: 1rem;
+  min-width: 32px;
 }
 
 .time-display {
-  color: white;
+  color: var(--text);
   font-size: 0.9rem;
   min-width: 80px;
   text-align: center;
   font-variant-numeric: tabular-nums;
 }
 
-/* Progress Bar */
 .progress-bar {
   flex: 1;
   height: 6px;
-  background: rgba(255, 255, 255, 0.3);
+  background: color-mix(in oklab, var(--background), var(--text) 20%);
   border-radius: 3px;
   cursor: pointer;
   position: relative;
-  margin: 0 10px;
+  margin: 0 8px;
+}
+
+.progress-bar.disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
 }
 
 .progress-background {
@@ -721,7 +673,6 @@ export default {
   right: 0;
   bottom: 0;
   border-radius: 3px;
-  background: rgba(255, 255, 255, 0.2);
 }
 
 .progress-fill {
@@ -729,7 +680,7 @@ export default {
   top: 0;
   left: 0;
   bottom: 0;
-  background: #007bff;
+  background: var(--focused);
   border-radius: 3px;
   transition: width 0.1s ease;
 }
@@ -740,7 +691,7 @@ export default {
   transform: translate(-50%, -50%);
   width: 12px;
   height: 12px;
-  background: #007bff;
+  background: var(--focused);
   border-radius: 50%;
   opacity: 0;
   transition: opacity 0.2s ease;
@@ -750,25 +701,24 @@ export default {
   opacity: 1;
 }
 
-/* Volume Controls */
 .volume-controls {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 .volume-slider {
-  width: 80px;
+  width: 60px;
   height: 4px;
-  background: rgba(255, 255, 255, 0.3);
+  background: color-mix(in oklab, var(--background), var(--text) 20%);
   border-radius: 2px;
   cursor: pointer;
   position: relative;
-  display: none;
 }
 
-.volume-controls:hover .volume-slider {
-  display: block;
+.volume-slider.disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
 }
 
 .volume-background {
@@ -778,7 +728,6 @@ export default {
   right: 0;
   bottom: 0;
   border-radius: 2px;
-  background: rgba(255, 255, 255, 0.2);
 }
 
 .volume-fill {
@@ -786,50 +735,31 @@ export default {
   top: 0;
   left: 0;
   bottom: 0;
-  background: #007bff;
+  background: var(--focused);
   border-radius: 2px;
 }
 
-/* Playback Rate Select */
-.playback-rate-select {
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  color: white;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 0.8rem;
-  cursor: pointer;
+.filename {
+  color: color-mix(in oklab, var(--text), transparent 30%);
+  font-size: 0.85rem;
+  text-align: center;
+  margin-top: 4px;
+  word-break: break-word;
 }
 
-.playback-rate-select option {
-  background: #1a1a1a;
-  color: white;
-}
-
-/* Native Controls Fallback */
-.native-controls-fallback {
-  display: none;
-}
-
-.native-media {
-  width: 100%;
-  height: auto;
+.seeking-indicator {
+  color: var(--focused);
+  font-style: italic;
 }
 
 /* Responsive Design */
 @media (max-width: 768px) {
   .audio-widget {
-    min-height: 60px;
-    padding: 10px;
+    padding: 12px;
   }
 
-  .bottom-controls {
-    padding: 10px;
+  .audio-controls {
     gap: 8px;
-  }
-
-  .control-btn {
-    font-size: 1rem;
   }
 
   .time-display {
@@ -838,79 +768,28 @@ export default {
   }
 
   .volume-slider {
-    width: 60px;
+    width: 50px;
   }
 
-  .center-play-btn {
-    width: 60px;
-    height: 60px;
-    font-size: 1.5rem;
+  .control-btn {
+    padding: 4px;
   }
 }
 
 @media (max-width: 480px) {
-  .playback-rate-select {
-    display: none;
+  .audio-controls {
+    flex-wrap: wrap;
+    justify-content: center;
   }
 
-  .volume-slider {
-    width: 50px;
+  .progress-bar {
+    order: 1;
+    flex: 0 0 100%;
+    margin: 8px 0;
   }
-}
 
-/* Audio-specific styles */
-.audio-widget .media-element {
-  display: none; /* Hide the audio element, we'll use custom controls */
-}
-
-.audio-widget .controls-overlay {
-  position: relative;
-  background: transparent;
-  opacity: 1;
-  pointer-events: all;
-}
-
-.audio-widget .top-bar {
-  position: relative;
-  background: transparent;
-  padding: 0 0 10px 0;
-}
-
-.audio-widget .media-title {
-  color: #333;
-  text-shadow: none;
-}
-
-.audio-widget .center-controls {
-  display: none;
-}
-
-.audio-widget .bottom-controls {
-  position: relative;
-  background: transparent;
-  padding: 0;
-}
-
-.audio-widget .progress-bar {
-  margin: 10px 0;
-}
-
-.audio-widget .control-btn {
-  color: #333;
-}
-
-.audio-widget .time-display {
-  color: #333;
-}
-
-.audio-widget .playback-rate-select {
-  background: rgba(0, 0, 0, 0.05);
-  border: 1px solid rgba(0, 0, 0, 0.2);
-  color: #333;
-}
-
-.audio-widget .playback-rate-select option {
-  background: white;
-  color: #333;
+  .volume-controls {
+    margin-left: auto;
+  }
 }
 </style>

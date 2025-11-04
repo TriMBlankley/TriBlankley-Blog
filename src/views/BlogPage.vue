@@ -79,15 +79,23 @@ const nextGroupPost = computed(() =>
   hasNextGroupPost.value ? groupPosts.value[currentGroupIndex.value + 1] : null
 )
 
-// Get audio files from attached files
+// Get audio files from attached files - make this more robust
 const audioFiles = computed(() => {
   if (!postData.value?.attachedFiles) return []
 
-  return postData.value.attachedFiles.filter(file =>
-    file.fileType === 'audio' ||
-    file.attachmentType === 'audio' ||
-    file.filename.match(/\.(mp3|wav|ogg|flac|aac)$/i)
-  )
+  return postData.value.attachedFiles.filter(file => {
+    // Check fileType first
+    if (file.fileType === 'audio') return true
+
+    // Check attachmentType
+    if (file.attachmentType === 'audio') return true
+
+    // Check filename extension as fallback
+    const audioExtensions = ['.mp3', '.wav', '.ogg', '.flac', '.aac', '.m4a']
+    return audioExtensions.some(ext =>
+      file.filename.toLowerCase().endsWith(ext)
+    )
+  })
 })
 
 // Fetch posts by topic
