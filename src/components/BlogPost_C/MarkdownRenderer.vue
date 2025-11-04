@@ -23,7 +23,6 @@ const renderedContent = ref('')
 const hljs = ref<any>(null)
 const { isDarkMode } = useTheme() // Get theme state
 
-
 // Configure marked
 const configureMarked = () => {
   marked.setOptions({
@@ -35,13 +34,49 @@ const configureMarked = () => {
 // Initialize marked configuration
 configureMarked()
 
+// Get audio files from attached files
+const audioFiles = computed(() => {
+  if (!props.attachedFiles) return []
+
+  return props.attachedFiles.filter(file => {
+    // Check fileType first
+    if (file.fileType === 'audio') return true
+
+    // Check attachmentType
+    if (file.attachmentType === 'audio') return true
+
+    // Check filename extension as fallback
+    const audioExtensions = ['.mp3', '.wav', '.ogg', '.flac', '.aac', '.m4a']
+    return audioExtensions.some(ext =>
+      file.filename.toLowerCase().endsWith(ext)
+    )
+  })
+})
+
+// Get sequenced audio files (audio with sequence numbers)
+const sequencedAudio = computed(() => {
+  if (!audioFiles.value) return []
+
+  const sequenced = audioFiles.value.filter(file => file.sequence !== undefined)
+  return sequenced.sort((a, b) => (a.sequence || 0) - (b.sequence || 0))
+})
+
+// Get additional audio files (audio without sequence numbers)
+const additionalAudio = computed(() => {
+  if (!audioFiles.value) return []
+
+  const additional = audioFiles.value.filter(file => file.sequence === undefined)
+  return additional.sort((a, b) =>
+    new Date(a.uploadDate).getTime() - new Date(b.uploadDate).getTime()
+  )
+})
 
 // Render markdown content
 const renderMarkdownContent = async (content: string) => {
   console.log('📝 Rendering markdown content...')
   console.log('📄 Original content:', content)
 
-  // Process content to replace image placeholders with actual URLs
+  // Process content to replace image and audio placeholders with actual URLs
   let processedContent = processMarkdownContent(content)
 
   try {
@@ -126,15 +161,20 @@ const additionalImages = computed(() => {
   )
 })
 
-// CRITICAL: Process markdown content to replace image placeholders with actual image URLs
+// CRITICAL: Process markdown content to replace image and audio placeholders with actual URLs
 const processMarkdownContent = (content: string) => {
   let processedContent = content
 
-  console.log('🖼️ Starting image processing...')
+  console.log('🖼️ Starting image and audio processing...')
   console.log('📊 Sequenced images:', sequencedImages.value.map(img => ({
     filename: img.filename,
     sequence: img.sequence,
     fileId: img.fileId
+  })))
+  console.log('🎵 Sequenced audio:', sequencedAudio.value.map(audio => ({
+    filename: audio.filename,
+    sequence: audio.sequence,
+    fileId: audio.fileId
   })))
 
   // First, replace numbered image placeholders (image1, image2, etc.)
@@ -162,6 +202,21 @@ const processMarkdownContent = (content: string) => {
     )
   })
 
+  // Replace numbered audio placeholders (audio1, audio2, etc.)
+  sequencedAudio.value.forEach((audio, index) => {
+    const audioNumber = index + 1
+    const audioUrl = `/api/file/${audio.fileId}`
+
+    // Pattern for audio links: [alt text](audio1)
+    const audioPattern = new RegExp(`\\[([^\\]]*)\\]\\(audio${audioNumber}\\)`, 'gi')
+
+    // Replace audio links with audio widget placeholder
+    processedContent = processedContent.replace(
+      audioPattern,
+      `<div class="audio-widget-placeholder" data-file-id="${audio.fileId}" data-filename="${audio.filename}" data-audio-url="${audioUrl}"></div>`
+    )
+  })
+
   // Then, handle any remaining image references that might match filenames
   const genericImagePattern = /!\[([^\]]*)\]\(([^)]+)\)/g
   const genericLinkPattern = /\[([^\]]*)\]\(([^)]+)\)/g
@@ -186,7 +241,7 @@ const processMarkdownContent = (content: string) => {
     return match
   })
 
-  // Then process links that might be intended as images
+  // Then process links that might be intended as images or audio
   processedContent = processedContent.replace(genericLinkPattern, (match, altText, src) => {
     // Skip if it's already a full URL or API path
     if (src.startsWith('http') || src.startsWith('/api/file/') || src.startsWith('data:')) {
@@ -196,6 +251,12 @@ const processMarkdownContent = (content: string) => {
     // Check if this looks like an image reference (image1, image2, etc.)
     if (src.match(/^image\d+$/)) {
       // This should have been handled by the numbered image processing above
+      return match
+    }
+
+    // Check if this looks like an audio reference (audio1, audio2, etc.)
+    if (src.match(/^audio\d+$/)) {
+      // This should have been handled by the numbered audio processing above
       return match
     }
 
@@ -209,11 +270,21 @@ const processMarkdownContent = (content: string) => {
       return `![${altText}](/api/file/${matchingImage.fileId})`
     }
 
-    // Return original link if no image match found
+    // Check if this src matches any uploaded audio filename
+    const matchingAudio = [...sequencedAudio.value, ...additionalAudio.value].find(
+      audio => audio.filename === src || audio.filename.includes(src)
+    )
+
+    // If we found a matching audio file, convert to audio widget
+    if (matchingAudio) {
+      return `<div class="audio-widget-placeholder" data-file-id="${matchingAudio.fileId}" data-filename="${matchingAudio.filename}" data-audio-url="/api/file/${matchingAudio.fileId}"></div>`
+    }
+
+    // Return original link if no image or audio match found
     return match
   })
 
-  console.log('✅ Image processing completed')
+  console.log('✅ Image and audio processing completed')
   console.log('📝 Processed content sample:', processedContent.substring(0, 500))
 
   return processedContent
@@ -225,8 +296,6 @@ const loadHighlightJS = async () => {
     try {
       const hljsModule = await import('highlight.js/lib/core')
       hljs.value = hljsModule.default
-
-
 
       // Import specific languages
       const rustLang = await import('highlight.js/lib/languages/rust')
@@ -264,7 +333,6 @@ const loadHighlightJS = async () => {
 watch(isDarkMode, async (newIsDarkMode) => {
   console.log(`🎨 Theme changed to ${newIsDarkMode ? 'dark' : 'light'}, updating syntax highlighting`)
 
-
   // Re-render the markdown content to apply the new highlighting style
   if (props.postContent) {
     await renderMarkdownContent(props.postContent)
@@ -287,17 +355,19 @@ watch(() => props.postContent, async (newContent) => {
 // Also watch for attachedFiles changes in case they load after content
 watch(() => props.attachedFiles, async (newFiles) => {
   if (newFiles && props.postContent) {
-    console.log('🔄 Attached files updated, re-rendering markdown with images')
+    console.log('🔄 Attached files updated, re-rendering markdown with images and audio')
     await renderMarkdownContent(props.postContent)
   }
 }, { deep: true })
 </script>
 
 <template>
-  <div
-    class="markdown-content"
-    v-html="renderedContent"
-  ></div>
+  <div class="markdown-content">
+    <div v-html="renderedContent"></div>
+
+    <!-- Audio widgets will be rendered here by the parent component -->
+    <slot name="audio-widgets"></slot>
+  </div>
 </template>
 
 <style scoped>
@@ -384,7 +454,6 @@ watch(() => props.attachedFiles, async (newFiles) => {
   font-weight: 600;
 }
 
-
 .markdown-content :deep(.copy-btn) {
   position: absolute;
   top: 8px;
@@ -422,5 +491,22 @@ watch(() => props.attachedFiles, async (newFiles) => {
 .markdown-content :deep(p > img) {
   text-indent: 0;
   margin: 1em auto; /* Maintain vertical spacing but center horizontally */
+}
+
+/* Audio widget placeholder styling */
+.markdown-content :deep(.audio-widget-placeholder) {
+  margin: 2em auto;
+  max-width: 600px;
+  text-align: center;
+  padding: 1em;
+  background: color-mix(in oklab, var(--background), var(--text) 5%);
+  border-radius: 10px;
+  border: 1px solid color-mix(in oklab, var(--background), var(--text) 20%);
+}
+
+/* Center audio widgets within the markdown content */
+.markdown-content :deep(.audio-widget) {
+  margin: 2em auto;
+  max-width: 600px;
 }
 </style>

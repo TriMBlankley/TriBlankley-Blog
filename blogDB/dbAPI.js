@@ -220,13 +220,15 @@ app.get('/api/posts/:id', async (req, res) => {
   }
 });
 
+// In the app.post('/api/posts') endpoint - update the post creation
 app.post('/api/posts', async (req, res) => {
   try {
     // Generate a new postId by finding the highest existing one and adding 1
     const highestPost = await blogPost.findOne().sort('-postId');
     const newPostId = highestPost ? highestPost.postId + 1 : 1;
 
-    const newPost = new blogPost({
+    // Ensure postAuthor is properly formatted as an array
+    const postData = {
       ...req.body,
       postId: newPostId,
       postDate: new Date().toLocaleDateString('en-US', {
@@ -234,7 +236,19 @@ app.post('/api/posts', async (req, res) => {
         month: 'short',
         day: 'numeric'
       })
-    });
+    };
+
+    // Validate and ensure postAuthor is an array
+    if (postData.postAuthor && !Array.isArray(postData.postAuthor)) {
+      // If it's a string, convert to array
+      if (typeof postData.postAuthor === 'string') {
+        postData.postAuthor = [postData.postAuthor];
+      } else {
+        postData.postAuthor = [];
+      }
+    }
+
+    const newPost = new blogPost(postData);
 
     const savedPost = await newPost.save();
     res.status(201).json(savedPost);
@@ -267,11 +281,11 @@ app.delete('/api/posts/:id', async (req, res) => {
 });
 
 // Enhanced File Upload endpoint with sequencing -------------------------------------
-// In dbAPI.js - Update the upload endpoint
+// In the file upload endpoint - update the upload handler
 app.post('/api/upload/:postId', async (req, res) => {
   try {
     const { postId } = req.params;
-    const { filename, base64Data, fileType = 'attachment', sequence } = req.body; // Remove default value
+    const { filename, base64Data, fileType = 'attachment', sequence, attachmentType = 'image' } = req.body; // NEW: Added attachmentType
 
     // Validate post exists
     const post = await blogPost.findOne({ postId: parseInt(postId) });
@@ -293,7 +307,8 @@ app.post('/api/upload/:postId', async (req, res) => {
             filename: filename,
             fileId: uploadStream.id,
             fileType: fileType,
-            uploadDate: new Date()
+            uploadDate: new Date(),
+            attachmentType: attachmentType // NEW: Store attachment type
           };
 
           // Only add sequence if it's defined (not undefined)
@@ -314,7 +329,8 @@ app.post('/api/upload/:postId', async (req, res) => {
           res.json({
             message: 'File uploaded successfully',
             fileId: uploadStream.id,
-            filename: filename
+            filename: filename,
+            attachmentType: attachmentType // NEW: Return attachment type
           });
           resolve();
         } catch (error) {

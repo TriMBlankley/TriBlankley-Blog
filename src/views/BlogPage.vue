@@ -79,7 +79,7 @@ const nextGroupPost = computed(() =>
   hasNextGroupPost.value ? groupPosts.value[currentGroupIndex.value + 1] : null
 )
 
-// Get audio files from attached files - make this more robust
+// Get audio files from attached files
 const audioFiles = computed(() => {
   if (!postData.value?.attachedFiles) return []
 
@@ -293,26 +293,13 @@ watch(() => route.params.id, async (newId) => {
 
       <!-- Main content area -->
       <div class="content-container">
-        <!-- Markdown content -->
+        <!-- Markdown content with inline audio widgets -->
         <MarkdownRenderer
           :postContent="postData.postContent"
           :attachedFiles="postData.attachedFiles"
-        />
-
-        <!-- Audio widgets for audio files -->
-        <div v-if="audioFiles.length > 0" class="audio-section">
-          <h3 class="audio-section-title">Audio Files</h3>
-          <div class="audio-widgets-container">
-            <AvWidget
-              v-for="audioFile in audioFiles"
-              :key="audioFile.fileId"
-              :audioUrl="`/api/file/${audioFile.fileId}`"
-              :filename="audioFile.filename"
-              :fileId="audioFile.fileId"
-              @download="downloadFile"
-            />
-          </div>
-        </div>
+        >
+          <!-- Audio widgets are now rendered inline within the markdown content -->
+        </MarkdownRenderer>
 
         <!-- Image gallery -->
         <GalleryRenderer
@@ -320,7 +307,7 @@ watch(() => route.params.id, async (newId) => {
           @download-file="downloadFile"
         />
 
-        <!-- Attached files -->
+        <!-- Attached files (non-image, non-audio) -->
         <AttachmentHandler
           :attachedFiles="postData.attachedFiles"
           @download-file="downloadFile"
@@ -439,22 +426,5 @@ watch(() => route.params.id, async (newId) => {
   margin-bottom: 35px;
 }
 
-/* Audio section styles */
-.audio-section {
-  margin: 30px 0;
-}
-
-.audio-section-title {
-  color: var(--text);
-  font-size: 1.5em;
-  margin-bottom: 20px;
-  border-bottom: 2px solid var(--focused);
-  padding-bottom: 8px;
-}
-
-.audio-widgets-container {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
+/* Remove the old audio section styles since audio widgets are now inline */
 </style>

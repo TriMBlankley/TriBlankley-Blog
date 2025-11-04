@@ -10,17 +10,19 @@ export default {
     return {
       postData: {
         postTitle: '',
-        postAuthor: '',
+        postAuthor: [], // CHANGED: Now an array for multiple authors
         postContent: '',
-        postTopics: [], // This will now contain the selected topic
-        contentType: 'Text', // Default to 'Text'
+        postTopics: [],
+        contentType: 'Text',
         isPublished: false,
+        showGalleryView: false, // NEW: Gallery view checkbox
         postGroup: null
       },
-      selectedTopic: '', // Single topic selection
+      selectedTopic: '',
+      currentAuthor: '', // NEW: Temporary input for adding authors
       markdownFile: null,
-      sequencedAttachments: [], // NEW: Replaces uploadedImages for sequenced attachments
-      attachedFiles: [], // For additional attachments
+      sequencedAttachments: [],
+      attachedFiles: [],
       availableTopics: [],
       availableGroups: [],
       selectedGroupId: '',
@@ -52,17 +54,11 @@ export default {
     isFormValid() {
       return (
         this.postData.postTitle.trim() &&
-        this.postData.postAuthor.trim() &&
+        this.postData.postAuthor.length > 0 && // CHANGED: Check if authors array has at least one
         this.postData.postContent.trim() &&
         this.selectedTopic.trim() &&
         this.postData.contentType.trim()
       );
-    },
-
-    compiledMarkdown() {
-      if (!this.postData.postContent) return '';
-      const rawMarkdown = marked(this.postData.postContent);
-      return DOMPurify.sanitize(rawMarkdown);
     },
 
     hasAttachmentImages() {
@@ -86,7 +82,6 @@ export default {
 
   watch: {
     selectedTopic(newTopic) {
-      // Update postTopics array with the selected topic
       if (newTopic) {
         this.postData.postTopics = [newTopic];
       } else {
@@ -97,6 +92,28 @@ export default {
   },
 
   methods: {
+    // NEW: Add author to the list
+    addAuthor() {
+      if (this.currentAuthor.trim() && !this.postData.postAuthor.includes(this.currentAuthor.trim())) {
+        this.postData.postAuthor.push(this.currentAuthor.trim());
+        this.currentAuthor = '';
+        this.clearFieldError('postAuthor');
+      }
+    },
+
+    // NEW: Remove author from the list
+    removeAuthor(index) {
+      this.postData.postAuthor.splice(index, 1);
+    },
+
+    // NEW: Handle Enter key in author input
+    handleAuthorKeypress(event) {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        this.addAuthor();
+      }
+    },
+
     async loadTopics() {
       try {
         const response = await fetch('/api/topics');
@@ -299,7 +316,7 @@ export default {
       reader.readAsText(file);
     },
 
-    // NEW: Handle sequenced attachment upload (replaces handleImageUpload)
+    // UPDATED: Handle sequenced attachment upload with automatic type detection
     handleSequencedAttachmentUpload(event) {
       const files = Array.from(event.target.files);
       const remainingSlots = 20 - this.sequencedAttachments.length;
@@ -321,14 +338,14 @@ export default {
         this.sequencedAttachments.push({
           file: file,
           sequence: this.sequencedAttachments.length + 1,
-          attachmentType: this.detectAttachmentType(file)
+          attachmentType: this.detectAttachmentType(file) // Auto-detect type
         });
       });
 
       event.target.value = '';
     },
 
-    // NEW: Detect attachment type based on file
+    // UPDATED: Enhanced type detection
     detectAttachmentType(file) {
       if (file.type.startsWith('image/')) return 'image';
       if (file.type.startsWith('audio/')) return 'audio';
@@ -337,23 +354,24 @@ export default {
       // Fallback based on extension
       const fileName = file.name.toLowerCase();
       if (fileName.endsWith('.mp3') || fileName.endsWith('.wav') || fileName.endsWith('.ogg') ||
-          fileName.endsWith('.flac') || fileName.endsWith('.aac')) {
+          fileName.endsWith('.flac') || fileName.endsWith('.aac') || fileName.endsWith('.m4a')) {
         return 'audio';
       }
       if (fileName.endsWith('.mp4') || fileName.endsWith('.avi') || fileName.endsWith('.mov') ||
-          fileName.endsWith('.mkv') || fileName.endsWith('.webm') || fileName.endsWith('.m4v')) {
+          fileName.endsWith('.mkv') || fileName.endsWith('.webm') || fileName.endsWith('.m4v') ||
+          fileName.endsWith('.wmv') || fileName.endsWith('.flv')) {
         return 'video';
       }
 
       return 'image'; // Default to image for compatibility
     },
 
-    // NEW: Update attachment type
+    // Update attachment type
     updateAttachmentType(index, newType) {
       this.sequencedAttachments[index].attachmentType = newType;
     },
 
-    // NEW: Remove sequenced attachment
+    // Remove sequenced attachment
     removeSequencedAttachment(index) {
       this.sequencedAttachments.splice(index, 1);
       // Update sequence numbers
@@ -362,7 +380,7 @@ export default {
       });
     },
 
-    // NEW: Get icon for sequenced attachment
+    // Get icon for sequenced attachment
     getSequencedAttachmentIcon(attachmentType) {
       switch (attachmentType) {
         case 'image': return '🖼️';
@@ -372,7 +390,7 @@ export default {
       }
     },
 
-    // NEW: Get type label for sequenced attachment
+    // Get type label for sequenced attachment
     getSequencedAttachmentTypeLabel(attachmentType) {
       switch (attachmentType) {
         case 'image': return 'Image';
@@ -486,8 +504,9 @@ export default {
         this.fieldErrors.postTitle = 'Post title is required';
       }
 
-      if (!this.postData.postAuthor.trim()) {
-        this.fieldErrors.postAuthor = 'Author name is required';
+      // CHANGED: Validate authors array
+      if (this.postData.postAuthor.length === 0) {
+        this.fieldErrors.postAuthor = 'At least one author is required';
       }
 
       if (!this.postData.postContent.trim()) {
@@ -527,7 +546,7 @@ export default {
                 base64Data: base64Data,
                 fileType: fileType,
                 sequence: sequence,
-                attachmentType: attachmentType // NEW: Include attachment type
+                attachmentType: attachmentType // Pass the attachment type
               })
             });
 
@@ -573,7 +592,7 @@ export default {
           postData.postGroup = {
             groupId: this.selectedGroupId,
             groupName: selectedGroup.groupName,
-            groupColor: selectedGroup.groupColor, // Add group color
+            groupColor: selectedGroup.groupColor,
             sequence: 0
           };
         }
@@ -620,7 +639,7 @@ export default {
               attachment.file,
               'image', // Keep as 'image' for GridFS compatibility
               attachment.sequence,
-              attachment.attachmentType // NEW: Pass attachment type
+              attachment.attachmentType // Pass the detected attachment type
             );
 
             this.uploadProgress = 30 + (i / attachmentCount) * 30;
@@ -661,15 +680,12 @@ export default {
 
     showError(message, type = 'error') {
       if (type === 'success') {
-        // For success messages, we can use a different styling or just log to console
         console.log('Success:', message);
-        // You might want to implement a success notification system here
-        this.errorMessage = ''; // Clear any existing error
+        this.errorMessage = '';
         return;
       }
 
       this.errorMessage = message;
-      // Auto-hide error after 10 seconds
       setTimeout(() => {
         this.clearError();
       }, 10000);
@@ -686,16 +702,18 @@ export default {
 
       this.postData = {
         postTitle: '',
-        postAuthor: '',
+        postAuthor: [], // CHANGED: Reset to empty array
         postContent: '',
         postTopics: [],
-        contentType: 'Text', // Reset to default
+        contentType: 'Text',
         isPublished: false,
+        showGalleryView: false, // NEW: Reset gallery view
         postGroup: null
       };
+      this.currentAuthor = ''; // NEW: Reset current author input
       this.selectedTopic = '';
       this.markdownFile = null;
-      this.sequencedAttachments = []; // NEW: Clear sequenced attachments
+      this.sequencedAttachments = [];
       this.attachedFiles = [];
       this.selectedGroupId = '';
       this.showPreview = false;
@@ -711,7 +729,6 @@ export default {
 
     viewPost() {
       if (this.createdPostId) {
-        // Navigate to the post view page
         this.$router.push(`/BlogPage/${this.createdPostId}`);
       }
       this.showSuccessModal = false;
@@ -772,11 +789,36 @@ export default {
           <span v-if="fieldErrors.postTitle" class="error-text">{{ fieldErrors.postTitle }}</span>
         </div>
 
+        <!-- Post Authors -->
         <div class="form-group">
-          <label for="postAuthor">Author *</label>
-          <input id="postAuthor" v-model="postData.postAuthor" type="text" required placeholder="Enter author name"
-            class="form-input" :class="{ 'error': fieldErrors.postAuthor }">
-          <span v-if="fieldErrors.postAuthor" class="error-text">{{ fieldErrors.postAuthor }}</span>
+          <label for="postAuthor">Authors *</label>
+          <div class="authors-input-container">
+            <div class="author-input-group">
+              <input
+                id="postAuthor"
+                v-model="currentAuthor"
+                type="text"
+                placeholder="Enter author name and press Enter"
+                class="form-input"
+                :class="{ 'error': fieldErrors.postAuthor }"
+                @keypress="handleAuthorKeypress"
+              >
+              <button type="button" @click="addAuthor" class="btn btn-outline add-author-btn">
+                Add
+              </button>
+            </div>
+            <span v-if="fieldErrors.postAuthor" class="error-text">{{ fieldErrors.postAuthor }}</span>
+
+            <!-- Authors List -->
+            <div v-if="postData.postAuthor.length > 0" class="authors-list">
+              <div v-for="(author, index) in postData.postAuthor" :key="index" class="author-tag">
+                <span>{{ author }}</span>
+                <button type="button" @click="removeAuthor(index)" class="remove-author-btn" title="Remove author">
+                  ✕
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- Content Type Selection -->
@@ -947,20 +989,6 @@ export default {
           </label>
           <span v-if="fieldErrors.postContent" class="error-text">{{ fieldErrors.postContent }}</span>
         </div>
-
-        <!-- Markdown Preview -->
-        <div v-if="postData.postContent" class="preview-section">
-          <div class="preview-header">
-            <h3>Content Preview</h3>
-            <button type="button" @click="showPreview = !showPreview" class="preview-toggle">
-              {{ showPreview ? 'Hide Preview' : 'Show Preview' }}
-            </button>
-          </div>
-
-          <div v-if="showPreview" class="preview-content">
-            <div v-html="compiledMarkdown" class="markdown-preview"></div>
-          </div>
-        </div>
       </div>
 
       <!-- Sequenced Attachments (REPLACES Images for Sequencing) -->
@@ -988,20 +1016,35 @@ export default {
         <!-- Sequenced Attachments List -->
         <div v-if="sequencedAttachments.length > 0" class="attachments-list">
           <div v-for="(attachment, index) in sequencedAttachments" :key="index" class="attachment-item sequenced">
-            <div class="attachment-info">
-              <div class="attachment-header">
-                <span class="attachment-icon">{{ getSequencedAttachmentIcon(attachment.attachmentType) }}</span>
-                <span class="attachment-name">{{ attachment.file.name }}</span>
-                <span class="attachment-sequence">#{{ attachment.sequence }}</span>
+            <div class="attachment-preview">
+              <div v-if="attachment.file.type.startsWith('image/')" class="image-preview">
+                <img :src="getImagePreview(attachment.file)" :alt="attachment.file.name">
               </div>
-              <div class="attachment-details">
+              <div v-else class="file-icon">
+                {{ getSequencedAttachmentIcon(attachment.attachmentType) }}
+              </div>
+            </div>
+            <div class="attachment-info">
+              <div class="attachment-name">{{ attachment.file.name }}</div>
+              <div class="attachment-meta">
                 <span class="file-size">{{ formatFileSize(attachment.file.size) }}</span>
-                <select :value="attachment.attachmentType" @change="updateAttachmentType(index, $event.target.value)"
-                  class="attachment-type-select">
-                  <option value="image">Image</option>
-                  <option value="audio">Audio</option>
-                  <option value="video">Video</option>
-                </select>
+                <span class="sequence-number">Sequence: {{ attachment.sequence }}</span>
+
+                <!-- NEW: Attachment Type Display and Selector -->
+                <div class="attachment-type-selector">
+                  <label>Type:</label>
+                  <select :value="attachment.attachmentType" @change="updateAttachmentType(index, $event.target.value)"
+                          class="type-select">
+                    <option value="image">Image</option>
+                    <option value="audio">Audio</option>
+                    <option value="video">Video</option>
+                  </select>
+                </div>
+
+                <!-- NEW: Type Badge Display -->
+                <span class="type-badge" :class="attachment.attachmentType">
+                  {{ getSequencedAttachmentTypeLabel(attachment.attachmentType) }}
+                </span>
               </div>
             </div>
             <button type="button" @click="removeSequencedAttachment(index)" class="remove-btn" title="Remove attachment">
@@ -1047,6 +1090,17 @@ export default {
               ✕
             </button>
           </div>
+        </div>
+
+        <div class="form-group">
+          <label for="showGalleryView">Gallery View</label>
+          <div class="checkbox-group">
+            <input id="showGalleryView" v-model="postData.showGalleryView" type="checkbox">
+            <label for="showGalleryView" class="checkbox-label">
+              Show Gallery View?
+            </label>
+          </div>
+          <p class="field-description">When enabled, this post will display in a gallery format instead of the standard blog view.</p>
         </div>
       </div>
 
@@ -1634,4 +1688,121 @@ export default {
     flex-direction: column;
   }
 }
+
+/* Add these new styles for the multiple authors feature */
+.authors-input-container {
+  margin-bottom: 10px;
+}
+
+.author-input-group {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.author-input-group .form-input {
+  flex: 1;
+}
+
+.add-author-btn {
+  white-space: nowrap;
+}
+
+.authors-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.author-tag {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #e9ecef;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 14px;
+}
+
+.remove-author-btn {
+  background: none;
+  border: none;
+  color: #6c757d;
+  cursor: pointer;
+  padding: 2px;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.remove-author-btn:hover {
+  background-color: #dc3545;
+  color: white;
+}
+
+/* Add styles for the gallery view checkbox */
+.field-description {
+  font-size: 0.875rem;
+  color: #6c757d;
+  margin-top: 5px;
+  font-style: italic;
+}
+
+/* Add styles for sequenced attachment type features */
+.attachment-type-selector {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.attachment-type-selector label {
+  font-size: 0.875rem;
+  color: #6c757d;
+  margin: 0;
+}
+
+.type-select {
+  padding: 4px 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  background-color: white;
+}
+
+.type-badge {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.type-badge.image {
+  background-color: #e3f2fd;
+  color: #1976d2;
+}
+
+.type-badge.audio {
+  background-color: #f3e5f5;
+  color: #7b1fa2;
+}
+
+.type-badge.video {
+  background-color: #fff3e0;
+  color: #f57c00;
+}
+
+/* Update the sequenced attachment item to accommodate the type badge */
+.attachment-item.sequenced .attachment-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
 </style>
+
+
