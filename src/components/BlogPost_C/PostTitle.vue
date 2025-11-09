@@ -12,14 +12,14 @@ defineProps({
     type: String,
     required: true
   }
-})
+});
 </script>
 
 <template>
   <div class="post-header">
     <h1>{{ postTitle }}</h1>
     <div class="post-data">
-      <h2>{{ postAuthor }}</h2>
+      <h2>{{ postAuthor.join(', ') }}</h2>
       <h2>{{ postDate }}</h2>
     </div>
   </div>

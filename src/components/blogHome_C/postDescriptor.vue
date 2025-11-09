@@ -23,7 +23,7 @@ const props = defineProps({
     type: Object as () => {
       postId: number;
       postTitle: string;
-      postAuthor: string;
+      postAuthor: string[];
       postDate: string;
       postContent: string;
       contentType: string;
@@ -147,6 +147,7 @@ const groupColorStyle = computed(() => {
     backgroundColor: props.post.postGroup!.groupColor
   };
 });
+
 </script>
 
 <template>
@@ -161,7 +162,7 @@ const groupColorStyle = computed(() => {
         <h1>{{ post.postTitle }}</h1>
 
         <div class="post-meta">
-          <span>By {{ post.postAuthor }}</span>
+          <span>By {{ post.postAuthor.join(', ') }}</span>
           <span>{{ post.postDate }}</span>
         </div>
         <div v-if="hasGroup" class="group-indicator" :style="groupColorStyle"></div>

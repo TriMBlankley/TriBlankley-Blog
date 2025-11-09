@@ -7,9 +7,9 @@ import FolderTab from '@/components/blogHome_C/folderTab.vue';
 import PostDescriptor from '@/components/blogHome_C/postDescriptor.vue';
 import SettingsCog from '@/components/Settings_C/settingsCog.vue';
 import FilterAndNews from '@/components/blogHome_C/filterAndNews.vue';
+import BlogLogo from '@/components/BlogLogo.vue';
 
 //SVG imports
-import tbBlogLogo from "@/assets/uiElements/tbBlogLogo.svg"
 import HomeNav from '@/components/blogHome_C/homeNav.vue';
 
 // State
@@ -139,7 +139,7 @@ watch(activeTabColor, (color) => {
     <div class="logo-and-filter">
       <div class="logo-and-settings">
         <SettingsCog style="width: 30px;" />
-        <tbBlogLogo style="width: 70px;" />
+        <BlogLogo class="blog-logo"/>
       </div>
       <div class="filter-and-news">
         <FilterAndNews />
@@ -259,10 +259,13 @@ watch(activeTabColor, (color) => {
 
 .logo-and-settings {
   /* Size ------------- */
+  height: 70px;
+  width: auto;
 
   /* Position ------------- */
   /* top, right, bottom, left */
-  margin-top: .5em;
+  margin-top: 1em;
+  margin-left: 1em;
 
   /* Color ------------- */
 
@@ -270,7 +273,12 @@ watch(activeTabColor, (color) => {
   display: flex;
   flex-direction: row;
   align-items: center;
-  justify-content: space-evenly;
+}
+
+.blog-logo{
+ width: 125px;
+ margin-top: -70px;
+ margin-left: -40px;
 }
 
 .filter-and-news {

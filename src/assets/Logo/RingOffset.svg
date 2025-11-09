@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg width="100%" height="100%" viewBox="0 0 513 513" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
+    <g transform="matrix(1,0,0,1,-1027,-331)">
+        <g id="RingOffset" transform="matrix(1.82886,0,0,1.82886,300.508,-699.397)">
+            <path d="M645.813,615.049C694.809,674.796 686.081,763.082 626.334,812.078C566.587,861.075 478.301,852.347 429.304,792.6C380.308,732.853 389.036,644.567 448.783,595.57C508.53,546.574 596.816,555.302 645.813,615.049ZM618.749,637.243C582.002,592.433 515.787,585.887 470.977,622.634C426.167,659.381 419.621,725.596 456.368,770.406C493.115,815.216 559.33,821.762 604.14,785.015C648.95,748.268 655.496,682.053 618.749,637.243Z" style="fill:currentColor;fill-opacity:0.5;"/>
+        </g>
+    </g>
+</svg>

@@ -4,7 +4,6 @@ import { useRoute, useRouter } from 'vue-router'
 
 import "@/assets/base.css"
 
-import TbBlogLogo from "@/assets/uiElements/tbBlogLogo.svg"
 import SettingsCog from '@/components/Settings_C/settingsCog.vue'
 
 import PostTitle from '@/components/BlogPost_C/PostTitle.vue'
@@ -12,7 +11,7 @@ import BottomNav from '@/components/BlogPost_C/BottomNav.vue'
 import MarkdownRenderer from '@/components/BlogPost_C/MarkdownRenderer.vue'
 import GalleryRenderer from '@/components/BlogPost_C/GalleryRenderer.vue'
 import AttachmentHandler from '@/components/BlogPost_C/AttachmentHandler.vue'
-import AvWidget from '@/components/BlogPost_C/AvWidget.vue'
+import BlogLogo from '@/components/BlogLogo.vue';
 
 const router = useRouter()
 const route = useRoute()
@@ -26,6 +25,7 @@ interface PostData {
   postTopics: string[]
   contentType: string
   isPublished: boolean
+  showGalleryView: boolean
   attachedFiles: Array<{
     filename: string
     fileId: string
@@ -262,9 +262,7 @@ watch(() => route.params.id, async (newId) => {
   <div class="blog-page">
     <div class="logo-and-settings">
       <SettingsCog style="width: 30px;"/>
-      <button @click="goToHome" class="logo-button">
-        <TbBlogLogo style="width: 70px;"/>
-      </button>
+      <BlogLogo class="blog-logo"/>
     </div>
 
     <template v-if="isLoading">
@@ -303,6 +301,7 @@ watch(() => route.params.id, async (newId) => {
 
         <!-- Image gallery -->
         <GalleryRenderer
+          v-if="postData.showGalleryView"
           :attachedFiles="postData.attachedFiles"
           @download-file="downloadFile"
         />
@@ -343,32 +342,34 @@ watch(() => route.params.id, async (newId) => {
   background-color: var(--background);
 }
 
+
 .logo-and-settings {
+  /* Size ------------- */
+  height: 70px;
+  width: auto;
+
+  /* Position ------------- */
   position: fixed;
   top: 0;
   right: 20px;
   z-index: 10;
-  gap: 10px;
-  padding: 5px 10px;
-  margin-top: .5em;
+
+  /* top, right, bottom, left */
+  margin-top: 1em;
+  margin-left: 1em;
+
+  /* Color ------------- */
+
+  /* Behaviour ------------- */
   display: flex;
   flex-direction: row;
   align-items: center;
-  justify-content: space-evenly;
 }
 
-.logo-button {
-  background: var(--background);
-  border-radius: 70px;
-  border: none;
-  padding: 0;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-}
-
-.logo-button svg {
-  display: block;
+.blog-logo{
+ width: 125px;
+ margin-top: -69px;
+ margin-left: -40px;
 }
 
 .separator {

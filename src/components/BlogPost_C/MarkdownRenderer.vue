@@ -10,6 +10,7 @@ interface AttachedFile {
   fileId: string
   uploadDate: string
   fileType?: string
+  attachmentType?: string
   sequence?: number
 }
 
@@ -39,11 +40,11 @@ const audioFiles = computed(() => {
   if (!props.attachedFiles) return []
 
   return props.attachedFiles.filter(file => {
-    // Check fileType first
-    if (file.fileType === 'audio') return true
-
     // Check attachmentType
-    if (file.attachmentType === 'audio') return true
+    if (file.attachmentType === 'audio') {
+      return true
+      console.log('Has Audio Attachment')
+    }
 
     // Check filename extension as fallback
     const audioExtensions = ['.mp3', '.wav', '.ogg', '.flac', '.aac', '.m4a']
@@ -479,18 +480,22 @@ watch(() => props.attachedFiles, async (newFiles) => {
   max-width: 95%;
   max-height: 80vh;
   border-radius: 6px;
-  margin: 0 auto; /* Center the image */
-  text-indent: 0; /* Reset text-indent */
+  margin: 0 auto;
+  /* Center the image */
+  text-indent: 0;
+  /* Reset text-indent */
   border: solid 2.5px;
   border-radius: 10px;
   border-color: color-mix(in oklab, var(--background), var(--text) 25%);
-  display: block; /* Ensure images are block-level elements */
+  display: block;
+  /* Ensure images are block-level elements */
 }
 
 /* Specifically target images that are inside paragraphs */
 .markdown-content :deep(p > img) {
   text-indent: 0;
-  margin: 1em auto; /* Maintain vertical spacing but center horizontally */
+  margin: 1em auto;
+  /* Maintain vertical spacing but center horizontally */
 }
 
 /* Audio widget placeholder styling */
@@ -510,3 +515,24 @@ watch(() => props.attachedFiles, async (newFiles) => {
   max-width: 600px;
 }
 </style>
+
+
+
+
+
+
+
+
+{"postGroup":{"groupId":"68fd9a0495708ea234d1a4ec","groupName":"Blog
+Architecture","groupColor":"#cdab8f","sequence":0},"_id":"690d73c3a2237f5a81c427c4","postId":5,"postTitle":"Audio Post
+Showcase","postAuthor":["Tri Blankley"],"postDate":"Nov 6, 2025","postContent":"## This is a showcase of a post with
+audio files\n\nLater on, i hope to share my thoughts on audiofile equipment, create video-games, or talk on other sounds
+in my life, such as a cars exhaust tone. To this end i want to be able to embedd several audio files in the text for the
+reader to listen to, this post showcases that fuctionality.\n\nWhen a post contains an audio file, it can be shown by
+containing a music note on the posts icon from the home page.\n\nHere is the soundtrack from firelink shrine, in Dark
+Souls 1:\n\n[Firelink OST](Audio2)\n\nAnd here is the soundtrack for Majula, the hub area in Dark Souls 2:\n\n[Majula
+OST](Audio2)\n\n\n\n","contentType":"Music","postTopics":["Digital
+Hobbies"],"isPublished":true,"showGalleryView":false,"attachedFiles":[{"filename":"Dark Souls OST - Firelink
+Shrine.mp3","fileId":"690d73c3a2237f5a81c427c7","uploadDate":"2025-11-07T04:21:23.500Z","fileType":"image","attachmentType":"audio","sequence":1,"_id":"690d73c3a2237f5a81c427e3"},{"filename":"Dark
+Souls II OST -
+Majula.mp3","fileId":"690d73c3a2237f5a81c427e7","uploadDate":"2025-11-07T04:21:23.766Z","fileType":"image","attachmentType":"audio","sequence":2,"_id":"690d73c3a2237f5a81c427fb"},{"filename":"Firelink.jpg","fileId":"690d73c3a2237f5a81c42801","uploadDate":"2025-11-07T04:21:23.825Z","fileType":"image","attachmentType":"image","sequence":0,"_id":"690d73c3a2237f5a81c42805"}],"__v":0}
