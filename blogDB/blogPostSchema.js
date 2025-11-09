@@ -35,7 +35,7 @@ const postSchema = new mongoose.Schema({
     filename: String,
     fileId: mongoose.Types.ObjectId,
     uploadDate: { type: Date, default: Date.now },
-    fileType: { type: String, enum: ['image', 'attachment'], default: 'attachment' },
+    fileType: { type: String, enum: ['in-text', 'attachment'], default: 'attachment' },
     attachmentType: { type: String, enum: ['image', 'audio', 'video'], default: 'image' }, // NEW: Type for sequenced attachments
     sequence: { type: Number, default: undefined }
   }]

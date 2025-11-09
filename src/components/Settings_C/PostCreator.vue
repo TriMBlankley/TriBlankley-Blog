@@ -434,28 +434,6 @@ export default {
       return dangerousExtensions.some(ext => fileName.endsWith(ext));
     },
 
-    getFileIcon(fileType, fileName = '') {
-      // Generic file type detection
-      if (fileType.startsWith('image/')) return '🖼️';
-      if (fileType.includes('pdf')) return '📄';
-      if (fileType.includes('zip') || fileType.includes('rar') || fileType.includes('tar') ||
-        fileType.includes('7z') || fileName.endsWith('.zip') || fileName.endsWith('.rar')) return '📦';
-      if (fileType.includes('document') || fileType.includes('word') ||
-        fileName.endsWith('.doc') || fileName.endsWith('.docx')) return '📝';
-      if (fileType.includes('spreadsheet') || fileType.includes('excel') ||
-        fileName.endsWith('.xls') || fileName.endsWith('.xlsx')) return '📊';
-      if (fileType.includes('presentation') || fileType.includes('powerpoint') ||
-        fileName.endsWith('.ppt') || fileName.endsWith('.pptx')) return '📑';
-      if (fileType.includes('text/') || fileName.endsWith('.txt')) return '📃';
-      if (fileType.includes('audio/')) return '🎵';
-      if (fileType.includes('video/')) return '🎬';
-      if (fileName.endsWith('.exe') || fileName.endsWith('.msi')) return '⚙️';
-      if (fileName.endsWith('.js')) return '📜';
-      if (fileName.endsWith('.py')) return '🐍';
-      if (fileName.endsWith('.java')) return '☕';
-
-      return '📎'; // Default file icon
-    },
 
     getFileTypeLabel(fileType, fileName = '') {
       if (fileType.startsWith('image/')) return 'Image';
@@ -637,7 +615,7 @@ export default {
             await this.uploadFileToGridFS(
               createdPost.postId,
               attachment.file,
-              'image', // Keep as 'image' for GridFS compatibility
+              'in-text', // Keep as 'image' for GridFS compatibility
               attachment.sequence,
               attachment.attachmentType // Pass the detected attachment type
             );
@@ -1078,7 +1056,6 @@ export default {
           <div v-for="(file, index) in attachedFiles" :key="index" class="attachment-item">
             <div class="attachment-info">
               <div class="attachment-header">
-                <span class="attachment-icon">{{ getFileIcon(file.type, file.name) }}</span>
                 <span class="attachment-name">{{ file.name }}</span>
               </div>
               <div class="attachment-details">

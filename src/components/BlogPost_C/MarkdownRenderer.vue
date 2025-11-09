@@ -2,7 +2,8 @@
 import { ref, onMounted, watch, nextTick, computed } from 'vue'
 import { marked } from 'marked'
 import DOMPurify from 'dompurify'
-import { useTheme } from '@/composables/useTheme' // Import the theme composable
+import { useTheme } from '@/composables/useTheme'
+import AvWidget from './AvWidget.vue'
 import "@/assets/syntaxHighlighting.css"
 
 interface AttachedFile {
@@ -22,7 +23,15 @@ interface Props {
 const props = defineProps<Props>()
 const renderedContent = ref('')
 const hljs = ref<any>(null)
-const { isDarkMode } = useTheme() // Get theme state
+const { isDarkMode } = useTheme()
+
+// Audio widgets data
+const audioWidgets = ref<Array<{
+  fileId: string
+  filename: string
+  audioUrl: string
+  sequence?: number
+}>>([])
 
 // Configure marked
 const configureMarked = () => {
@@ -37,75 +46,378 @@ configureMarked()
 
 // Get audio files from attached files
 const audioFiles = computed(() => {
-  if (!props.attachedFiles) return []
+  console.log('🔍 Computing audio files from attachedFiles:', props.attachedFiles)
+  if (!props.attachedFiles) {
+    console.log('❌ No attached files provided')
+    return []
+  }
 
-  return props.attachedFiles.filter(file => {
+  const audioFiles = props.attachedFiles.filter(file => {
     // Check attachmentType
     if (file.attachmentType === 'audio') {
+      console.log('✅ Found audio file by attachmentType:', file.filename)
       return true
-      console.log('Has Audio Attachment')
     }
 
     // Check filename extension as fallback
     const audioExtensions = ['.mp3', '.wav', '.ogg', '.flac', '.aac', '.m4a']
-    return audioExtensions.some(ext =>
+    const isAudio = audioExtensions.some(ext =>
       file.filename.toLowerCase().endsWith(ext)
     )
+
+    if (isAudio) {
+      console.log('✅ Found audio file by extension:', file.filename)
+    }
+
+    return isAudio
   })
+
+  console.log('🎵 Final audio files:', audioFiles)
+  return audioFiles
 })
 
 // Get sequenced audio files (audio with sequence numbers)
 const sequencedAudio = computed(() => {
-  if (!audioFiles.value) return []
+  if (!audioFiles.value) {
+    console.log('❌ No audio files for sequenced audio')
+    return []
+  }
 
   const sequenced = audioFiles.value.filter(file => file.sequence !== undefined)
-  return sequenced.sort((a, b) => (a.sequence || 0) - (b.sequence || 0))
+  const sorted = sequenced.sort((a, b) => (a.sequence || 0) - (b.sequence || 0))
+
+  console.log('🎵 Sequenced audio files:', sorted)
+  return sorted
 })
 
 // Get additional audio files (audio without sequence numbers)
 const additionalAudio = computed(() => {
-  if (!audioFiles.value) return []
+  if (!audioFiles.value) {
+    console.log('❌ No audio files for additional audio')
+    return []
+  }
 
   const additional = audioFiles.value.filter(file => file.sequence === undefined)
-  return additional.sort((a, b) =>
+  const sorted = additional.sort((a, b) =>
     new Date(a.uploadDate).getTime() - new Date(b.uploadDate).getTime()
   )
+
+  console.log('🎵 Additional audio files:', sorted)
+  return sorted
 })
+
+// Get sequenced images (images with sequence numbers)
+const sequencedImages = computed(() => {
+  if (!props.attachedFiles) {
+    console.log('❌ No attached files for sequenced images')
+    return []
+  }
+
+  const sequenced = props.attachedFiles.filter(file =>
+    file.fileType === 'in-text' && file.sequence !== undefined
+  )
+
+  const sorted = sequenced.sort((a, b) => (a.sequence || 0) - (b.sequence || 0))
+  console.log('🖼️ Sequenced images:', sorted)
+  return sorted
+})
+
+// Get additional images (images without sequence numbers)
+const additionalImages = computed(() => {
+  if (!props.attachedFiles) {
+    console.log('❌ No attached files for additional images')
+    return []
+  }
+
+  const additional = props.attachedFiles.filter(file =>
+    file.fileType === 'attachment' && file.sequence === undefined
+  )
+
+  const sorted = additional.sort((a, b) =>
+    new Date(a.uploadDate).getTime() - new Date(b.uploadDate).getTime()
+  )
+
+  console.log('🖼️ Additional images:', sorted)
+  return sorted
+})
+
+// Process markdown content to replace image and audio placeholders
+const processMarkdownContent = (content: string) => {
+  console.log('🔄 Starting markdown content processing')
+  console.log('📄 Original content:', content)
+
+  let processedContent = content
+
+  console.log('🎵 Sequenced audio available:', sequencedAudio.value)
+  console.log('🖼️ Sequenced images available:', sequencedImages.value)
+
+  // First, replace numbered audio placeholders (audio1, audio2, etc.)
+  sequencedAudio.value.forEach((audio, index) => {
+    const audioNumber = index + 1
+    const audioUrl = `/api/file/${audio.fileId}`
+
+    console.log(`🎵 Processing audio${audioNumber}:`, audio.filename)
+
+    // Pattern for audio links: [alt text](audio1)
+    const audioPattern = new RegExp(`\\[([^\\]]*)\\]\\(audio${audioNumber}\\)`, 'gi')
+
+    const audioMatches = processedContent.match(audioPattern)
+    if (audioMatches) {
+      console.log(`🎵 Found audio pattern matches for audio${audioNumber}:`, audioMatches)
+    }
+
+    // Replace audio links with audio widget data attribute
+    processedContent = processedContent.replace(
+      audioPattern,
+      `<div class="audio-widget" data-file-id="${audio.fileId}" data-filename="${audio.filename}" data-audio-url="${audioUrl}" data-sequence="${audio.sequence}"></div>`
+    )
+  })
+
+  // Then, replace numbered image placeholders (image1, image2, etc.)
+  sequencedImages.value.forEach((image, index) => {
+    const imageNumber = index + 1
+    const imageUrl = `/api/file/${image.fileId}`
+
+    console.log(`🖼️ Processing image${imageNumber}:`, image.filename)
+
+    // Pattern for markdown images: ![alt text](image1)
+    const imagePattern = new RegExp(`!\\[([^\\]]*)\\]\\(image${imageNumber}\\)`, 'gi')
+    // Pattern for links that should be images: [alt text](image1)
+    const linkPattern = new RegExp(`\\[([^\\]]*)\\]\\(image${imageNumber}\\)`, 'gi')
+
+    // Replace markdown images
+    const imageMatches = processedContent.match(imagePattern)
+    if (imageMatches) {
+      console.log(`🖼️ Found image pattern matches for image${imageNumber}:`, imageMatches)
+    }
+
+    // Replace links that should be images (convert to proper image syntax)
+    const linkMatches = processedContent.match(linkPattern)
+    if (linkMatches) {
+      console.log(`🖼️ Found link pattern matches for image${imageNumber}:`, linkMatches)
+    }
+
+    processedContent = processedContent.replace(
+      imagePattern,
+      `![$1](${imageUrl})`
+    )
+
+    processedContent = processedContent.replace(
+      linkPattern,
+      `![$1](${imageUrl})`
+    )
+  })
+
+  console.log('📝 Content after numbered processing:', processedContent)
+
+  // Then, handle any remaining image references that might match filenames
+  const genericImagePattern = /!\[([^\]]*)\]\(([^)]+)\)/g
+  const genericLinkPattern = /\[([^\]]*)\]\(([^)]+)\)/g
+
+  // First process proper image syntax
+  processedContent = processedContent.replace(genericImagePattern, (match, altText, src) => {
+    if (src.startsWith('http') || src.startsWith('/api/file/') || src.startsWith('data:')) {
+      return match
+    }
+
+    const matchingImage = [...sequencedImages.value, ...additionalImages.value].find(
+      img => img.filename === src || img.filename.includes(src)
+    )
+
+    if (matchingImage) {
+      console.log(`🖼️ Found matching image for "${src}":`, matchingImage.filename)
+      return `![${altText}](/api/file/${matchingImage.fileId})`
+    }
+
+    return match
+  })
+
+  // Then process links that might be intended as images or audio
+  processedContent = processedContent.replace(genericLinkPattern, (match, altText, src) => {
+    if (src.startsWith('http') || src.startsWith('/api/file/') || src.startsWith('data:')) {
+      return match
+    }
+
+    if (src.match(/^image\d+$/)) {
+      console.log(`⏩ Skipping already processed image reference: ${src}`)
+      return match
+    }
+
+    if (src.match(/^audio\d+$/)) {
+      console.log(`⏩ Skipping already processed audio reference: ${src}`)
+      return match
+    }
+
+    const matchingImage = [...sequencedImages.value, ...additionalImages.value].find(
+      img => img.filename === src || img.filename.includes(src)
+    )
+
+    if (matchingImage) {
+      console.log(`🖼️ Converting link to image for "${src}":`, matchingImage.filename)
+      return `![${altText}](/api/file/${matchingImage.fileId})`
+    }
+
+    const matchingAudio = [...sequencedAudio.value, ...additionalAudio.value].find(
+      audio => audio.filename === src || audio.filename.includes(src)
+    )
+
+    if (matchingAudio) {
+      console.log(`🎵 Converting link to audio widget for "${src}":`, matchingAudio.filename)
+      return `<div class="audio-widget" data-file-id="${matchingAudio.fileId}" data-filename="${matchingAudio.filename}" data-audio-url="/api/file/${matchingAudio.fileId}" data-sequence="${matchingAudio.sequence || ''}"></div>`
+    }
+
+    return match
+  })
+
+  console.log('✅ Final processed content:', processedContent)
+  return processedContent
+}
+
+// Extract audio widgets from rendered content
+const extractAudioWidgets = () => {
+  console.log('🔍 Starting audio widget extraction')
+  audioWidgets.value = []
+
+  if (typeof document === 'undefined') {
+    console.log('❌ Document is undefined, skipping extraction')
+    return
+  }
+
+  const markdownContent = document.querySelector('.markdown-content')
+  if (!markdownContent) {
+    console.log('❌ No .markdown-content element found')
+    return
+  }
+
+  // Look for audio widget placeholders in the rendered HTML
+  const audioElements = markdownContent.querySelectorAll('.audio-widget')
+  console.log(`🎵 Found ${audioElements.length} audio widget elements in DOM`)
+
+  if (audioElements.length === 0) {
+    console.log('🔍 No audio widgets found in DOM. Checking if markdown processing worked...')
+
+    // Let's also check if the audio placeholders exist in the raw rendered content
+    const tempDiv = document.createElement('div')
+    tempDiv.innerHTML = renderedContent.value
+    const tempAudioElements = tempDiv.querySelectorAll('.audio-widget')
+    console.log(`🔍 Found ${tempAudioElements.length} audio widgets in raw rendered content`)
+
+    tempAudioElements.forEach((el, index) => {
+      const fileId = el.getAttribute('data-file-id')
+      const filename = el.getAttribute('data-filename')
+      const audioUrl = el.getAttribute('data-audio-url')
+      console.log(`🔍 Raw audio widget ${index}:`, { fileId, filename, audioUrl })
+    })
+  }
+
+  audioElements.forEach((element, index) => {
+    const fileId = element.getAttribute('data-file-id')
+    const filename = element.getAttribute('data-filename')
+    const audioUrl = element.getAttribute('data-audio-url')
+    const sequence = element.getAttribute('data-sequence')
+
+    console.log(`🔍 Audio widget ${index}:`, { fileId, filename, audioUrl, sequence })
+
+    if (fileId && filename && audioUrl) {
+      console.log(`🎧 Adding audio widget to array: ${filename}`)
+      audioWidgets.value.push({
+        fileId,
+        filename,
+        audioUrl,
+        sequence: sequence ? parseInt(sequence) : undefined
+      })
+
+      // Create a marker element to show where the widget will be rendered
+      const marker = document.createElement('div')
+      marker.className = 'audio-widget-marker'
+      marker.innerHTML = `🎧 Audio Widget: ${filename}`
+      marker.style.cssText = `
+        background: #e3f2fd;
+        border: 1px solid #2196f3;
+        border-radius: 4px;
+        padding: 8px;
+        margin: 8px 0;
+        font-size: 0.8rem;
+        color: #1565c0;
+      `
+
+      // Replace the placeholder with our marker
+      element.parentNode?.replaceChild(marker, element)
+      console.log(`📍 Replaced placeholder with marker for ${filename}`)
+    } else {
+      console.log('❌ Missing required attributes for audio widget:', { fileId, filename, audioUrl })
+    }
+  })
+
+  console.log(`✅ Final audio widgets array:`, audioWidgets.value)
+
+  // If no widgets found but we have audio files, create them directly
+  if (audioWidgets.value.length === 0 && sequencedAudio.value.length > 0) {
+    console.log('🔄 Creating audio widgets directly from sequencedAudio data')
+    audioWidgets.value = sequencedAudio.value.map(audio => ({
+      fileId: audio.fileId,
+      filename: audio.filename,
+      audioUrl: `/api/file/${audio.fileId}`,
+      sequence: audio.sequence
+    }))
+    console.log(`✅ Created ${audioWidgets.value.length} audio widgets directly`)
+  }
+}
 
 // Render markdown content
 const renderMarkdownContent = async (content: string) => {
-  console.log('📝 Rendering markdown content...')
-  console.log('📄 Original content:', content)
+  console.log('📝 Starting markdown content rendering')
+  console.log('📄 Input content length:', content.length)
+
+  // Clear previous audio widgets
+  audioWidgets.value = []
+  console.log('🧹 Cleared previous audio widgets')
 
   // Process content to replace image and audio placeholders with actual URLs
   let processedContent = processMarkdownContent(content)
+  console.log('📝 Processed content length:', processedContent.length)
 
   try {
+    console.log('🔄 Parsing markdown with marked...')
     const rawHtml = await marked.parse(processedContent)
+    console.log('✅ Markdown parsed successfully')
+
+    console.log('🔄 Sanitizing HTML with DOMPurify...')
     renderedContent.value = DOMPurify.sanitize(rawHtml)
+    console.log('✅ HTML sanitized successfully')
+    console.log('📄 Rendered content:', renderedContent.value)
 
-    console.log('🔍 Rendered HTML sample:', renderedContent.value.substring(0, 500))
-
+    console.log('⏳ Waiting for next tick...')
     await nextTick()
+    console.log('✅ Next tick completed')
+
+    // Extract audio widgets from the rendered content
+    console.log('🔍 Extracting audio widgets from rendered content...')
+    extractAudioWidgets()
 
     // Apply syntax highlighting after the content is rendered
     if (hljs.value) {
+      console.log('🎨 Applying syntax highlighting...')
       document.querySelectorAll('.markdown-content pre code').forEach((block) => {
         hljs.value.highlightElement(block)
       })
     }
 
     addCopyButtons()
+    console.log('✅ Markdown rendering completed')
   } catch (err) {
-    console.error('Error rendering markdown:', err)
-    // Fallback: render without highlighting but still with image processing
+    console.error('❌ Error rendering markdown:', err)
     renderedContent.value = DOMPurify.sanitize(processedContent)
+
+    await nextTick()
+    extractAudioWidgets()
   }
 }
 
 // Update your addCopyButtons to work with highlighted code
 const addCopyButtons = () => {
   const preElements = document.querySelectorAll('.markdown-content pre')
+  console.log(`📋 Found ${preElements.length} pre elements for copy buttons`)
   preElements.forEach((pre) => {
     if (pre.querySelector('.copy-btn')) return
 
@@ -117,7 +429,6 @@ const addCopyButtons = () => {
     copyBtn.textContent = 'Copy'
     copyBtn.onclick = async () => {
       try {
-        // Get the raw text content, not the highlighted HTML
         const textToCopy = code.textContent || ''
         await navigator.clipboard.writeText(textToCopy)
         copyBtn.textContent = 'Copied!'
@@ -138,161 +449,15 @@ const addCopyButtons = () => {
   })
 }
 
-// Get sequenced images (images with sequence numbers)
-const sequencedImages = computed(() => {
-  if (!props.attachedFiles) return []
-
-  const sequenced = props.attachedFiles.filter(file =>
-    file.fileType === 'image' && file.sequence !== undefined
-  )
-
-  return sequenced.sort((a, b) => (a.sequence || 0) - (b.sequence || 0))
-})
-
-// Get additional images (images without sequence numbers)
-const additionalImages = computed(() => {
-  if (!props.attachedFiles) return []
-
-  const additional = props.attachedFiles.filter(file =>
-    file.fileType === 'image' && file.sequence === undefined
-  )
-
-  return additional.sort((a, b) =>
-    new Date(a.uploadDate).getTime() - new Date(b.uploadDate).getTime()
-  )
-})
-
-// CRITICAL: Process markdown content to replace image and audio placeholders with actual URLs
-const processMarkdownContent = (content: string) => {
-  let processedContent = content
-
-  console.log('🖼️ Starting image and audio processing...')
-  console.log('📊 Sequenced images:', sequencedImages.value.map(img => ({
-    filename: img.filename,
-    sequence: img.sequence,
-    fileId: img.fileId
-  })))
-  console.log('🎵 Sequenced audio:', sequencedAudio.value.map(audio => ({
-    filename: audio.filename,
-    sequence: audio.sequence,
-    fileId: audio.fileId
-  })))
-
-  // First, replace numbered image placeholders (image1, image2, etc.)
-  // Handle BOTH markdown image syntax ![alt](image1) AND link syntax [alt](image1)
-  sequencedImages.value.forEach((image, index) => {
-    const imageNumber = index + 1
-    const imageUrl = `/api/file/${image.fileId}`
-
-    // Pattern for markdown images: ![alt text](image1)
-    const imagePattern = new RegExp(`!\\[([^\\]]*)\\]\\(image${imageNumber}\\)`, 'gi')
-
-    // Pattern for links that should be images: [alt text](image1)
-    const linkPattern = new RegExp(`\\[([^\\]]*)\\]\\(image${imageNumber}\\)`, 'gi')
-
-    // Replace markdown images
-    processedContent = processedContent.replace(
-      imagePattern,
-      `![$1](${imageUrl})`
-    )
-
-    // Replace links that should be images (convert to proper image syntax)
-    processedContent = processedContent.replace(
-      linkPattern,
-      `![$1](${imageUrl})`
-    )
-  })
-
-  // Replace numbered audio placeholders (audio1, audio2, etc.)
-  sequencedAudio.value.forEach((audio, index) => {
-    const audioNumber = index + 1
-    const audioUrl = `/api/file/${audio.fileId}`
-
-    // Pattern for audio links: [alt text](audio1)
-    const audioPattern = new RegExp(`\\[([^\\]]*)\\]\\(audio${audioNumber}\\)`, 'gi')
-
-    // Replace audio links with audio widget placeholder
-    processedContent = processedContent.replace(
-      audioPattern,
-      `<div class="audio-widget-placeholder" data-file-id="${audio.fileId}" data-filename="${audio.filename}" data-audio-url="${audioUrl}"></div>`
-    )
-  })
-
-  // Then, handle any remaining image references that might match filenames
-  const genericImagePattern = /!\[([^\]]*)\]\(([^)]+)\)/g
-  const genericLinkPattern = /\[([^\]]*)\]\(([^)]+)\)/g
-
-  // First process proper image syntax
-  processedContent = processedContent.replace(genericImagePattern, (match, altText, src) => {
-    // Skip if it's already a full URL or API path
-    if (src.startsWith('http') || src.startsWith('/api/file/') || src.startsWith('data:')) {
-      return match
-    }
-
-    // Check if this src matches any uploaded image filename
-    const matchingImage = [...sequencedImages.value, ...additionalImages.value].find(
-      img => img.filename === src || img.filename.includes(src)
-    )
-
-    if (matchingImage) {
-      return `![${altText}](/api/file/${matchingImage.fileId})`
-    }
-
-    // Return original if no match found
-    return match
-  })
-
-  // Then process links that might be intended as images or audio
-  processedContent = processedContent.replace(genericLinkPattern, (match, altText, src) => {
-    // Skip if it's already a full URL or API path
-    if (src.startsWith('http') || src.startsWith('/api/file/') || src.startsWith('data:')) {
-      return match
-    }
-
-    // Check if this looks like an image reference (image1, image2, etc.)
-    if (src.match(/^image\d+$/)) {
-      // This should have been handled by the numbered image processing above
-      return match
-    }
-
-    // Check if this looks like an audio reference (audio1, audio2, etc.)
-    if (src.match(/^audio\d+$/)) {
-      // This should have been handled by the numbered audio processing above
-      return match
-    }
-
-    // Check if this src matches any uploaded image filename
-    const matchingImage = [...sequencedImages.value, ...additionalImages.value].find(
-      img => img.filename === src || img.filename.includes(src)
-    )
-
-    // If we found a matching image, convert the link to an image
-    if (matchingImage) {
-      return `![${altText}](/api/file/${matchingImage.fileId})`
-    }
-
-    // Check if this src matches any uploaded audio filename
-    const matchingAudio = [...sequencedAudio.value, ...additionalAudio.value].find(
-      audio => audio.filename === src || audio.filename.includes(src)
-    )
-
-    // If we found a matching audio file, convert to audio widget
-    if (matchingAudio) {
-      return `<div class="audio-widget-placeholder" data-file-id="${matchingAudio.fileId}" data-filename="${matchingAudio.filename}" data-audio-url="/api/file/${matchingAudio.fileId}"></div>`
-    }
-
-    // Return original link if no image or audio match found
-    return match
-  })
-
-  console.log('✅ Image and audio processing completed')
-  console.log('📝 Processed content sample:', processedContent.substring(0, 500))
-
-  return processedContent
+// Handle download event from AvWidget
+const handleDownload = (fileId: string, filename: string) => {
+  console.log('📥 Download requested:', { fileId, filename })
+  // Emit to parent component or handle download here
 }
 
 // Load highlight.js dynamically
 const loadHighlightJS = async () => {
+  console.log('🔄 Loading highlight.js...')
   if (typeof window !== 'undefined') {
     try {
       const hljsModule = await import('highlight.js/lib/core')
@@ -334,13 +499,16 @@ const loadHighlightJS = async () => {
 watch(isDarkMode, async (newIsDarkMode) => {
   console.log(`🎨 Theme changed to ${newIsDarkMode ? 'dark' : 'light'}, updating syntax highlighting`)
 
-  // Re-render the markdown content to apply the new highlighting style
   if (props.postContent) {
     await renderMarkdownContent(props.postContent)
   }
 })
 
 onMounted(async () => {
+  console.log('🏗️ MarkdownRenderer mounted')
+  console.log('📄 Initial postContent:', props.postContent)
+  console.log('📎 Initial attachedFiles:', props.attachedFiles)
+
   await loadHighlightJS()
   if (props.postContent) {
     await renderMarkdownContent(props.postContent)
@@ -348,6 +516,7 @@ onMounted(async () => {
 })
 
 watch(() => props.postContent, async (newContent) => {
+  console.log('🔄 postContent changed:', newContent)
   if (newContent) {
     await renderMarkdownContent(newContent)
   }
@@ -355,6 +524,7 @@ watch(() => props.postContent, async (newContent) => {
 
 // Also watch for attachedFiles changes in case they load after content
 watch(() => props.attachedFiles, async (newFiles) => {
+  console.log('🔄 attachedFiles changed:', newFiles)
   if (newFiles && props.postContent) {
     console.log('🔄 Attached files updated, re-rendering markdown with images and audio')
     await renderMarkdownContent(props.postContent)
@@ -364,10 +534,42 @@ watch(() => props.attachedFiles, async (newFiles) => {
 
 <template>
   <div class="markdown-content">
+    <!-- Debug info -->
+    <div v-if="audioWidgets.length > 0" class="debug-info">
+      <p>🎵 Found {{ audioWidgets.length }} audio widgets to render</p>
+      <div v-for="widget in audioWidgets" :key="widget.fileId" class="debug-widget-item">
+        {{ widget.filename }}
+      </div>
+    </div>
+
+    <!-- Main markdown content -->
     <div v-html="renderedContent"></div>
 
-    <!-- Audio widgets will be rendered here by the parent component -->
-    <slot name="audio-widgets"></slot>
+    <!-- Render actual audio widgets -->
+    <div
+      v-for="widget in audioWidgets"
+      :key="widget.fileId"
+      class="audio-widget-container"
+    >
+      <div class="debug-widget">
+        🔧 Rendering AvWidget for: {{ widget.filename }}
+      </div>
+      <AvWidget
+        :audio-url="widget.audioUrl"
+        :filename="widget.filename"
+        :file-id="widget.fileId"
+        @download="handleDownload"
+      />
+    </div>
+
+    <!-- Debug fallback -->
+    <div v-if="audioWidgets.length === 0" class="debug-fallback">
+      <p>❌ No audio widgets detected</p>
+      <p>Audio files available: {{ audioFiles.length }}</p>
+      <p>Sequenced audio: {{ sequencedAudio.length }}</p>
+      <p>Additional audio: {{ additionalAudio.length }}</p>
+      <p>Rendered content contains audio widgets: {{ renderedContent.includes('audio-widget') ? 'Yes' : 'No' }}</p>
+    </div>
   </div>
 </template>
 
@@ -375,6 +577,43 @@ watch(() => props.attachedFiles, async (newFiles) => {
 .markdown-content {
   line-height: 1.7;
   color: var(--text);
+}
+
+.debug-info {
+  background: color-mix(in oklab, var(--focused), transparent 90%);
+  border: 1px solid var(--focused);
+  border-radius: 4px;
+  padding: 8px;
+  margin: 8px 0;
+  font-size: 0.8rem;
+}
+
+.debug-widget-item {
+  background: color-mix(in oklab, #4CAF50, transparent 90%);
+  border: 1px solid #4CAF50;
+  border-radius: 4px;
+  padding: 4px;
+  margin: 4px 0;
+  font-size: 0.7rem;
+}
+
+.debug-widget {
+  background: color-mix(in oklab, #FF9800, transparent 90%);
+  border: 1px solid #FF9800;
+  border-radius: 4px;
+  padding: 8px;
+  margin: 8px 0;
+  font-size: 0.8rem;
+  color: #E65100;
+}
+
+.debug-fallback {
+  background: color-mix(in oklab, #f44336, transparent 90%);
+  border: 1px solid #f44336;
+  border-radius: 4px;
+  padding: 8px;
+  margin: 8px 0;
+  font-size: 0.8rem;
 }
 
 .markdown-content :deep(h1) {
@@ -481,25 +720,26 @@ watch(() => props.attachedFiles, async (newFiles) => {
   max-height: 80vh;
   border-radius: 6px;
   margin: 0 auto;
-  /* Center the image */
   text-indent: 0;
-  /* Reset text-indent */
   border: solid 2.5px;
   border-radius: 10px;
   border-color: color-mix(in oklab, var(--background), var(--text) 25%);
   display: block;
-  /* Ensure images are block-level elements */
 }
 
-/* Specifically target images that are inside paragraphs */
 .markdown-content :deep(p > img) {
   text-indent: 0;
   margin: 1em auto;
-  /* Maintain vertical spacing but center horizontally */
 }
 
-/* Audio widget placeholder styling */
-.markdown-content :deep(.audio-widget-placeholder) {
+/* Audio widget container styling */
+.audio-widget-container {
+  margin: 2em auto;
+  max-width: 600px;
+}
+
+/* Audio widget placeholder styling (fallback) */
+.markdown-content :deep(.audio-widget) {
   margin: 2em auto;
   max-width: 600px;
   text-align: center;
@@ -507,32 +747,17 @@ watch(() => props.attachedFiles, async (newFiles) => {
   background: color-mix(in oklab, var(--background), var(--text) 5%);
   border-radius: 10px;
   border: 1px solid color-mix(in oklab, var(--background), var(--text) 20%);
+  color: color-mix(in oklab, var(--text), transparent 30%);
 }
 
-/* Center audio widgets within the markdown content */
-.markdown-content :deep(.audio-widget) {
+.markdown-content :deep(.audio-widget-marker) {
   margin: 2em auto;
   max-width: 600px;
+  text-align: center;
+  padding: 1em;
+  background: #e3f2fd;
+  border: 1px solid #2196f3;
+  border-radius: 10px;
+  color: #1565c0;
 }
 </style>
-
-
-
-
-
-
-
-
-{"postGroup":{"groupId":"68fd9a0495708ea234d1a4ec","groupName":"Blog
-Architecture","groupColor":"#cdab8f","sequence":0},"_id":"690d73c3a2237f5a81c427c4","postId":5,"postTitle":"Audio Post
-Showcase","postAuthor":["Tri Blankley"],"postDate":"Nov 6, 2025","postContent":"## This is a showcase of a post with
-audio files\n\nLater on, i hope to share my thoughts on audiofile equipment, create video-games, or talk on other sounds
-in my life, such as a cars exhaust tone. To this end i want to be able to embedd several audio files in the text for the
-reader to listen to, this post showcases that fuctionality.\n\nWhen a post contains an audio file, it can be shown by
-containing a music note on the posts icon from the home page.\n\nHere is the soundtrack from firelink shrine, in Dark
-Souls 1:\n\n[Firelink OST](Audio2)\n\nAnd here is the soundtrack for Majula, the hub area in Dark Souls 2:\n\n[Majula
-OST](Audio2)\n\n\n\n","contentType":"Music","postTopics":["Digital
-Hobbies"],"isPublished":true,"showGalleryView":false,"attachedFiles":[{"filename":"Dark Souls OST - Firelink
-Shrine.mp3","fileId":"690d73c3a2237f5a81c427c7","uploadDate":"2025-11-07T04:21:23.500Z","fileType":"image","attachmentType":"audio","sequence":1,"_id":"690d73c3a2237f5a81c427e3"},{"filename":"Dark
-Souls II OST -
-Majula.mp3","fileId":"690d73c3a2237f5a81c427e7","uploadDate":"2025-11-07T04:21:23.766Z","fileType":"image","attachmentType":"audio","sequence":2,"_id":"690d73c3a2237f5a81c427fb"},{"filename":"Firelink.jpg","fileId":"690d73c3a2237f5a81c42801","uploadDate":"2025-11-07T04:21:23.825Z","fileType":"image","attachmentType":"image","sequence":0,"_id":"690d73c3a2237f5a81c42805"}],"__v":0}
