@@ -4,14 +4,17 @@ import { ref, onMounted, watch, nextTick } from 'vue'
 
 interface Props {
   audioUrl: string
+  videoUrl: string
   filename: string
   fileId: string
+  fileType?: 'audio' | 'video'
 }
 
 const props = defineProps<Props>()
 const emit = defineEmits(['download'])
 
 const audioElement = ref<HTMLAudioElement | null>(null)
+const videoElement = ref<HTMLVideoElement | null>(null)
 const isPlaying = ref(false)
 const currentTime = ref(0)
 const duration = ref(0)
@@ -20,12 +23,17 @@ const isMuted = ref(false)
 const isLoading = ref(true)
 const hasError = ref(false)
 const audioLoaded = ref(false)
+const videoLoaded = ref(false)
 const isSeeking = ref(false)
+const isVideo = ref(props.fileType === 'video')
 
 console.log('🔊 AvWidget mounted with props:', {
   audioUrl: props.audioUrl,
+  videoUrl: props.videoUrl,
   filename: props.filename,
-  fileId: props.fileId
+  fileId: props.fileId,
+  fileType: props.fileType,
+  isVideo: isVideo.value
 })
 
 // Format time for display
@@ -45,59 +53,67 @@ watch([currentTime, duration], () => {
   formattedDuration.value = formatTime(duration.value)
 })
 
-// Audio event handlers
+// Media event handlers
 const onLoadedMetadata = () => {
-  console.log('✅ Audio metadata loaded')
-  duration.value = audioElement.value?.duration || 0
+  console.log('✅ Media metadata loaded')
+  const element = isVideo.value ? videoElement.value : audioElement.value
+  duration.value = element?.duration || 0
   isLoading.value = false
-  audioLoaded.value = true
-  console.log('📊 Audio duration:', duration.value)
+  if (isVideo.value) {
+    videoLoaded.value = true
+  } else {
+    audioLoaded.value = true
+  }
+  console.log('📊 Media duration:', duration.value)
 }
 
 const onTimeUpdate = () => {
   if (!isSeeking.value) {
-    currentTime.value = audioElement.value?.currentTime || 0
+    const element = isVideo.value ? videoElement.value : audioElement.value
+    currentTime.value = element?.currentTime || 0
   }
 }
 
 const onPlay = () => {
-  console.log('▶️ Audio started playing')
+  console.log('▶️ Media started playing')
   isPlaying.value = true
 }
 
 const onPause = () => {
-  console.log('⏸️ Audio paused')
+  console.log('⏸️ Media paused')
   isPlaying.value = false
 }
 
 const onEnded = () => {
-  console.log('⏹️ Audio ended')
+  console.log('⏹️ Media ended')
   isPlaying.value = false
   currentTime.value = 0
 }
 
 const onVolumeChange = () => {
-  if (audioElement.value) {
-    volume.value = audioElement.value.volume
-    isMuted.value = audioElement.value.muted
+  const element = isVideo.value ? videoElement.value : audioElement.value
+  if (element) {
+    volume.value = element.volume
+    isMuted.value = element.muted
     console.log('🔈 Volume changed:', { volume: volume.value, muted: isMuted.value })
   }
 }
 
 const onError = (event: Event) => {
-  console.error('❌ Audio error occurred:', event)
-  const audio = audioElement.value
-  if (audio && audio.error) {
-    console.error('Audio error details:', {
-      code: audio.error.code,
-      message: getErrorMessage(audio.error.code),
-      networkState: audio.networkState,
-      readyState: audio.readyState,
-      src: audio.src
+  console.error('❌ Media error occurred:', event)
+  const element = isVideo.value ? videoElement.value : audioElement.value
+  if (element && (element as HTMLMediaElement).error) {
+    const mediaError = (element as HTMLMediaElement).error!
+    console.error('Media error details:', {
+      code: mediaError.code,
+      message: getErrorMessage(mediaError.code),
+      networkState: element.networkState,
+      readyState: element.readyState,
+      src: element.src
     })
 
     // Handle specific error codes
-    if (audio.error.code === MediaError.MEDIA_ERR_NETWORK) {
+    if (mediaError.code === MediaError.MEDIA_ERR_NETWORK) {
       console.log('🌐 Network error - retrying...')
       retry()
       return
@@ -110,49 +126,50 @@ const onError = (event: Event) => {
 const getErrorMessage = (code: number): string => {
   switch (code) {
     case MediaError.MEDIA_ERR_ABORTED:
-      return 'The user canceled the audio.'
+      return 'The user canceled the media.'
     case MediaError.MEDIA_ERR_NETWORK:
       return 'A network error occurred.'
     case MediaError.MEDIA_ERR_DECODE:
-      return 'The audio is corrupt or unsupported.'
+      return 'The media is corrupt or unsupported.'
     case MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED:
-      return 'The audio format is not supported.'
+      return 'The media format is not supported.'
     default:
       return 'An unknown error occurred.'
   }
 }
 
 const onLoadStart = () => {
-  console.log('🔄 Audio load started')
+  console.log('🔄 Media load started')
   isLoading.value = true
   hasError.value = false
 }
 
 const onCanPlay = () => {
-  console.log('🎵 Audio can play')
+  console.log('🎵 Media can play')
   isLoading.value = false
   hasError.value = false
 }
 
 const onCanPlayThrough = () => {
-  console.log('🎵 Audio can play through')
+  console.log('🎵 Media can play through')
   isLoading.value = false
   hasError.value = false
 }
 
 const onWaiting = () => {
-  console.log('⏳ Audio waiting/buffering')
+  console.log('⏳ Media waiting/buffering')
   isLoading.value = true
 }
 
 const onStalled = () => {
-  console.log('🚧 Audio stalled')
+  console.log('🚧 Media stalled')
   isLoading.value = true
 }
 
 const onProgress = () => {
-  if (audioElement.value) {
-    const buffered = audioElement.value.buffered
+  const element = isVideo.value ? videoElement.value : audioElement.value
+  if (element) {
+    const buffered = element.buffered
     if (buffered.length > 0) {
       console.log('📊 Buffered range:', {
         start: buffered.start(0),
@@ -164,26 +181,28 @@ const onProgress = () => {
 
 // Control methods
 const togglePlayPause = () => {
-  if (!audioElement.value) {
-    console.error('❌ No audio element found for play/pause')
+  const element = isVideo.value ? videoElement.value : audioElement.value
+  if (!element) {
+    console.error('❌ No media element found for play/pause')
     return
   }
 
   console.log('🎛️ Toggle play/pause, current state:', isPlaying.value)
 
   if (isPlaying.value) {
-    audioElement.value.pause()
+    element.pause()
   } else {
-    audioElement.value.play().catch(error => {
-      console.error('❌ Error playing audio:', error)
+    element.play().catch(error => {
+      console.error('❌ Error playing media:', error)
       hasError.value = true
     })
   }
 }
 
 const safeSeek = async (newTime: number) => {
-  if (!audioElement.value || !duration.value) {
-    console.log('⏰ Cannot seek: no audio element or duration')
+  const element = isVideo.value ? videoElement.value : audioElement.value
+  if (!element || !duration.value) {
+    console.log('⏰ Cannot seek: no media element or duration')
     return
   }
 
@@ -197,13 +216,13 @@ const safeSeek = async (newTime: number) => {
 
   // Pause while seeking to avoid conflicts
   if (wasPlaying) {
-    audioElement.value.pause()
+    element.pause()
   }
 
   isSeeking.value = true
 
   try {
-    audioElement.value.currentTime = newTime
+    element.currentTime = newTime
     currentTime.value = newTime
 
     // Wait a bit for the seek to complete
@@ -211,7 +230,7 @@ const safeSeek = async (newTime: number) => {
 
     // Resume playing if it was playing before
     if (wasPlaying) {
-      await audioElement.value.play()
+      await element.play()
     }
 
     console.log('✅ Seek successful')
@@ -219,13 +238,13 @@ const safeSeek = async (newTime: number) => {
   } catch (error) {
     console.error('❌ Seek failed:', error)
 
-    // If seek fails, try to recover by loading the audio again
-    if (audioElement.value.readyState >= 2) { // HAVE_CURRENT_DATA or better
+    // If seek fails, try to recover by loading the media again
+    if (element.readyState >= 2) { // HAVE_CURRENT_DATA or better
       console.log('🔄 Attempting recovery after seek failure')
-      audioElement.value.load()
+      element.load()
       if (wasPlaying) {
         setTimeout(() => {
-          audioElement.value?.play().catch(console.error)
+          element?.play().catch(console.error)
         }, 500)
       }
     }
@@ -235,8 +254,9 @@ const safeSeek = async (newTime: number) => {
 }
 
 const seek = (event: MouseEvent) => {
-  if (!audioElement.value || !duration.value) {
-    console.log('⏰ Cannot seek: no audio element or duration')
+  const element = isVideo.value ? videoElement.value : audioElement.value
+  if (!element || !duration.value) {
+    console.log('⏰ Cannot seek: no media element or duration')
     return
   }
 
@@ -250,7 +270,8 @@ const seek = (event: MouseEvent) => {
 }
 
 const setVolume = (event: MouseEvent) => {
-  if (!audioElement.value) return
+  const element = isVideo.value ? videoElement.value : audioElement.value
+  if (!element) return
 
   const volumeSlider = event.currentTarget as HTMLElement
   const rect = volumeSlider.getBoundingClientRect()
@@ -258,7 +279,7 @@ const setVolume = (event: MouseEvent) => {
   const newVolume = Math.max(0, Math.min(1, percent))
 
   console.log('🔊 Setting volume to:', newVolume)
-  audioElement.value.volume = newVolume
+  element.volume = newVolume
   volume.value = newVolume
 
   // Unmute if volume is set above 0
@@ -268,20 +289,23 @@ const setVolume = (event: MouseEvent) => {
 }
 
 const toggleMute = () => {
-  if (!audioElement.value) return
+  const element = isVideo.value ? videoElement.value : audioElement.value
+  if (!element) return
   console.log('🔇 Toggling mute, current:', isMuted.value)
-  audioElement.value.muted = !audioElement.value.muted
-  isMuted.value = audioElement.value.muted
+  element.muted = !element.muted
+  isMuted.value = element.muted
 }
 
 const retry = () => {
-  console.log('🔄 Retrying audio load')
+  console.log('🔄 Retrying media load')
   hasError.value = false
   isLoading.value = true
   audioLoaded.value = false
-  if (audioElement.value) {
-    // Reset the audio element completely
-    audioElement.value.load()
+  videoLoaded.value = false
+  const element = isVideo.value ? videoElement.value : audioElement.value
+  if (element) {
+    // Reset the media element completely
+    element.load()
   }
 }
 
@@ -304,61 +328,60 @@ watch([volume, isMuted], () => {
   }
 })
 
-// Setup event listeners when audio element is available
-const setupAudioElement = () => {
-  if (!audioElement.value) {
-    console.error('❌ Audio element ref is still null in setupAudioElement')
+// Setup event listeners when media element is available
+const setupMediaElement = () => {
+  const element = isVideo.value ? videoElement.value : audioElement.value
+  if (!element) {
+    console.error('❌ Media element ref is still null in setupMediaElement')
     return
   }
 
-  console.log('🎧 Audio element found, attaching event listeners')
-
-  const audio = audioElement.value
+  console.log('🎧 Media element found, attaching event listeners')
 
   // Remove any existing listeners first
-  audio.removeEventListener('loadedmetadata', onLoadedMetadata)
-  audio.removeEventListener('timeupdate', onTimeUpdate)
-  audio.removeEventListener('play', onPlay)
-  audio.removeEventListener('pause', onPause)
-  audio.removeEventListener('ended', onEnded)
-  audio.removeEventListener('volumechange', onVolumeChange)
-  audio.removeEventListener('error', onError)
-  audio.removeEventListener('loadstart', onLoadStart)
-  audio.removeEventListener('canplay', onCanPlay)
-  audio.removeEventListener('canplaythrough', onCanPlayThrough)
-  audio.removeEventListener('waiting', onWaiting)
-  audio.removeEventListener('stalled', onStalled)
-  audio.removeEventListener('progress', onProgress)
+  element.removeEventListener('loadedmetadata', onLoadedMetadata)
+  element.removeEventListener('timeupdate', onTimeUpdate)
+  element.removeEventListener('play', onPlay)
+  element.removeEventListener('pause', onPause)
+  element.removeEventListener('ended', onEnded)
+  element.removeEventListener('volumechange', onVolumeChange)
+  element.removeEventListener('error', onError)
+  element.removeEventListener('loadstart', onLoadStart)
+  element.removeEventListener('canplay', onCanPlay)
+  element.removeEventListener('canplaythrough', onCanPlayThrough)
+  element.removeEventListener('waiting', onWaiting)
+  element.removeEventListener('stalled', onStalled)
+  element.removeEventListener('progress', onProgress)
 
   // Add event listeners
-  audio.addEventListener('loadedmetadata', onLoadedMetadata)
-  audio.addEventListener('timeupdate', onTimeUpdate)
-  audio.addEventListener('play', onPlay)
-  audio.addEventListener('pause', onPause)
-  audio.addEventListener('ended', onEnded)
-  audio.addEventListener('volumechange', onVolumeChange)
-  audio.addEventListener('error', onError)
-  audio.addEventListener('loadstart', onLoadStart)
-  audio.addEventListener('canplay', onCanPlay)
-  audio.addEventListener('canplaythrough', onCanPlayThrough)
-  audio.addEventListener('waiting', onWaiting)
-  audio.addEventListener('stalled', onStalled)
-  audio.addEventListener('progress', onProgress)
+  element.addEventListener('loadedmetadata', onLoadedMetadata)
+  element.addEventListener('timeupdate', onTimeUpdate)
+  element.addEventListener('play', onPlay)
+  element.addEventListener('pause', onPause)
+  element.addEventListener('ended', onEnded)
+  element.addEventListener('volumechange', onVolumeChange)
+  element.addEventListener('error', onError)
+  element.addEventListener('loadstart', onLoadStart)
+  element.addEventListener('canplay', onCanPlay)
+  element.addEventListener('canplaythrough', onCanPlayThrough)
+  element.addEventListener('waiting', onWaiting)
+  element.addEventListener('stalled', onStalled)
+  element.addEventListener('progress', onProgress)
 
-  console.log('🔗 Event listeners attached to audio element')
-  console.log('🎵 Audio source:', audio.src)
+  console.log('🔗 Event listeners attached to media element')
+  console.log('🎵 Media source:', element.src)
 
   // Check initial state
-  console.log('📊 Initial audio state:', {
-    readyState: audio.readyState,
-    networkState: audio.networkState,
-    duration: audio.duration,
-    paused: audio.paused
+  console.log('📊 Initial media state:', {
+    readyState: element.readyState,
+    networkState: element.networkState,
+    duration: element.duration,
+    paused: element.paused
   })
 
-  // If audio is already loaded, update state
-  if (audio.readyState >= 1) {
-    console.log('⚡ Audio already has metadata')
+  // If media is already loaded, update state
+  if (element.readyState >= 1) {
+    console.log('⚡ Media already has metadata')
     onLoadedMetadata()
   }
 }
@@ -367,10 +390,21 @@ const setupAudioElement = () => {
 const setAudioRef = (el: HTMLAudioElement | null) => {
   console.log('🎯 Setting audio ref:', el)
   audioElement.value = el
-  if (el) {
+  if (el && !isVideo.value) {
     // Small delay to ensure the element is fully in the DOM
     setTimeout(() => {
-      setupAudioElement()
+      setupMediaElement()
+    }, 10)
+  }
+}
+
+const setVideoRef = (el: HTMLVideoElement | null) => {
+  console.log('🎯 Setting video ref:', el)
+  videoElement.value = el
+  if (el && isVideo.value) {
+    // Small delay to ensure the element is fully in the DOM
+    setTimeout(() => {
+      setupMediaElement()
     }, 10)
   }
 }
@@ -379,83 +413,134 @@ const setAudioRef = (el: HTMLAudioElement | null) => {
 onMounted(async () => {
   console.log('🏗️ AvWidget mounted')
 
-  // Try multiple times to find the audio element
+  // Try multiple times to find the media element
   const maxAttempts = 5
   let attempts = 0
 
   const trySetup = () => {
     attempts++
-    console.log(`🔍 Attempt ${attempts} to find audio element`)
+    console.log(`🔍 Attempt ${attempts} to find media element`)
 
-    if (audioElement.value) {
-      console.log('✅ Audio element found on attempt', attempts)
-      setupAudioElement()
+    const element = isVideo.value ? videoElement.value : audioElement.value
+    if (element) {
+      console.log('✅ Media element found on attempt', attempts)
+      setupMediaElement()
       return
     }
 
     if (attempts < maxAttempts) {
-      console.log('⏳ Audio element not found, retrying...')
+      console.log('⏳ Media element not found, retrying...')
       setTimeout(trySetup, 100)
     } else {
-      console.error('❌ Failed to find audio element after', maxAttempts, 'attempts')
+      console.error('❌ Failed to find media element after', maxAttempts, 'attempts')
       hasError.value = true
       isLoading.value = false
     }
   }
 
-  // Start trying to find the audio element
+  // Start trying to find the media element
   trySetup()
 })
 
 // Watch for URL changes
 watch(() => props.audioUrl, (newUrl) => {
-  console.log('🔄 Audio URL changed to:', newUrl)
-  if (audioElement.value) {
+  if (!isVideo.value && audioElement.value) {
+    console.log('🔄 Audio URL changed to:', newUrl)
     audioElement.value.load()
   }
+})
+
+watch(() => props.videoUrl, (newUrl) => {
+  if (isVideo.value && videoElement.value) {
+    console.log('🔄 Video URL changed to:', newUrl)
+    videoElement.value.load()
+  }
+})
+
+// Watch for fileType changes
+watch(() => props.fileType, (newFileType) => {
+  console.log('🔄 File type changed to:', newFileType)
+  isVideo.value = newFileType === 'video'
+
+  // Re-setup the media element when type changes
+  setTimeout(() => {
+    const element = isVideo.value ? videoElement.value : audioElement.value
+    if (element) {
+      setupMediaElement()
+    }
+  }, 100)
 })
 </script>
 
 <template>
-  <div class="audio-widget">
+  <div class="media-widget" :class="{ 'video-widget': isVideo, 'audio-widget': !isVideo }">
     <!-- Hidden audio element that's always in the DOM -->
     <audio
+      v-if="!isVideo"
       :ref="setAudioRef"
       :src="audioUrl"
       preload="auto"
-      class="audio-element"
+      class="media-element audio-element"
       crossorigin="anonymous"
       style="display: none"
     ></audio>
 
+    <!-- Hidden video element that's always in the DOM -->
+    <video
+      v-else
+      :ref="setVideoRef"
+      :src="videoUrl"
+      preload="auto"
+      class="media-element video-element"
+      crossorigin="anonymous"
+      style="display: none"
+      playsinline
+    ></video>
+
     <!-- Loading State -->
     <div v-if="isLoading && !hasError" class="loading-state">
       <div class="spinner"></div>
-      <p>Loading audio...</p>
-      <p class="debug-info">URL: {{ audioUrl }}</p>
-      <p class="debug-info">Element: {{ audioElement ? 'Found' : 'Not Found' }}</p>
-      <p class="debug-info">Loaded: {{ audioLoaded ? 'Yes' : 'No' }}</p>
-      <p class="debug-info" v-if="isSeeking">Seeking...</p>
+      <!-- <p>Loading {{ isVideo ? 'video' : 'audio' }}...</p>
+      <p class="debug-info">URL: {{ isVideo ? videoUrl : audioUrl }}</p>
+      <p class="debug-info">Element: {{ (isVideo ? videoElement : audioElement) ? 'Found' : 'Not Found' }}</p>
+      <p class="debug-info">Loaded: {{ isVideo ? videoLoaded : audioLoaded ? 'Yes' : 'No' }}</p>
+      <p class="debug-info" v-if="isSeeking">Seeking...</p> -->
     </div>
 
     <!-- Error State -->
     <div v-else-if="hasError" class="error-state">
       <div class="error-icon">❌</div>
-      <p>Failed to load audio</p>
+      <p>Failed to load {{ isVideo ? 'video' : 'audio' }}</p>
       <button @click="retry" class="retry-btn">Retry</button>
-      <p class="debug-info">URL: {{ audioUrl }}</p>
-      <p class="debug-info">Element: {{ audioElement ? 'Found' : 'Not Found' }}</p>
+      <p class="debug-info">URL: {{ isVideo ? videoUrl : audioUrl }}</p>
+      <p class="debug-info">Element: {{ (isVideo ? videoElement : audioElement) ? 'Found' : 'Not Found' }}</p>
     </div>
 
-    <!-- Audio Player Controls -->
-    <div v-else class="audio-player">
-      <div class="audio-controls">
+    <!-- Media Player Controls -->
+    <div v-else class="media-player">
+      <!-- Video Display -->
+      <div v-if="isVideo" class="video-display">
+        <video
+          :ref="setVideoRef"
+          :src="videoUrl"
+          preload="auto"
+          class="video-preview"
+          crossorigin="anonymous"
+          playsinline
+          @click="togglePlayPause"
+        ></video>
+        <div v-if="!isPlaying" class="video-overlay" @click="togglePlayPause">
+          <div class="play-button">▶️</div>
+        </div>
+      </div>
+
+      <div class="media-controls">
         <!-- Play/Pause Button -->
         <button
           @click="togglePlayPause"
           class="control-btn play-pause-btn"
           :title="isPlaying ? 'Pause' : 'Play'"
-          :disabled="!audioElement || !audioLoaded || isSeeking"
+          :disabled="!audioElement && !videoElement || (!audioLoaded && !videoLoaded) || isSeeking"
         >
           {{ isPlaying ? '⏸️' : '▶️' }}
         </button>
@@ -469,7 +554,7 @@ watch(() => props.audioUrl, (newUrl) => {
         <div
           class="progress-bar"
           @click="seek"
-          :class="{ 'disabled': !audioElement || !audioLoaded || isSeeking }"
+          :class="{ 'disabled': (!audioElement && !videoElement) || (!audioLoaded && !videoLoaded) || isSeeking }"
         >
           <div class="progress-background"></div>
           <div
@@ -485,14 +570,14 @@ watch(() => props.audioUrl, (newUrl) => {
             @click="toggleMute"
             class="control-btn volume-btn"
             :title="isMuted ? 'Unmute' : 'Mute'"
-            :disabled="!audioElement || !audioLoaded || isSeeking"
+            :disabled="(!audioElement && !videoElement) || (!audioLoaded && !videoLoaded) || isSeeking"
           >
             {{ volumeIcon }}
           </button>
           <div
             class="volume-slider"
             @click="setVolume"
-            :class="{ 'disabled': !audioElement || !audioLoaded || isSeeking }"
+            :class="{ 'disabled': (!audioElement && !videoElement) || (!audioLoaded && !videoLoaded) || isSeeking }"
           >
             <div class="volume-background"></div>
             <div
@@ -506,7 +591,7 @@ watch(() => props.audioUrl, (newUrl) => {
         <button
           @click="downloadFile"
           class="control-btn download-btn"
-          title="Download"
+          :title="'Download ' + (isVideo ? 'video' : 'audio')"
           :disabled="isSeeking"
         >
           ⬇️
@@ -523,13 +608,67 @@ watch(() => props.audioUrl, (newUrl) => {
 </template>
 
 <style scoped>
-.audio-widget {
+.media-widget {
+  height: 7.5em;
   background: var(--background);
-  border: 2px solid color-mix(in oklab, var(--background), var(--text) 25%);
+  border: 2.5px solid color-mix(in oklab, var(--background), var(--text) 25%);
   border-radius: 10px;
-  padding: 16px;
-  margin: 12px 0;
+  padding: 15px;
+  margin: 0 auto;
+  text-indent: 0;
+  display: block;
   font-family: inherit;
+}
+
+.video-widget {
+  height: auto;
+  min-height: 7.5em;
+}
+
+.video-display {
+  position: relative;
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto 15px auto;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #000;
+}
+
+.video-preview {
+  width: 100%;
+  height: auto;
+  max-height: 400px;
+  display: block;
+  cursor: pointer;
+}
+
+.video-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.video-overlay:hover {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.play-button {
+  font-size: 3rem;
+  opacity: 0.8;
+  transition: opacity 0.2s ease;
+}
+
+.video-overlay:hover .play-button {
+  opacity: 1;
 }
 
 .loading-state {
@@ -537,7 +676,7 @@ watch(() => props.audioUrl, (newUrl) => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 20px;
+  padding: 15px;
   color: var(--text);
 }
 
@@ -556,7 +695,6 @@ watch(() => props.audioUrl, (newUrl) => {
   width: 24px;
   height: 24px;
   animation: spin 1s linear infinite;
-  margin-bottom: 8px;
 }
 
 @keyframes spin {
@@ -594,11 +732,11 @@ watch(() => props.audioUrl, (newUrl) => {
   background: color-mix(in oklab, var(--focused), black 20%);
 }
 
-.audio-element {
+.media-element {
   display: none;
 }
 
-.audio-controls {
+.media-controls {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -754,11 +892,11 @@ watch(() => props.audioUrl, (newUrl) => {
 
 /* Responsive Design */
 @media (max-width: 768px) {
-  .audio-widget {
+  .media-widget {
     padding: 12px;
   }
 
-  .audio-controls {
+  .media-controls {
     gap: 8px;
   }
 
@@ -774,10 +912,14 @@ watch(() => props.audioUrl, (newUrl) => {
   .control-btn {
     padding: 4px;
   }
+
+  .video-display {
+    margin-bottom: 12px;
+  }
 }
 
 @media (max-width: 480px) {
-  .audio-controls {
+  .media-controls {
     flex-wrap: wrap;
     justify-content: center;
   }
@@ -790,6 +932,10 @@ watch(() => props.audioUrl, (newUrl) => {
 
   .volume-controls {
     margin-left: auto;
+  }
+
+  .video-display {
+    margin-bottom: 10px;
   }
 }
 </style>

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // VueJS imports
-import { ref, onMounted, watch, computed } from 'vue';
+import { ref, onMounted, onUnmounted, watch, computed } from 'vue';
 
 // Component Imports
 import FolderTab from '@/components/blogHome_C/folderTab.vue';
@@ -38,6 +38,26 @@ const fetchTopics = async () => {
 };
 
 const activeTopic = ref<string | null>(null);
+
+// Add reactive refs for tab calculations
+const tabMotifWidth = ref(0);
+const tabContainerRef = ref<HTMLElement | null>(null);
+
+// Calculate number of tabs (topics + 1 for "All Topics")
+const totalTabs = computed(() => topics.value.length + 1);
+
+// Calculate available width for each tab
+const tabWidth = computed(() => {
+  if (tabMotifWidth.value === 0 || totalTabs.value === 0) return 0;
+  return tabMotifWidth.value / totalTabs.value;
+});
+
+// Update tab motif width on mount and resize
+const updateTabMotifWidth = () => {
+  if (tabContainerRef.value) {
+    tabMotifWidth.value = tabContainerRef.value.clientWidth;
+  }
+};
 
 const fetchPosts = async () => {
   try {
@@ -91,10 +111,20 @@ onMounted(() => {
   fetchTopics();
   fetchPosts();
 
+  // Set initial width
+  updateTabMotifWidth();
+
+  // Update on resize
+  window.addEventListener('resize', updateTabMotifWidth);
+
   // Set All Topics as active if no topic is selected
   if (!activeTopic.value) {
     document.documentElement.style.setProperty('--focused', "#b78fbc");
   }
+});
+
+onUnmounted(() => {
+  window.removeEventListener('resize', updateTabMotifWidth);
 });
 
 // Watchers
@@ -106,13 +136,15 @@ watch(activeTabColor, (color) => {
 <template>
   <div class="blog-home">
     <div class="post-view">
-      <div class="tab-motif">
+      <div class="tab-motif" ref="tabContainerRef">
         <FolderTab
           v-for="topic in topics"
           :key="topic.topicName"
           :title="topic.topicName"
           :color="topic.topicColor"
           :is-active="activeTabColor === topic.topicColor"
+          :width="tabWidth"
+          :total-tabs="totalTabs"
           @tab-clicked="handleTabClick"
         />
 
@@ -120,6 +152,8 @@ watch(activeTabColor, (color) => {
           :title="allTopicsTab.topicName"
           :color="allTopicsTab.topicColor"
           :is-active="!activeTopic"
+          :width="tabWidth"
+          :total-tabs="totalTabs"
           @tab-clicked="handleTabClick"
         />
       </div>
@@ -168,6 +202,7 @@ watch(activeTabColor, (color) => {
 .post-view {
   /* Size ------------- */
   /* height: calc(100vh - 3em); */
+  width:auto;
 
   /* Position ------------- */
   position: relative; /* Needed for absolute positioning of children */

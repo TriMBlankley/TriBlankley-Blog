@@ -20,18 +20,33 @@ interface Props {
   attachedFiles: AttachedFile[]
 }
 
+interface ContentPart {
+  type: 'html' | 'audio' | 'video'
+  content?: string
+  audioUrl?: string
+  videoUrl?: string
+  filename?: string
+  fileId?: string
+  sequence?: number
+}
+
+interface MediaWidgetPosition {
+  fileId: string
+  filename: string
+  audioUrl?: string
+  videoUrl?: string
+  sequence?: number
+  index: number
+  type: 'audio' | 'video'
+}
+
 const props = defineProps<Props>()
 const renderedContent = ref('')
 const hljs = ref<any>(null)
 const { isDarkMode } = useTheme()
 
-// Audio widgets data
-const audioWidgets = ref<Array<{
-  fileId: string
-  filename: string
-  audioUrl: string
-  sequence?: number
-}>>([])
+// Track media widget positions (both audio and video)
+const mediaWidgetPositions = ref<MediaWidgetPosition[]>([])
 
 // Configure marked
 const configureMarked = () => {
@@ -76,6 +91,44 @@ const audioFiles = computed(() => {
   return audioFiles
 })
 
+// Get video files from attached files
+const videoFiles = computed(() => {
+  console.log('🔍 Computing video files from attachedFiles:', props.attachedFiles)
+  if (!props.attachedFiles) {
+    console.log('❌ No attached files provided')
+    return []
+  }
+
+  const videoFiles = props.attachedFiles.filter(file => {
+    // Check attachmentType
+    if (file.attachmentType === 'video') {
+      console.log('✅ Found video file by attachmentType:', file.filename)
+      return true
+    }
+
+    // Check fileType
+    if (file.fileType === 'video') {
+      console.log('✅ Found video file by fileType:', file.filename)
+      return true
+    }
+
+    // Check filename extension as fallback
+    const videoExtensions = ['.mp4', '.webm', '.ogg', '.mov', '.avi', '.mkv']
+    const isVideo = videoExtensions.some(ext =>
+      file.filename.toLowerCase().endsWith(ext)
+    )
+
+    if (isVideo) {
+      console.log('✅ Found video file by extension:', file.filename)
+    }
+
+    return isVideo
+  })
+
+  console.log('🎥 Final video files:', videoFiles)
+  return videoFiles
+})
+
 // Get sequenced audio files (audio with sequence numbers)
 const sequencedAudio = computed(() => {
   if (!audioFiles.value) {
@@ -87,6 +140,20 @@ const sequencedAudio = computed(() => {
   const sorted = sequenced.sort((a, b) => (a.sequence || 0) - (b.sequence || 0))
 
   console.log('🎵 Sequenced audio files:', sorted)
+  return sorted
+})
+
+// Get sequenced video files (video with sequence numbers)
+const sequencedVideo = computed(() => {
+  if (!videoFiles.value) {
+    console.log('❌ No video files for sequenced video')
+    return []
+  }
+
+  const sequenced = videoFiles.value.filter(file => file.sequence !== undefined)
+  const sorted = sequenced.sort((a, b) => (a.sequence || 0) - (b.sequence || 0))
+
+  console.log('🎥 Sequenced video files:', sorted)
   return sorted
 })
 
@@ -103,6 +170,22 @@ const additionalAudio = computed(() => {
   )
 
   console.log('🎵 Additional audio files:', sorted)
+  return sorted
+})
+
+// Get additional video files (video without sequence numbers)
+const additionalVideo = computed(() => {
+  if (!videoFiles.value) {
+    console.log('❌ No video files for additional video')
+    return []
+  }
+
+  const additional = videoFiles.value.filter(file => file.sequence === undefined)
+  const sorted = additional.sort((a, b) =>
+    new Date(a.uploadDate).getTime() - new Date(b.uploadDate).getTime()
+  )
+
+  console.log('🎥 Additional video files:', sorted)
   return sorted
 })
 
@@ -141,17 +224,52 @@ const additionalImages = computed(() => {
   return sorted
 })
 
-// Process markdown content to replace image and audio placeholders
+// Process markdown content to replace image, audio, and video placeholders
 const processMarkdownContent = (content: string) => {
   console.log('🔄 Starting markdown content processing')
   console.log('📄 Original content:', content)
 
   let processedContent = content
+  mediaWidgetPositions.value = [] // Reset positions
 
   console.log('🎵 Sequenced audio available:', sequencedAudio.value)
+  console.log('🎥 Sequenced video available:', sequencedVideo.value)
   console.log('🖼️ Sequenced images available:', sequencedImages.value)
 
-  // First, replace numbered audio placeholders (audio1, audio2, etc.)
+  // First, replace numbered video placeholders (video1, video2, etc.)
+  sequencedVideo.value.forEach((video, index) => {
+    const videoNumber = index + 1
+    const videoUrl = `/api/file/${video.fileId}`
+
+    console.log(`🎥 Processing video${videoNumber}:`, video.filename)
+
+    // Pattern for video links: [alt text](video1)
+    const videoPattern = new RegExp(`\\[([^\\]]*)\\]\\(video${videoNumber}\\)`, 'gi')
+
+    const videoMatches = processedContent.match(videoPattern)
+    if (videoMatches) {
+      console.log(`🎥 Found video pattern matches for video${videoNumber}:`, videoMatches)
+    }
+
+    // Track this video widget position
+    const widgetIndex = mediaWidgetPositions.value.length
+    mediaWidgetPositions.value.push({
+      fileId: video.fileId,
+      filename: video.filename,
+      videoUrl: videoUrl,
+      sequence: video.sequence,
+      index: widgetIndex,
+      type: 'video'
+    })
+
+    // Replace with a unique marker
+    processedContent = processedContent.replace(
+      videoPattern,
+      `<div class="video-widget-marker" data-video-index="${widgetIndex}"></div>`
+    )
+  })
+
+  // Then, replace numbered audio placeholders (audio1, audio2, etc.)
   sequencedAudio.value.forEach((audio, index) => {
     const audioNumber = index + 1
     const audioUrl = `/api/file/${audio.fileId}`
@@ -166,10 +284,21 @@ const processMarkdownContent = (content: string) => {
       console.log(`🎵 Found audio pattern matches for audio${audioNumber}:`, audioMatches)
     }
 
-    // Replace audio links with audio widget data attribute
+    // Track this audio widget position
+    const widgetIndex = mediaWidgetPositions.value.length
+    mediaWidgetPositions.value.push({
+      fileId: audio.fileId,
+      filename: audio.filename,
+      audioUrl: audioUrl,
+      sequence: audio.sequence,
+      index: widgetIndex,
+      type: 'audio'
+    })
+
+    // Replace with a unique marker
     processedContent = processedContent.replace(
       audioPattern,
-      `<div class="audio-widget" data-file-id="${audio.fileId}" data-filename="${audio.filename}" data-audio-url="${audioUrl}" data-sequence="${audio.sequence}"></div>`
+      `<div class="audio-widget-marker" data-audio-index="${widgetIndex}"></div>`
     )
   })
 
@@ -186,17 +315,6 @@ const processMarkdownContent = (content: string) => {
     const linkPattern = new RegExp(`\\[([^\\]]*)\\]\\(image${imageNumber}\\)`, 'gi')
 
     // Replace markdown images
-    const imageMatches = processedContent.match(imagePattern)
-    if (imageMatches) {
-      console.log(`🖼️ Found image pattern matches for image${imageNumber}:`, imageMatches)
-    }
-
-    // Replace links that should be images (convert to proper image syntax)
-    const linkMatches = processedContent.match(linkPattern)
-    if (linkMatches) {
-      console.log(`🖼️ Found link pattern matches for image${imageNumber}:`, linkMatches)
-    }
-
     processedContent = processedContent.replace(
       imagePattern,
       `![$1](${imageUrl})`
@@ -232,7 +350,7 @@ const processMarkdownContent = (content: string) => {
     return match
   })
 
-  // Then process links that might be intended as images or audio
+  // Then process links that might be intended as images, audio, or video
   processedContent = processedContent.replace(genericLinkPattern, (match, altText, src) => {
     if (src.startsWith('http') || src.startsWith('/api/file/') || src.startsWith('data:')) {
       return match
@@ -245,6 +363,11 @@ const processMarkdownContent = (content: string) => {
 
     if (src.match(/^audio\d+$/)) {
       console.log(`⏩ Skipping already processed audio reference: ${src}`)
+      return match
+    }
+
+    if (src.match(/^video\d+$/)) {
+      console.log(`⏩ Skipping already processed video reference: ${src}`)
       return match
     }
 
@@ -263,117 +386,125 @@ const processMarkdownContent = (content: string) => {
 
     if (matchingAudio) {
       console.log(`🎵 Converting link to audio widget for "${src}":`, matchingAudio.filename)
-      return `<div class="audio-widget" data-file-id="${matchingAudio.fileId}" data-filename="${matchingAudio.filename}" data-audio-url="/api/file/${matchingAudio.fileId}" data-sequence="${matchingAudio.sequence || ''}"></div>`
+
+      // Track this additional audio widget position
+      const widgetIndex = mediaWidgetPositions.value.length
+      mediaWidgetPositions.value.push({
+        fileId: matchingAudio.fileId,
+        filename: matchingAudio.filename,
+        audioUrl: `/api/file/${matchingAudio.fileId}`,
+        sequence: matchingAudio.sequence,
+        index: widgetIndex,
+        type: 'audio'
+      })
+
+      return `<div class="audio-widget-marker" data-audio-index="${widgetIndex}"></div>`
+    }
+
+    const matchingVideo = [...sequencedVideo.value, ...additionalVideo.value].find(
+      video => video.filename === src || video.filename.includes(src)
+    )
+
+    if (matchingVideo) {
+      console.log(`🎥 Converting link to video widget for "${src}":`, matchingVideo.filename)
+
+      // Track this additional video widget position
+      const widgetIndex = mediaWidgetPositions.value.length
+      mediaWidgetPositions.value.push({
+        fileId: matchingVideo.fileId,
+        filename: matchingVideo.filename,
+        videoUrl: `/api/file/${matchingVideo.fileId}`,
+        sequence: matchingVideo.sequence,
+        index: widgetIndex,
+        type: 'video'
+      })
+
+      return `<div class="video-widget-marker" data-video-index="${widgetIndex}"></div>`
     }
 
     return match
   })
 
   console.log('✅ Final processed content:', processedContent)
+  console.log('🎵 Media widget positions:', mediaWidgetPositions.value)
   return processedContent
 }
 
-// Extract audio widgets from rendered content
-const extractAudioWidgets = () => {
-  console.log('🔍 Starting audio widget extraction')
-  audioWidgets.value = []
-
-  if (typeof document === 'undefined') {
-    console.log('❌ Document is undefined, skipping extraction')
-    return
+// Computed property to split content around media markers
+const splitContentWithWidgets = computed(() => {
+  if (!renderedContent.value) {
+    console.log('❌ No rendered content available for splitting')
+    return []
   }
 
-  const markdownContent = document.querySelector('.markdown-content')
-  if (!markdownContent) {
-    console.log('❌ No .markdown-content element found')
-    return
-  }
+  const parts: ContentPart[] = []
+  let currentContent = renderedContent.value
 
-  // Look for audio widget placeholders in the rendered HTML
-  const audioElements = markdownContent.querySelectorAll('.audio-widget')
-  console.log(`🎵 Found ${audioElements.length} audio widget elements in DOM`)
+  console.log(`🔪 Splitting content with ${mediaWidgetPositions.value.length} media markers`)
 
-  if (audioElements.length === 0) {
-    console.log('🔍 No audio widgets found in DOM. Checking if markdown processing worked...')
+  // Process each media widget position in order
+  mediaWidgetPositions.value.forEach((widget, index) => {
+    const marker = widget.type === 'video'
+      ? `<div class="video-widget-marker" data-video-index="${index}"></div>`
+      : `<div class="audio-widget-marker" data-audio-index="${index}"></div>`
 
-    // Let's also check if the audio placeholders exist in the raw rendered content
-    const tempDiv = document.createElement('div')
-    tempDiv.innerHTML = renderedContent.value
-    const tempAudioElements = tempDiv.querySelectorAll('.audio-widget')
-    console.log(`🔍 Found ${tempAudioElements.length} audio widgets in raw rendered content`)
+    const markerIndex = currentContent.indexOf(marker)
 
-    tempAudioElements.forEach((el, index) => {
-      const fileId = el.getAttribute('data-file-id')
-      const filename = el.getAttribute('data-filename')
-      const audioUrl = el.getAttribute('data-audio-url')
-      console.log(`🔍 Raw audio widget ${index}:`, { fileId, filename, audioUrl })
-    })
-  }
+    if (markerIndex !== -1) {
+      // Add content before the marker
+      if (markerIndex > 0) {
+        parts.push({
+          type: 'html',
+          content: currentContent.substring(0, markerIndex)
+        })
+      }
 
-  audioElements.forEach((element, index) => {
-    const fileId = element.getAttribute('data-file-id')
-    const filename = element.getAttribute('data-filename')
-    const audioUrl = element.getAttribute('data-audio-url')
-    const sequence = element.getAttribute('data-sequence')
+      // Add the media widget
+      if (widget.type === 'video') {
+        parts.push({
+          type: 'video',
+          videoUrl: widget.videoUrl,
+          filename: widget.filename,
+          fileId: widget.fileId,
+          sequence: widget.sequence
+        })
+      } else {
+        parts.push({
+          type: 'audio',
+          audioUrl: widget.audioUrl,
+          filename: widget.filename,
+          fileId: widget.fileId,
+          sequence: widget.sequence
+        })
+      }
 
-    console.log(`🔍 Audio widget ${index}:`, { fileId, filename, audioUrl, sequence })
-
-    if (fileId && filename && audioUrl) {
-      console.log(`🎧 Adding audio widget to array: ${filename}`)
-      audioWidgets.value.push({
-        fileId,
-        filename,
-        audioUrl,
-        sequence: sequence ? parseInt(sequence) : undefined
-      })
-
-      // Create a marker element to show where the widget will be rendered
-      const marker = document.createElement('div')
-      marker.className = 'audio-widget-marker'
-      marker.innerHTML = `🎧 Audio Widget: ${filename}`
-      marker.style.cssText = `
-        background: #e3f2fd;
-        border: 1px solid #2196f3;
-        border-radius: 4px;
-        padding: 8px;
-        margin: 8px 0;
-        font-size: 0.8rem;
-        color: #1565c0;
-      `
-
-      // Replace the placeholder with our marker
-      element.parentNode?.replaceChild(marker, element)
-      console.log(`📍 Replaced placeholder with marker for ${filename}`)
+      // Update current content to after the marker
+      currentContent = currentContent.substring(markerIndex + marker.length)
+      console.log(`✅ Added ${widget.type} widget at position ${index}: ${widget.filename}`)
     } else {
-      console.log('❌ Missing required attributes for audio widget:', { fileId, filename, audioUrl })
+      console.log(`❌ Could not find marker for ${widget.type} widget ${index}: ${widget.filename}`)
     }
   })
 
-  console.log(`✅ Final audio widgets array:`, audioWidgets.value)
-
-  // If no widgets found but we have audio files, create them directly
-  if (audioWidgets.value.length === 0 && sequencedAudio.value.length > 0) {
-    console.log('🔄 Creating audio widgets directly from sequencedAudio data')
-    audioWidgets.value = sequencedAudio.value.map(audio => ({
-      fileId: audio.fileId,
-      filename: audio.filename,
-      audioUrl: `/api/file/${audio.fileId}`,
-      sequence: audio.sequence
-    }))
-    console.log(`✅ Created ${audioWidgets.value.length} audio widgets directly`)
+  // Add any remaining content
+  if (currentContent.length > 0) {
+    parts.push({
+      type: 'html',
+      content: currentContent
+    })
   }
-}
+
+  console.log(`📋 Split content into ${parts.length} parts`)
+  console.log('📊 Parts breakdown:', parts.map(p => p.type))
+  return parts
+})
 
 // Render markdown content
 const renderMarkdownContent = async (content: string) => {
   console.log('📝 Starting markdown content rendering')
   console.log('📄 Input content length:', content.length)
 
-  // Clear previous audio widgets
-  audioWidgets.value = []
-  console.log('🧹 Cleared previous audio widgets')
-
-  // Process content to replace image and audio placeholders with actual URLs
+  // Process content to replace image, audio, and video placeholders with markers
   let processedContent = processMarkdownContent(content)
   console.log('📝 Processed content length:', processedContent.length)
 
@@ -385,15 +516,10 @@ const renderMarkdownContent = async (content: string) => {
     console.log('🔄 Sanitizing HTML with DOMPurify...')
     renderedContent.value = DOMPurify.sanitize(rawHtml)
     console.log('✅ HTML sanitized successfully')
-    console.log('📄 Rendered content:', renderedContent.value)
 
     console.log('⏳ Waiting for next tick...')
     await nextTick()
     console.log('✅ Next tick completed')
-
-    // Extract audio widgets from the rendered content
-    console.log('🔍 Extracting audio widgets from rendered content...')
-    extractAudioWidgets()
 
     // Apply syntax highlighting after the content is rendered
     if (hljs.value) {
@@ -408,13 +534,10 @@ const renderMarkdownContent = async (content: string) => {
   } catch (err) {
     console.error('❌ Error rendering markdown:', err)
     renderedContent.value = DOMPurify.sanitize(processedContent)
-
-    await nextTick()
-    extractAudioWidgets()
   }
 }
 
-// Update your addCopyButtons to work with highlighted code
+// Add copy buttons to code blocks
 const addCopyButtons = () => {
   const preElements = document.querySelectorAll('.markdown-content pre')
   console.log(`📋 Found ${preElements.length} pre elements for copy buttons`)
@@ -526,7 +649,7 @@ watch(() => props.postContent, async (newContent) => {
 watch(() => props.attachedFiles, async (newFiles) => {
   console.log('🔄 attachedFiles changed:', newFiles)
   if (newFiles && props.postContent) {
-    console.log('🔄 Attached files updated, re-rendering markdown with images and audio')
+    console.log('🔄 Attached files updated, re-rendering markdown with images and media')
     await renderMarkdownContent(props.postContent)
   }
 }, { deep: true })
@@ -535,41 +658,45 @@ watch(() => props.attachedFiles, async (newFiles) => {
 <template>
   <div class="markdown-content">
     <!-- Debug info -->
-    <div v-if="audioWidgets.length > 0" class="debug-info">
-      <p>🎵 Found {{ audioWidgets.length }} audio widgets to render</p>
-      <div v-for="widget in audioWidgets" :key="widget.fileId" class="debug-widget-item">
-        {{ widget.filename }}
+    <!-- <div v-if="mediaWidgetPositions.length > 0" class="debug-info">
+      <p>🎵 Found {{ mediaWidgetPositions.length }} media widgets to render</p>
+      <div v-for="widget in mediaWidgetPositions" :key="widget.fileId + '-' + widget.index" class="debug-widget-item">
+        {{ widget.filename }} ({{ widget.type }}, Position: {{ widget.index }})
       </div>
-    </div>
+    </div> -->
 
-    <!-- Main markdown content -->
-    <div v-html="renderedContent"></div>
+    <!-- Render content split around media widgets -->
+    <template v-if="splitContentWithWidgets.length > 0">
+      <div v-for="(part, index) in splitContentWithWidgets" :key="index">
+        <!-- Regular markdown content -->
+        <div v-if="part.type === 'html'" v-html="part.content"></div>
 
-    <!-- Render actual audio widgets -->
-    <div
-      v-for="widget in audioWidgets"
-      :key="widget.fileId"
-      class="audio-widget-container"
-    >
-      <div class="debug-widget">
-        🔧 Rendering AvWidget for: {{ widget.filename }}
+        <!-- Audio widget -->
+        <div v-else-if="part.type === 'audio'" class="audio-widget-container">
+          <AvWidget
+            :audio-url="part.audioUrl"
+            :filename="part.filename"
+            :file-id="part.fileId"
+            file-type="audio"
+            @download="handleDownload"
+          />
+        </div>
+
+        <!-- Video widget -->
+        <div v-else-if="part.type === 'video'" class="video-widget-container">
+          <AvWidget
+            :video-url="part.videoUrl"
+            :filename="part.filename"
+            :file-id="part.fileId"
+            file-type="video"
+            @download="handleDownload"
+          />
+        </div>
       </div>
-      <AvWidget
-        :audio-url="widget.audioUrl"
-        :filename="widget.filename"
-        :file-id="widget.fileId"
-        @download="handleDownload"
-      />
-    </div>
+    </template>
 
-    <!-- Debug fallback -->
-    <div v-if="audioWidgets.length === 0" class="debug-fallback">
-      <p>❌ No audio widgets detected</p>
-      <p>Audio files available: {{ audioFiles.length }}</p>
-      <p>Sequenced audio: {{ sequencedAudio.length }}</p>
-      <p>Additional audio: {{ additionalAudio.length }}</p>
-      <p>Rendered content contains audio widgets: {{ renderedContent.includes('audio-widget') ? 'Yes' : 'No' }}</p>
-    </div>
+    <!-- Fallback if no content is split (shouldn't happen normally) -->
+    <div v-else-if="renderedContent" v-html="renderedContent"></div>
   </div>
 </template>
 
@@ -597,16 +724,6 @@ watch(() => props.attachedFiles, async (newFiles) => {
   font-size: 0.7rem;
 }
 
-.debug-widget {
-  background: color-mix(in oklab, #FF9800, transparent 90%);
-  border: 1px solid #FF9800;
-  border-radius: 4px;
-  padding: 8px;
-  margin: 8px 0;
-  font-size: 0.8rem;
-  color: #E65100;
-}
-
 .debug-fallback {
   background: color-mix(in oklab, #f44336, transparent 90%);
   border: 1px solid #f44336;
@@ -614,6 +731,16 @@ watch(() => props.attachedFiles, async (newFiles) => {
   padding: 8px;
   margin: 8px 0;
   font-size: 0.8rem;
+}
+
+.audio-widget-container {
+  margin: 2em auto;
+  max-width: 40vw;
+}
+
+.video-widget-container {
+  margin: 2em auto;
+  max-width: 80vw;
 }
 
 .markdown-content :deep(h1) {
@@ -732,32 +859,9 @@ watch(() => props.attachedFiles, async (newFiles) => {
   margin: 1em auto;
 }
 
-/* Audio widget container styling */
-.audio-widget-container {
-  margin: 2em auto;
-  max-width: 600px;
-}
-
-/* Audio widget placeholder styling (fallback) */
-.markdown-content :deep(.audio-widget) {
-  margin: 2em auto;
-  max-width: 600px;
-  text-align: center;
-  padding: 1em;
-  background: color-mix(in oklab, var(--background), var(--text) 5%);
-  border-radius: 10px;
-  border: 1px solid color-mix(in oklab, var(--background), var(--text) 20%);
-  color: color-mix(in oklab, var(--text), transparent 30%);
-}
-
-.markdown-content :deep(.audio-widget-marker) {
-  margin: 2em auto;
-  max-width: 600px;
-  text-align: center;
-  padding: 1em;
-  background: #e3f2fd;
-  border: 1px solid #2196f3;
-  border-radius: 10px;
-  color: #1565c0;
+/* Hide the media markers in the final output */
+.markdown-content :deep(.audio-widget-marker),
+.markdown-content :deep(.video-widget-marker) {
+  display: none;
 }
 </style>
