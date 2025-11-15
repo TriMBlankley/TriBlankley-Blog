@@ -4,14 +4,13 @@ import { useRoute, useRouter } from 'vue-router'
 
 import "@/assets/base.css"
 
-import SettingsCog from '@/components/Settings_C/settingsCog.vue'
 
 import PostTitle from '@/components/BlogPost_C/PostTitle.vue'
 import BottomNav from '@/components/BlogPost_C/BottomNav.vue'
 import MarkdownRenderer from '@/components/BlogPost_C/MarkdownRenderer.vue'
 import GalleryRenderer from '@/components/BlogPost_C/GalleryRenderer.vue'
 import AttachmentHandler from '@/components/BlogPost_C/AttachmentHandler.vue'
-import BlogLogo from '@/components/BlogLogo.vue';
+
 
 const router = useRouter()
 const route = useRoute()
@@ -260,10 +259,7 @@ watch(() => route.params.id, async (newId) => {
 
 <template>
   <div class="blog-page">
-    <div class="logo-and-settings">
-      <SettingsCog style="width: 30px;"/>
-      <BlogLogo class="blog-logo"/>
-    </div>
+
 
     <template v-if="isLoading">
       <div class="loading-state">
@@ -343,34 +339,7 @@ watch(() => route.params.id, async (newId) => {
 }
 
 
-.logo-and-settings {
-  /* Size ------------- */
-  height: 70px;
-  width: auto;
 
-  /* Position ------------- */
-  position: fixed;
-  top: 0;
-  right: 20px;
-  z-index: 10;
-
-  /* top, right, bottom, left */
-  margin-top: 1em;
-  margin-left: 1em;
-
-  /* Color ------------- */
-
-  /* Behaviour ------------- */
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-}
-
-.blog-logo{
- width: 125px;
- margin-top: -69px;
- margin-left: -40px;
-}
 
 .separator {
   width: 100%;

@@ -16,7 +16,7 @@ const { isDarkMode, toggleTheme } = useTheme();
 <style>
 .theme-toggle {
   /* Size -------- */
-  padding: 3px 15px;
+  padding: 3px 4.5px;
 
   /* Color */
   color: var(--text);

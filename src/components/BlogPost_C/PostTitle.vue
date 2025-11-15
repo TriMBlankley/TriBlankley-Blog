@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import BlogLogo from '@/components/BlogLogo.vue';
+
 defineProps({
   postTitle: {
     type: String,
@@ -17,11 +19,17 @@ defineProps({
 
 <template>
   <div class="post-header">
-    <h1>{{ postTitle }}</h1>
-    <div class="post-data">
-      <h2>{{ postAuthor.join(', ') }}</h2>
-      <h2>{{ postDate }}</h2>
+    <div class="post-header-content">
+      <h1>{{ postTitle }}</h1>
+      <div class="post-data">
+        <h2>{{ postAuthor.join(', ') }}</h2>
+        <h2>{{ postDate }}</h2>
+      </div>
     </div>
+
+    <div class="grow"></div>
+
+    <BlogLogo class="blog-logo" style="width: 125px;"/>
   </div>
 </template>
 
@@ -32,9 +40,24 @@ defineProps({
 
     /* Behaviour ------------- */
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     flex-wrap: wrap;
     align-items: flex-start;
+    flex-wrap: nowrap;
+}
+
+.post-header-content {
+    /* Size ------------- */
+    width: auto;
+
+    /* Behaviour ------------- */
+    display: flex;
+    flex-direction: column;
+    flex-wrap: wrap;
+}
+
+.blog-logo{
+ width: 125px;
 }
 
 .post-header h1 {
@@ -52,11 +75,16 @@ defineProps({
 
     /* Text ----------------- */
     font-size: .75em;
-    text-align: right;
+    text-align: left;
 
     /* Behaviour ------------- */
     display: flex;
     flex-direction: column;
     gap: 0.25em; /* Add some space between author and date */
+}
+
+.grow {
+  display: flex;
+  flex-grow: 1;
 }
 </style>

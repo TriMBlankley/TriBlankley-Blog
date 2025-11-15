@@ -179,6 +179,7 @@ const groupColorStyle = computed(() => {
 <style scoped>
 .post {
   /* Size ------------- */
+  max-height: 166px;
 
   /* Position ------------- */
   margin: 5px;

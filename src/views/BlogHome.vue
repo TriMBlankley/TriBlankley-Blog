@@ -18,7 +18,6 @@ const posts = ref<any[]>([]);
 const activeTabColor = ref(localStorage.getItem('activeTabColor') || 'var(--cd-blue)');
 const left_right_margin = ref('5vw');
 
-
 const allTopicsTab = computed(() => ({
   topicName: "All Topics",
   topicColor: "#b78fbc",
@@ -42,20 +41,30 @@ const activeTopic = ref<string | null>(null);
 // Add reactive refs for tab calculations
 const tabMotifWidth = ref(0);
 const tabContainerRef = ref<HTMLElement | null>(null);
+const spaceBoxRef = ref<HTMLElement | null>(null);
 
 // Calculate number of tabs (topics + 1 for "All Topics")
 const totalTabs = computed(() => topics.value.length + 1);
 
-// Calculate available width for each tab
+// Track when we need to truncate tabs
+const shouldTruncateTabs = ref(false);
+
+// Calculate available width for each tab only when truncating
 const tabWidth = computed(() => {
-  if (tabMotifWidth.value === 0 || totalTabs.value === 0) return 0;
+  if (!shouldTruncateTabs.value || tabMotifWidth.value === 0 || totalTabs.value === 0) return 0;
   return tabMotifWidth.value / totalTabs.value;
 });
 
-// Update tab motif width on mount and resize
-const updateTabMotifWidth = () => {
+// Update tab motif width and check truncation
+const updateTabLayout = () => {
   if (tabContainerRef.value) {
     tabMotifWidth.value = tabContainerRef.value.clientWidth;
+
+    // Check if space box has zero width (tabs are overflowing)
+    if (spaceBoxRef.value) {
+      const spaceBoxRect = spaceBoxRef.value.getBoundingClientRect();
+      shouldTruncateTabs.value = spaceBoxRect.width <= 0;
+    }
   }
 };
 
@@ -111,11 +120,11 @@ onMounted(() => {
   fetchTopics();
   fetchPosts();
 
-  // Set initial width
-  updateTabMotifWidth();
+  // Set initial width and check truncation
+  updateTabLayout();
 
   // Update on resize
-  window.addEventListener('resize', updateTabMotifWidth);
+  window.addEventListener('resize', updateTabLayout);
 
   // Set All Topics as active if no topic is selected
   if (!activeTopic.value) {
@@ -124,7 +133,7 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
-  window.removeEventListener('resize', updateTabMotifWidth);
+  window.removeEventListener('resize', updateTabLayout);
 });
 
 // Watchers
@@ -144,6 +153,7 @@ watch(activeTabColor, (color) => {
           :color="topic.topicColor"
           :is-active="activeTabColor === topic.topicColor"
           :width="tabWidth"
+          :should-truncate="shouldTruncateTabs"
           :total-tabs="totalTabs"
           @tab-clicked="handleTabClick"
         />
@@ -153,10 +163,14 @@ watch(activeTabColor, (color) => {
           :color="allTopicsTab.topicColor"
           :is-active="!activeTopic"
           :width="tabWidth"
+          :should-truncate="shouldTruncateTabs"
           :total-tabs="totalTabs"
           @tab-clicked="handleTabClick"
         />
+
+        <div class="space-box" ref="spaceBoxRef"></div>
       </div>
+
       <div class="post-container">
         <div class="post-cards">
           <PostDescriptor
@@ -166,19 +180,20 @@ watch(activeTabColor, (color) => {
             @click-post="handlePostClick"
           />
         </div>
-        <HomeNav />
+        <!-- <HomeNav /> -->
       </div>
     </div>
 
-    <div class="logo-and-filter">
-      <div class="logo-and-settings">
-        <SettingsCog style="width: 30px;" />
-        <BlogLogo class="blog-logo"/>
-      </div>
+    <div class="logo-and-settings">
+      <SettingsCog style="width: 30px;" />
+      <BlogLogo class="blog-logo"/>
+    </div>
+
+    <!-- <div class="logo-and-filter">
       <div class="filter-and-news">
         <FilterAndNews />
       </div>
-    </div>
+    </div> -->
   </div>
 </template>
 
@@ -202,7 +217,7 @@ watch(activeTabColor, (color) => {
 .post-view {
   /* Size ------------- */
   /* height: calc(100vh - 3em); */
-  width:auto;
+  flex-grow: 1;
 
   /* Position ------------- */
   position: relative; /* Needed for absolute positioning of children */
@@ -217,16 +232,15 @@ watch(activeTabColor, (color) => {
   display: flex;
   flex-direction: column;
 
-
   scroll-behavior: smooth;
   /* overflow-y: auto; */
 }
 
 .tab-motif {
   /* Size ------------- */
+  min-width: 0; /* Important for flex container to shrink properly */
 
   /* Position ------------- */
-
   /* top&bottom, right&left */
   margin: 0 15px;
 
@@ -235,6 +249,13 @@ watch(activeTabColor, (color) => {
   /* Behaviour ------------- */
   display: flex;
   flex-direction: row;
+  flex-wrap: nowrap;
+}
+
+.space-box {
+  flex-grow: 2;
+  /* background-color: paleturquoise; */
+  min-width: 0; /* Allow this to shrink to zero */
 }
 
 .post-container {
@@ -253,8 +274,8 @@ watch(activeTabColor, (color) => {
   /* Behaviour ------------- */
   display: flex;
   flex-direction: column;
-
 }
+
 .post-cards {
   /* Size ------------- */
   flex: 1;
@@ -265,7 +286,6 @@ watch(activeTabColor, (color) => {
 
   /* Color ------------- */
   background: color-mix(in oklab, var(--background), var(--focused) 20%);
-
   border-radius: 7px;
 
   /* Behaviour ------------- */
@@ -298,11 +318,17 @@ watch(activeTabColor, (color) => {
   width: auto;
 
   /* Position ------------- */
+  position: sticky;
+  top: 0;
+  right: 0;
+  z-index: 10;
+
   /* top, right, bottom, left */
-  margin-top: 1em;
-  margin-left: 1em;
+  padding: 3em;
+
 
   /* Color ------------- */
+  /* background-color: var(--background); */
 
   /* Behaviour ------------- */
   display: flex;
@@ -317,7 +343,6 @@ watch(activeTabColor, (color) => {
 }
 
 .filter-and-news {
-
   /* Size ------------- */
   width: 200px;
 
