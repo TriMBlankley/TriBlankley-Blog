@@ -35,8 +35,6 @@ const tabStyle = computed(() => {
     color: props.color,
   };
 
-
-
   return baseStyle;
 });
 
@@ -65,8 +63,7 @@ const handleClick = () => {
       <folderTabAccent />
     </div>
 
-    <h1 class="tab-title">
-
+    <h1 class="tab-ribbon">
       <div class="tab-text">
         {{ title }}
       </div>
@@ -124,7 +121,7 @@ const handleClick = () => {
   width: auto; /* Maintain aspect ratio */
 }
 
-.tab-title {
+.tab-ribbon {
   /* Reset h1 defaults */
   margin: 0;
   padding: 0;

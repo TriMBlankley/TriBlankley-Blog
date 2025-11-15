@@ -258,7 +258,7 @@ watch(() => route.params.id, async (newId) => {
 </script>
 
 <template>
-  <div class="blog-page">
+  <div class="blog-page" :style="{'--focused': topicColor}">
 
 
     <template v-if="isLoading">

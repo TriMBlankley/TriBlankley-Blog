@@ -8,6 +8,7 @@ import PostDescriptor from '@/components/blogHome_C/postDescriptor.vue';
 import SettingsCog from '@/components/Settings_C/settingsCog.vue';
 import FilterAndNews from '@/components/blogHome_C/filterAndNews.vue';
 import BlogLogo from '@/components/BlogLogo.vue';
+import FolderTabDropDownButton from '@/components/blogHome_C/FolderTabDropDownButton.vue';
 
 //SVG imports
 import HomeNav from '@/components/blogHome_C/homeNav.vue';
@@ -41,32 +42,7 @@ const activeTopic = ref<string | null>(null);
 // Add reactive refs for tab calculations
 const tabMotifWidth = ref(0);
 const tabContainerRef = ref<HTMLElement | null>(null);
-const spaceBoxRef = ref<HTMLElement | null>(null);
 
-// Calculate number of tabs (topics + 1 for "All Topics")
-const totalTabs = computed(() => topics.value.length + 1);
-
-// Track when we need to truncate tabs
-const shouldTruncateTabs = ref(false);
-
-// Calculate available width for each tab only when truncating
-const tabWidth = computed(() => {
-  if (!shouldTruncateTabs.value || tabMotifWidth.value === 0 || totalTabs.value === 0) return 0;
-  return tabMotifWidth.value / totalTabs.value;
-});
-
-// Update tab motif width and check truncation
-const updateTabLayout = () => {
-  if (tabContainerRef.value) {
-    tabMotifWidth.value = tabContainerRef.value.clientWidth;
-
-    // Check if space box has zero width (tabs are overflowing)
-    if (spaceBoxRef.value) {
-      const spaceBoxRect = spaceBoxRef.value.getBoundingClientRect();
-      shouldTruncateTabs.value = spaceBoxRect.width <= 0;
-    }
-  }
-};
 
 const fetchPosts = async () => {
   try {
@@ -120,21 +96,13 @@ onMounted(() => {
   fetchTopics();
   fetchPosts();
 
-  // Set initial width and check truncation
-  updateTabLayout();
-
-  // Update on resize
-  window.addEventListener('resize', updateTabLayout);
-
   // Set All Topics as active if no topic is selected
   if (!activeTopic.value) {
     document.documentElement.style.setProperty('--focused', "#b78fbc");
   }
 });
 
-onUnmounted(() => {
-  window.removeEventListener('resize', updateTabLayout);
-});
+
 
 // Watchers
 watch(activeTabColor, (color) => {
@@ -152,9 +120,6 @@ watch(activeTabColor, (color) => {
           :title="topic.topicName"
           :color="topic.topicColor"
           :is-active="activeTabColor === topic.topicColor"
-          :width="tabWidth"
-          :should-truncate="shouldTruncateTabs"
-          :total-tabs="totalTabs"
           @tab-clicked="handleTabClick"
         />
 
@@ -162,13 +127,10 @@ watch(activeTabColor, (color) => {
           :title="allTopicsTab.topicName"
           :color="allTopicsTab.topicColor"
           :is-active="!activeTopic"
-          :width="tabWidth"
-          :should-truncate="shouldTruncateTabs"
-          :total-tabs="totalTabs"
           @tab-clicked="handleTabClick"
         />
 
-        <div class="space-box" ref="spaceBoxRef"></div>
+        <div class="space-box"></div>
       </div>
 
       <div class="post-container">
@@ -187,6 +149,7 @@ watch(activeTabColor, (color) => {
     <div class="logo-and-settings">
       <SettingsCog style="width: 30px;" />
       <BlogLogo class="blog-logo"/>
+      <FolderTabDropDownButton class="folder-tab-drop-down-button"/>
     </div>
 
     <!-- <div class="logo-and-filter">
@@ -253,7 +216,7 @@ watch(activeTabColor, (color) => {
 }
 
 .space-box {
-  flex-grow: 2;
+  flex-grow: 1.75;
   /* background-color: paleturquoise; */
   min-width: 0; /* Allow this to shrink to zero */
 }
@@ -340,6 +303,12 @@ watch(activeTabColor, (color) => {
  width: 125px;
  margin-top: -70px;
  margin-left: -40px;
+}
+
+.folder-tab-drop-down-button{
+  width: 125px;
+  margin-top: -70px;
+  margin-left: -40px;
 }
 
 .filter-and-news {
