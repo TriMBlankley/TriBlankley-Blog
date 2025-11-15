@@ -7,18 +7,11 @@ import ThemeToggle from '@/components/Settings_C/ThemeToggle.vue';
 import { ref } from 'vue';
 
 defineProps<{
-  hasPreviousTopic: boolean
-  hasNextTopic: boolean
-  hasPreviousGroup: boolean
-  hasNextGroup: boolean
+
 }>()
 
 const emit = defineEmits<{
   'scroll-to-top': []
-  'previous-topic': []
-  'next-topic': []
-  'previous-group': []
-  'next-group': []
 }>()
 
 // Reactive state for hover tracking
@@ -27,7 +20,7 @@ const isHoveringGroup = ref(false);
 </script>
 
 <template>
-  <div class="post-nav">
+  <div class="home-nav">
     <button class="nav-btn" @click="emit('scroll-to-top')" style="height: 3em;">
         <Arrow style="height: 100%;"/>
     </button>
@@ -43,12 +36,13 @@ const isHoveringGroup = ref(false);
 </template>
 
 <style>
-.post-nav {
+.home-nav {
   /* Size ------------- */
   height: 55px;
 
   /* Position ------------- */
   padding: 4px;
+  margin-top: 3px;
 
   /* Color ------------- */
   background-color: var(--focused);

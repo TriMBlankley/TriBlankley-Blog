@@ -13,6 +13,21 @@ import FolderTabDropDownButton from '@/components/blogHome_C/FolderTabDropDownBu
 //SVG imports
 import HomeNav from '@/components/blogHome_C/homeNav.vue';
 
+// Navigation functions
+const scrollToTop = () => {
+  // Try scrolling the main blog container first
+  const blogHome = document.querySelector('.blog-home') as HTMLElement;
+  if (blogHome) {
+    blogHome.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  // Also try window scrolling as fallback
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  // And the document elements
+  document.documentElement.scrollTo({ top: 0, behavior: 'smooth' });
+  document.body.scrollTo({ top: 0, behavior: 'smooth' });
+}
 // State
 const topics = ref<any[]>([]);
 const posts = ref<any[]>([]);
@@ -142,7 +157,9 @@ watch(activeTabColor, (color) => {
             @click-post="handlePostClick"
           />
         </div>
-        <HomeNav />
+        <HomeNav
+          @scroll-to-top="scrollToTop"
+        />
       </div>
     </div>
 
