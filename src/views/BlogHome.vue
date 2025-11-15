@@ -142,7 +142,7 @@ watch(activeTabColor, (color) => {
             @click-post="handlePostClick"
           />
         </div>
-        <!-- <HomeNav /> -->
+        <HomeNav />
       </div>
     </div>
 
