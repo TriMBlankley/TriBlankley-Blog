@@ -1,33 +1,51 @@
 <script setup lang="ts">
-import { useRoute, useRouter } from 'vue-router'
 
+import { defineEmits } from 'vue';
+
+import ClassPopOutButton from "@/assets/uiElements/ClassPopOutButton.svg"
 import Layer1 from "@/assets/uiElements/FolderDrop-Down/Layer1.svg";
 import Layer2 from "@/assets/uiElements/FolderDrop-Down/Layer2.svg";
 import Layer3 from "@/assets/uiElements/FolderDrop-Down/Layer3.svg";
 import Layer4 from "@/assets/uiElements/FolderDrop-Down/Layer4.svg";
 
+const emit = defineEmits(['click']);
+
+const handleClick = (event: Event) => {
+  event.stopPropagation(); // Prevent event from bubbling to document
+  emit('click', event);
+};
 
 </script>
 
 <template>
-  <button class="button-container">
-    <Layer2 class="layer2" />
-    <Layer1 class="layer1" />
+  <button class="button-div" @click="handleClick">
+    <div class="svg-container">
+      <ClassPopOutButton class="svg" />
 
-    <Layer3 class="layer3" />
-    <Layer4 class="layer4" />
+    </div>
   </button>
 </template>
 
 <style scoped>
-.button-container {
-  position: relative;
-  background: none;
-  border: none;
-  padding: 0;
+.button-div {
+  background: var(--background);
+  border: 3px solid color-mix(in oklab, var(--background), var(--text) 20%);
+  border-radius: 10px;
+  padding: 2.5px, 2.5px;
+  padding-top: 4px;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 4rem;
+  height: auto;
+}
+
+.svg-container {
   width: 100%;
   height: 100%;
+  color: var(--text);
+  /* right: 50%; */
 }
 
 .layer1 {

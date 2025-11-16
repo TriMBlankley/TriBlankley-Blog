@@ -6,8 +6,17 @@ import { defineProps, defineEmits, ref, computed, onMounted, onUnmounted } from 
 
 //SVG imports
 import folderTabAccent from "@/assets/uiElements/folderTab.svg";
+import MobileFolderTab from "@/assets/uiElements/MobileFolderTab.svg"
+
 
 // Logic ---------------------------------------------------
+const isMobile = ref(false);
+const windowWidth = ref(window.innerWidth);
+
+const checkScreenSize = () => {
+  windowWidth.value = window.innerWidth;
+  isMobile.value = windowWidth.value < 750;
+};
 
 // Post Data defined with props ----------
 const props = defineProps({
@@ -52,33 +61,64 @@ const handleClick = () => {
     topicName: props.title
   });
 };
+
+// Lifecycle hooks
+onMounted(() => {
+  // Initialize responsive state
+  checkScreenSize();
+  window.addEventListener('resize', checkScreenSize);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('resize', checkScreenSize);
+});
 </script>
 
 <template>
-  <div class="folder-tab"
-       v-bind:style="tabStyle"
-       @click="handleClick">
-    <!-- top, right, bottom, left -->
-    <div class="tab-accent">
-      <folderTabAccent />
-    </div>
+  <template v-if="isMobile">
+    <div class="folder-tab"
+         v-bind:style="tabStyle"
+         @click="handleClick">
 
-    <h1 class="tab-ribbon">
-      <div class="tab-text">
-        {{ title }}
+      <h1 class="tab-ribbon">
+        <div class="tab-text">
+          {{ title }}
+        </div>
+      </h1>
+
+      <div class="tab-accent flipped">
+        <MobileFolderTab />
       </div>
-    </h1>
+    </div> <!-- folderTab Mobile -->
+  </template>
 
-    <div class="tab-accent flipped">
-      <folderTabAccent />
-    </div>
-  </div> <!-- folderTab -->
+  <template v-else>
+
+    <div class="folder-tab"
+        v-bind:style="tabStyle"
+        @click="handleClick">
+      <!-- top, right, bottom, left -->
+      <div class="tab-accent">
+        <folderTabAccent />
+      </div>
+
+      <h1 class="tab-ribbon">
+        <div class="tab-text">
+          {{ title }}
+        </div>
+      </h1>
+
+      <div class="tab-accent flipped">
+        <folderTabAccent />
+      </div>
+    </div> <!-- folderTab -->
+  </template>
 </template>
 
 <style scoped>
 .folder-tab {
   /* Size ------------- */
-  height: auto;
+  height: 2.5rem;
   min-width: 0;
 
   /* Position ------------- */
@@ -89,7 +129,9 @@ const handleClick = () => {
   display: flex;
   flex-direction: row;
   flex-wrap: nowrap;
-  flex: .33 1 auto;
+  flex-shrink: 2;
+  flex-grow: 1;
+  flex-basis: auto;
 
   /* Msc Behaviour */
   white-space: nowrap;
@@ -103,7 +145,7 @@ const handleClick = () => {
   flex-shrink: 0; /* Prevent SVG accents from shrinking */
 
   /* Position ------------- */
-  margin: 0 -1px -1.5px 0;
+  margin: 0 0 0 0;
 
   /* Behaviour ------------- */
   display: flex;
@@ -113,7 +155,7 @@ const handleClick = () => {
 
 .tab-accent.flipped {
   transform: scaleX(-1);
-  margin: 0 0 -1.5px -1px;
+  margin: 0 0 0 -1.5px;
 }
 
 .tab-accent :deep(svg) {
@@ -154,9 +196,30 @@ const handleClick = () => {
   max-width: 100%;
 
   /* Ensure proper text containment */
+  text-wrap: nowrap;
   overflow: hidden;
   position: relative;
   text-overflow: "-";
+
+}
+
+@media (min-width: 768px) {
+
+  .folder-tab {
+    /* Size ------------- */
+    height: 2.5rem;
+  }
+
+  .tab-accent {
+    /* Position ------------- */
+    margin: 0 -1px -1.5px 0;
+
+
+  }
+
+  .tab-accent.flipped {
+    margin: 0 0 -1.5px -1px;
+  }
 }
 
 

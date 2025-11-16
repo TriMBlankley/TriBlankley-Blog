@@ -165,7 +165,7 @@ const groupColorStyle = computed(() => {
           <span>By {{ post.postAuthor.join(', ') }}</span>
           <span>{{ post.postDate }}</span>
         </div>
-        <div v-if="hasGroup" class="group-indicator" :style="groupColorStyle"></div>
+        <!-- <div v-if="hasGroup" class="group-indicator" :style="groupColorStyle"></div> -->
 
       </div>
 

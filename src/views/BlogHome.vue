@@ -2,6 +2,7 @@
 // VueJS imports
 import { ref, onMounted, onUnmounted, watch, computed } from 'vue';
 
+
 // Component Imports
 import FolderTab from '@/components/blogHome_C/folderTab.vue';
 import PostDescriptor from '@/components/blogHome_C/postDescriptor.vue';
@@ -28,15 +29,20 @@ const scrollToTop = () => {
   document.documentElement.scrollTo({ top: 0, behavior: 'smooth' });
   document.body.scrollTo({ top: 0, behavior: 'smooth' });
 }
+
 // State
 const topics = ref<any[]>([]);
 const posts = ref<any[]>([]);
 const activeTabColor = ref(localStorage.getItem('activeTabColor') || 'var(--cd-blue)');
 const left_right_margin = ref('5vw');
 
+// Add responsive state
+const isMobile = ref(false);
+const windowWidth = ref(window.innerWidth);
+
 const allTopicsTab = computed(() => ({
   topicName: "All Topics",
-  topicColor: "#b78fbc",
+  topicColor: "#6e93b9",
   topicOrder: 100 // Place it after all other topics
 }));
 
@@ -57,7 +63,6 @@ const activeTopic = ref<string | null>(null);
 // Add reactive refs for tab calculations
 const tabMotifWidth = ref(0);
 const tabContainerRef = ref<HTMLElement | null>(null);
-
 
 const fetchPosts = async () => {
   try {
@@ -106,18 +111,72 @@ const handlePostClick = (postId: number) => {
   // Add any additional post-click logic here
 };
 
+// Add responsive handlers
+const checkScreenSize = () => {
+  windowWidth.value = window.innerWidth;
+  isMobile.value = windowWidth.value < 750;
+};
+
+// Get current active tab for mobile view
+const currentActiveTab = computed(() => {
+  if (activeTopic.value) {
+    return topics.value.find(topic => topic.topicName === activeTopic.value);
+  } else {
+    return allTopicsTab.value;
+  }
+});
+
+
+// Add reactive state for dropdown visibility
+const showDropdown = ref(false);
+
+// Method to handle topic selection from dropdown
+const handleDropdownTopicSelect = (topic: any) => {
+  handleTabClick({
+    color: topic.topicColor,
+    topicName: topic.topicName
+  });
+  showDropdown.value = false; // Close dropdown after selection
+};
+
+// Method to handle "All Topics" selection from dropdown
+const handleAllTopicsSelect = () => {
+  handleTabClick({
+    color: allTopicsTab.value.topicColor,
+    topicName: allTopicsTab.value.topicName
+  });
+  showDropdown.value = false; // Close dropdown after selection
+};
+
+// Close dropdown when clicking outside
+const closeDropdown = () => {
+  showDropdown.value = false;
+};
+
+
+
+
 // Lifecycle hooks
 onMounted(() => {
   fetchTopics();
   fetchPosts();
 
+  // Initialize responsive state
+  checkScreenSize();
+  window.addEventListener('resize', checkScreenSize);
+
+  document.addEventListener('click', closeDropdown);
+
   // Set All Topics as active if no topic is selected
   if (!activeTopic.value) {
-    document.documentElement.style.setProperty('--focused', "#b78fbc");
+    document.documentElement.style.setProperty('--focused', "#6e93b9");
   }
 });
 
-
+onUnmounted(() => {
+  window.removeEventListener('resize', checkScreenSize);
+  document.removeEventListener('click', closeDropdown);
+});
 
 // Watchers
 watch(activeTabColor, (color) => {
@@ -128,25 +187,75 @@ watch(activeTabColor, (color) => {
 <template>
   <div class="blog-home">
     <div class="post-view">
-      <div class="tab-motif" ref="tabContainerRef">
-        <FolderTab
-          v-for="topic in topics"
-          :key="topic.topicName"
-          :title="topic.topicName"
-          :color="topic.topicColor"
-          :is-active="activeTabColor === topic.topicColor"
-          @tab-clicked="handleTabClick"
-        />
 
-        <FolderTab
-          :title="allTopicsTab.topicName"
-          :color="allTopicsTab.topicColor"
-          :is-active="!activeTopic"
-          @tab-clicked="handleTabClick"
-        />
+        <!-- Mobile Layout: Dropdown Button + Active Tab -->
 
-        <div class="space-box"></div>
-      </div>
+        <template v-if="isMobile">
+          <div class="mobile-tab-container" @click.stop>
+
+            <FolderTabDropDownButton
+              @click="showDropdown = !showDropdown"
+            />
+            <FolderTab
+              v-if="currentActiveTab"
+              :key="currentActiveTab.topicName"
+              :title="currentActiveTab.topicName"
+              :color="currentActiveTab.topicColor"
+              :is-active="true"
+              @tab-clicked="handleTabClick"
+            />
+            <div class="tab-accent flipped">
+              <MobileFolderTab />
+            </div>
+
+            <!-- Dropdown Menu -->
+            <div v-if="showDropdown" class="dropdown-menu">
+              <div
+                class="dropdown-item"
+                :class="{ 'active': !activeTopic }"
+                @click="handleAllTopicsSelect"
+              >
+                All Topics
+              </div>
+              <div
+                v-for="topic in topics"
+                :key="topic.topicName"
+                class="dropdown-item"
+                :class="{ 'active': activeTopic === topic.topicName }"
+                @click="handleDropdownTopicSelect(topic)"
+              >
+                {{ topic.topicName }}
+              </div>
+            </div>
+
+            <div class="grow"></div>
+
+            <!-- ADD THIS BACK IN WHEN IT HAS USER-FACEING UTILITES -->
+            <!-- <SettingsCog style="width: 2.5rem;" /> -->
+          </div>
+        </template>
+
+        <!-- Desktop Layout: All Tabs -->
+        <template v-else>
+          <div class="tab-motif" ref="tabContainerRef">
+            <FolderTab
+              v-for="topic in topics"
+              :key="topic.topicName"
+              :title="topic.topicName"
+              :color="topic.topicColor"
+              :is-active="activeTopic === topic.topicName"
+              @tab-clicked="handleTabClick"
+            />
+
+            <FolderTab
+              :title="allTopicsTab.topicName"
+              :color="allTopicsTab.topicColor"
+              :is-active="!activeTopic"
+              @tab-clicked="handleTabClick"
+            />
+          </div>
+        </template>
+
 
       <div class="post-container">
         <div class="post-cards">
@@ -163,10 +272,10 @@ watch(activeTabColor, (color) => {
       </div>
     </div>
 
-    <div class="logo-and-settings">
+    <!-- Hide logo-and-settings on mobile -->
+    <div v-if="!isMobile" class="logo-and-settings">
       <SettingsCog style="width: 30px;" />
       <BlogLogo class="blog-logo"/>
-      <FolderTabDropDownButton class="folder-tab-drop-down-button"/>
     </div>
 
     <!-- <div class="logo-and-filter">
@@ -182,6 +291,7 @@ watch(activeTabColor, (color) => {
 .blog-home {
   /* Size ------------- */
   height: 100vh;
+  min-width: 0;
 
   /* Position ------------- */
 
@@ -198,6 +308,7 @@ watch(activeTabColor, (color) => {
   /* Size ------------- */
   /* height: calc(100vh - 3em); */
   flex-grow: 1;
+  min-width: 0;
 
   /* Position ------------- */
   position: relative; /* Needed for absolute positioning of children */
@@ -230,13 +341,12 @@ watch(activeTabColor, (color) => {
   display: flex;
   flex-direction: row;
   flex-wrap: nowrap;
+  align-items: stretch; /* Changed from center to stretch to maintain tab styling */
 }
 
-.space-box {
-  flex-grow: 1.75;
-  /* background-color: paleturquoise; */
-  min-width: 0; /* Allow this to shrink to zero */
-}
+/* Mobile tab container */
+
+
 
 .post-container {
   /* Size ------------- */
@@ -306,7 +416,6 @@ watch(activeTabColor, (color) => {
   /* top, right, bottom, left */
   padding: 3em;
 
-
   /* Color ------------- */
   /* background-color: var(--background); */
 
@@ -322,10 +431,18 @@ watch(activeTabColor, (color) => {
  margin-left: -40px;
 }
 
+.blog-logo-mobile{
+  position: relative;
+  width: 20vw;
+  right: 11vw;
+  bottom: 13vw;
+
+}
+
 .folder-tab-drop-down-button{
   width: 125px;
   margin-top: -70px;
-  margin-left: -40px;
+ margin-left: -40px;
 }
 
 .filter-and-news {
@@ -345,4 +462,82 @@ watch(activeTabColor, (color) => {
   display: flex;
   flex-direction: column;
 }
+
+/* Responsive adjustments */
+@media (max-width: 1250px) {
+  .post-view {
+    margin: 1.5em 0.5em auto 0.5em;
+  }
+
+  .tab-motif {
+    margin: 0 5px;
+  }
+}
+
+.grow {
+  display: flex;
+  flex-grow: 1;
+  /* background-color: aquamarine; */
+}
+
+
+/* Dropdown Menu Styles */
+.dropdown-menu {
+  position: absolute;
+  top: 0;
+  left: 50px;
+  z-index: 1000;
+  background: var(--background);
+  border: 3px solid color-mix(in oklab, var(--background), var(--text) 20%);
+  border-radius: 10px;
+  margin-top: 5px;
+  min-width: 150px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  padding: 5px;
+}
+
+.dropdown-item {
+  padding: 12px 16px;
+  margin: 2.5px;
+  cursor: pointer;
+  border: 1px solid color-mix(in oklab, var(--background), var(--text) 20%);
+  border-radius: 5px;
+  transition: background-color 0.2s ease;
+  color: var(--text);
+}
+
+.dropdown-item:last-child {
+  border-bottom: none;
+}
+
+.dropdown-item:hover {
+  background-color: color-mix(in oklab, var(--background), var(--focused) 20%);
+}
+
+.dropdown-item.active {
+  background-color: color-mix(in oklab, var(--background), var(--focused) 30%);
+  font-weight: bold;
+}
+
+
+/* Prevent dropdown from affecting layout */
+.mobile-tab-container {
+  position: relative; /* Needed for absolute positioning of dropdown */
+
+  display: flex;
+  flex-direction: row;
+
+  justify-content: center;
+  align-items: center;
+
+  flex-shrink: 0;
+  margin-bottom: 1vh;
+}
+
 </style>
+
+
+
+
+
+
