@@ -29,7 +29,7 @@ defineProps({
 
     <div class="grow"></div>
 
-    <BlogLogo class="blog-logo" style="width: 125px;"/>
+    <BlogLogo />
   </div>
 </template>
 
@@ -56,9 +56,7 @@ defineProps({
     flex-wrap: wrap;
 }
 
-.blog-logo{
- width: 125px;
-}
+
 
 .post-header h1 {
     /* Behaviour ------------- */

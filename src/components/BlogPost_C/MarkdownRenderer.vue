@@ -738,9 +738,10 @@ watch(() => props.attachedFiles, async (newFiles) => {
   max-width: 40vw;
 }
 
+
 .video-widget-container {
-  margin: 2em auto;
-  max-width: 80vw;
+  margin: 2em 0;
+  max-width: auto;
 }
 
 .markdown-content :deep(h1) {
@@ -863,5 +864,13 @@ watch(() => props.attachedFiles, async (newFiles) => {
 .markdown-content :deep(.audio-widget-marker),
 .markdown-content :deep(.video-widget-marker) {
   display: none;
+}
+
+
+@media (min-width: 1250px) {
+  .video-widget-container {
+    margin: 2em auto;
+    max-width: 85vw;
+  }
 }
 </style>

@@ -184,15 +184,14 @@ watch(activeTabColor, (color) => {
 }, { immediate: true });
 </script>
 
+
 <template>
   <div class="blog-home">
     <div class="post-view">
 
         <!-- Mobile Layout: Dropdown Button + Active Tab -->
-
         <template v-if="isMobile">
           <div class="mobile-tab-container" @click.stop>
-
             <FolderTabDropDownButton
               @click="showDropdown = !showDropdown"
             />
@@ -207,6 +206,10 @@ watch(activeTabColor, (color) => {
             <div class="tab-accent flipped">
               <MobileFolderTab />
             </div>
+
+            <div class="grow"></div>
+
+            <BlogLogo />
 
             <!-- Dropdown Menu -->
             <div v-if="showDropdown" class="dropdown-menu">
@@ -227,11 +230,6 @@ watch(activeTabColor, (color) => {
                 {{ topic.topicName }}
               </div>
             </div>
-
-            <div class="grow"></div>
-
-            <!-- ADD THIS BACK IN WHEN IT HAS USER-FACEING UTILITES -->
-            <!-- <SettingsCog style="width: 2.5rem;" /> -->
           </div>
         </template>
 
@@ -256,7 +254,6 @@ watch(activeTabColor, (color) => {
           </div>
         </template>
 
-
       <div class="post-container">
         <div class="post-cards">
           <PostDescriptor
@@ -274,15 +271,9 @@ watch(activeTabColor, (color) => {
 
     <!-- Hide logo-and-settings on mobile -->
     <div v-if="!isMobile" class="logo-and-settings">
+      <BlogLogo />
       <SettingsCog style="width: 30px;" />
-      <BlogLogo class="blog-logo"/>
     </div>
-
-    <!-- <div class="logo-and-filter">
-      <div class="filter-and-news">
-        <FilterAndNews />
-      </div>
-    </div> -->
   </div>
 </template>
 
@@ -306,55 +297,47 @@ watch(activeTabColor, (color) => {
 /* Posts and Tabs ---------------------------- */
 .post-view {
   /* Size ------------- */
-  /* height: calc(100vh - 3em); */
   flex-grow: 1;
   min-width: 0;
 
   /* Position ------------- */
-  position: relative; /* Needed for absolute positioning of children */
-  /* z-index: 100; */
-  /* top, right, bottom, left */
+  position: relative;
   margin: 1.5em 0.5em auto v-bind(left_right_margin);
-
-  /* Color ------------- */
 
   /* Behaviour ------------- */
   flex: 1;
   display: flex;
   flex-direction: column;
 
-  scroll-behavior: smooth;
-  /* overflow-y: auto; */
+  /* FIX: Remove min-height constraints that cause scrolling issues */
+  min-height: auto;
 }
 
 .tab-motif {
   /* Size ------------- */
-  min-width: 0; /* Important for flex container to shrink properly */
+  min-width: 0;
 
   /* Position ------------- */
-  /* top&bottom, right&left */
   margin: 0 15px;
-
-  /* Color ------------- */
 
   /* Behaviour ------------- */
   display: flex;
   flex-direction: row;
   flex-wrap: nowrap;
-  align-items: stretch; /* Changed from center to stretch to maintain tab styling */
+  align-items: stretch;
 }
-
-/* Mobile tab container */
-
-
 
 .post-container {
   /* Size ------------- */
   flex: 1;
-  min-height: 0; /* Important for flex children to respect overflow */
+
+  /* FIX: Allow natural height and remove min-height constraints */
+  min-height: auto;
+  height: auto;
 
   /* Position ------------- */
   z-index: 1;
+  margin-bottom: 7.5px;
 
   /* Color ------------- */
   background: var(--focused);
@@ -364,12 +347,18 @@ watch(activeTabColor, (color) => {
   /* Behaviour ------------- */
   display: flex;
   flex-direction: column;
+
+  /* FIX: Allow natural overflow */
+  overflow: visible;
 }
 
 .post-cards {
   /* Size ------------- */
   flex: 1;
-  min-height: 0;
+
+  /* FIX: Remove min-height constraints and allow natural sizing */
+  min-height: auto;
+  height: auto;
 
   /* Position ------------- */
   padding: 7px;
@@ -381,30 +370,18 @@ watch(activeTabColor, (color) => {
   /* Behaviour ------------- */
   display: flex;
   flex-direction: column;
-  overflow: hidden; /* Prevent nested scrolling */
+
+  /* FIX: Change from hidden to auto to enable scrolling */
+  overflow-y: auto;
+
+  /* FIX: Allow the container to grow naturally */
+  flex-shrink: 0;
 }
 
 /* Logo and Filter --------------------------- */
-.logo-and-filter {
-  /* Size ------------- */
-
-  /* Position ------------- */
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  /* top, right, bottom, left */
-  margin: 0 v-bind(left_right_margin) auto auto;
-
-  /* Color ------------- */
-
-  /* Behaviour ------------- */
-  display: flex;
-  flex-direction: column;
-}
-
 .logo-and-settings {
   /* Size ------------- */
-  height: 70px;
+  /* height: 70px; */
   width: auto;
 
   /* Position ------------- */
@@ -413,52 +390,27 @@ watch(activeTabColor, (color) => {
   right: 0;
   z-index: 10;
 
-  /* top, right, bottom, left */
-  padding: 3em;
-
-  /* Color ------------- */
-  /* background-color: var(--background); */
+  padding: 2em;
+  gap: 10px;
 
   /* Behaviour ------------- */
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   align-items: center;
-}
-
-.blog-logo{
- width: 125px;
- margin-top: -70px;
- margin-left: -40px;
-}
-
-.blog-logo-mobile{
-  position: relative;
-  width: 20vw;
-  right: 11vw;
-  bottom: 13vw;
-
 }
 
 .folder-tab-drop-down-button{
   width: 125px;
   margin-top: -70px;
- margin-left: -40px;
+  margin-left: -40px;
 }
 
 .filter-and-news {
-  /* Size ------------- */
   width: 200px;
-
-  /* Position ------------- */
-  /* top, right, bottom, left */
   margin: 1em 0 auto .5em;
-
-  /* Color ------------- */
   background: color-mix(in oklab, var(--background), var(--focused) 20%);
   border: 7px solid var(--focused);
   border-radius: 15px;
-
-  /* Behaviour ------------- */
   display: flex;
   flex-direction: column;
 }
@@ -474,12 +426,38 @@ watch(activeTabColor, (color) => {
   }
 }
 
+/* FIX: Mobile-specific responsive adjustments */
+@media (max-width: 750px) {
+  .blog-home {
+    /* FIX: Ensure proper mobile scrolling */
+    height: 100vh;
+    overflow-y: auto;
+  }
+
+  .post-view {
+    /* FIX: Allow natural height on mobile */
+    height: auto;
+    min-height: auto;
+    margin: 1em 0.5em;
+  }
+
+  .post-container {
+    /* FIX: Remove height constraints on mobile */
+    height: auto;
+    min-height: auto;
+  }
+
+  .post-cards {
+    /* FIX: Ensure posts can scroll naturally on mobile */
+    overflow-y: visible;
+    flex-shrink: 0;
+  }
+}
+
 .grow {
   display: flex;
   flex-grow: 1;
-  /* background-color: aquamarine; */
 }
-
 
 /* Dropdown Menu Styles */
 .dropdown-menu {
@@ -519,25 +497,13 @@ watch(activeTabColor, (color) => {
   font-weight: bold;
 }
 
-
-/* Prevent dropdown from affecting layout */
 .mobile-tab-container {
-  position: relative; /* Needed for absolute positioning of dropdown */
-
+  position: relative;
   display: flex;
   flex-direction: row;
-
   justify-content: center;
   align-items: center;
-
   flex-shrink: 0;
   margin-bottom: 1vh;
 }
-
 </style>
-
-
-
-
-
-

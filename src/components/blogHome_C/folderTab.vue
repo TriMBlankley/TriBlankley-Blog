@@ -8,7 +8,6 @@ import { defineProps, defineEmits, ref, computed, onMounted, onUnmounted } from 
 import folderTabAccent from "@/assets/uiElements/folderTab.svg";
 import MobileFolderTab from "@/assets/uiElements/MobileFolderTab.svg"
 
-
 // Logic ---------------------------------------------------
 const isMobile = ref(false);
 const windowWidth = ref(window.innerWidth);
@@ -47,6 +46,9 @@ const tabStyle = computed(() => {
   return baseStyle;
 });
 
+// Alt text for accessibility
+const altText = computed(() => `Show only Posts in ${props.title}`);
+
 // Emit the topic to change the site color, and apply filtering
 const emit = defineEmits(['tab-clicked']);
 
@@ -78,7 +80,10 @@ onUnmounted(() => {
   <template v-if="isMobile">
     <div class="folder-tab"
          v-bind:style="tabStyle"
-         @click="handleClick">
+         @click="handleClick"
+         :aria-label="altText"
+         role="button"
+         tabindex="0">
 
       <h1 class="tab-ribbon">
         <div class="tab-text">
@@ -87,7 +92,7 @@ onUnmounted(() => {
       </h1>
 
       <div class="tab-accent flipped">
-        <MobileFolderTab />
+        <MobileFolderTab class="svg" :aria-hidden="true" />
       </div>
     </div> <!-- folderTab Mobile -->
   </template>
@@ -96,10 +101,13 @@ onUnmounted(() => {
 
     <div class="folder-tab"
         v-bind:style="tabStyle"
-        @click="handleClick">
+        @click="handleClick"
+        :aria-label="altText"
+        role="button"
+        tabindex="0">
       <!-- top, right, bottom, left -->
       <div class="tab-accent">
-        <folderTabAccent />
+        <folderTabAccent class="svg" :aria-hidden="true" />
       </div>
 
       <h1 class="tab-ribbon">
@@ -109,7 +117,7 @@ onUnmounted(() => {
       </h1>
 
       <div class="tab-accent flipped">
-        <folderTabAccent />
+        <folderTabAccent class="svg" :aria-hidden="true" />
       </div>
     </div> <!-- folderTab -->
   </template>
@@ -118,7 +126,7 @@ onUnmounted(() => {
 <style scoped>
 .folder-tab {
   /* Size ------------- */
-  height: 2.5rem;
+  height: 2.3rem;
   min-width: 0;
 
   /* Position ------------- */
@@ -161,6 +169,9 @@ onUnmounted(() => {
 .tab-accent :deep(svg) {
   height: 100%; /* Make SVG fill the accent container height */
   width: auto; /* Maintain aspect ratio */
+  /* iOS Chrome fixes */
+  transform: translateZ(0); /* Force hardware acceleration */
+  -webkit-transform: translateZ(0); /* Safari/iOS specific */
 }
 
 .tab-ribbon {
@@ -203,6 +214,14 @@ onUnmounted(() => {
 
 }
 
+/* iOS Chrome specific fixes */
+@supports (-webkit-touch-callout: none) {
+  .tab-accent :deep(svg) {
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+  }
+}
+
 @media (min-width: 768px) {
 
   .folder-tab {
@@ -221,6 +240,4 @@ onUnmounted(() => {
     margin: 0 0 -1.5px -1px;
   }
 }
-
-
 </style>
