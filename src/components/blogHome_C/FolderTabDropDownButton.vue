@@ -2,7 +2,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
 
-import ClassPopOutButton from "@/assets/uiElements/ClassPopOutButton.svg"
+import ClassPopOutButton from "@/assets/uiElements/classPopOutButton.svg"
 
 const emit = defineEmits(['click']);
 

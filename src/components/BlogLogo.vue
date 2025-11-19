@@ -2,7 +2,7 @@
 import { useRoute, useRouter } from 'vue-router'
 import { ref, onMounted, onUnmounted } from 'vue'
 
-import WebsiteLogo from "@/assets/uiElements/WebsiteLogo.svg"
+import WebsiteLogo from "@/assets/uiElements/blogLogo.svg"
 
 const router = useRouter()
 const route = useRoute()

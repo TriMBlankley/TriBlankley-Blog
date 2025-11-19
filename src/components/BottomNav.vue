@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import nextPostInGroup from "@/assets/uiElements/NextPostInGroup.svg";
-import nextPostInTopic from "@/assets/uiElements/NextPostInTopic.svg";
-import Arrow from "@/assets/uiElements/upDownArrow.svg";
+import nextPostInGroup from "@/assets/uiElements/nextPostInGroup.svg";
+import nextPostInTopic from "@/assets/uiElements/nextPostInTopic.svg";
+import Arrow from "@/assets/uiElements/leftRightArrow.svg";
 
 import ThemeToggle from '@/components/Settings_C/ThemeToggle.vue';
 import { ref, onMounted, onUnmounted } from 'vue';
@@ -26,24 +26,145 @@ const isHoveringTopic = ref(false);
 const isHoveringGroup = ref(false);
 const isHoveringScrollToTop = ref(false);
 const isHoveringTheme = ref(false);
-// const tooltipPosition = ref({ x: 0, y: 0 });
 const currentTooltip = ref('');
 const isTouchDevice = ref(false);
 const activeTooltip = ref('');
 const tooltipTimer = ref<number | null>(null);
-// At the top with your other refs, add:
 const tooltipPosition = ref({ x: -1000, y: -1000 }); // Start off-screen
 
-// Detect touch device
+// New state for pull-up functionality
+const isPulledUp = ref(false);
+const touchStartTime = ref(0);
+const touchCount = ref(0);
+
+// New state for hint dismissal
+const showHint = ref(true);
+
+// Detect touch device and check cookies
 onMounted(() => {
   isTouchDevice.value = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+
+  // Check if user has dismissed the hint
+  checkHintDismissal();
+
+  // Add event listeners for pull-up functionality
+  setupPullUpListeners();
 });
 
 onUnmounted(() => {
   if (tooltipTimer.value) {
     clearTimeout(tooltipTimer.value);
   }
+  cleanupPullUpListeners();
 });
+
+// Cookie management functions
+const checkHintDismissal = () => {
+  const dismissed = getCookie('bottomNavHintDismissed');
+  showHint.value = dismissed !== 'true';
+};
+
+const setHintDismissed = () => {
+  // Set cookie to expire in 1 year
+  const date = new Date();
+  date.setFullYear(date.getFullYear() + 1);
+  document.cookie = `bottomNavHintDismissed=true; expires=${date.toUTCString()}; path=/`;
+  showHint.value = false;
+};
+
+const getCookie = (name: string): string | null => {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop()?.split(';').shift() || null;
+  return null;
+};
+
+const clearHintDismissal = () => {
+  document.cookie = 'bottomNavHintDismissed=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+  showHint.value = true;
+};
+
+const setupPullUpListeners = () => {
+  if (isTouchDevice.value) {
+    // Mobile: two-finger tap
+    document.addEventListener('touchstart', handleTouchStart);
+    document.addEventListener('touchend', handleTouchEnd);
+  } else {
+    // Desktop: right click
+    document.addEventListener('contextmenu', handleContextMenu);
+  }
+
+  // Add scroll listener to push down when scrolling
+  document.addEventListener('scroll', handleScroll, { passive: true });
+};
+
+const cleanupPullUpListeners = () => {
+  if (isTouchDevice.value) {
+    document.removeEventListener('touchstart', handleTouchStart);
+    document.removeEventListener('touchend', handleTouchEnd);
+  } else {
+    document.removeEventListener('contextmenu', handleContextMenu);
+  }
+
+  document.removeEventListener('scroll', handleScroll);
+};
+
+// Mobile two-finger tap handlers
+const handleTouchStart = (event: TouchEvent) => {
+  // Don't trigger if touching a button or interactive element
+  const target = event.target as HTMLElement;
+  if (target.closest('button') || target.closest('a') || target.closest('.nav-btn') || target.closest('.hint-close-btn')) {
+    return;
+  }
+
+  touchCount.value = event.touches.length;
+  touchStartTime.value = Date.now();
+};
+
+const handleTouchEnd = (event: TouchEvent) => {
+  // Check if this was a two-finger tap
+  if (touchCount.value === 2 && event.touches.length === 0) {
+    const touchDuration = Date.now() - touchStartTime.value;
+
+    // Consider it a tap if it was quick (less than 500ms)
+    if (touchDuration < 500) {
+      togglePullUp();
+    }
+  }
+
+  // Reset touch tracking
+  touchCount.value = 0;
+  touchStartTime.value = 0;
+};
+
+// Desktop right click handler
+const handleContextMenu = (event: MouseEvent) => {
+  // Don't trigger if right-clicking on interactive elements
+  const target = event.target as HTMLElement;
+  if (target.closest('button') || target.closest('a') || target.closest('.nav-btn') || target.closest('.hint-close-btn')) {
+    return;
+  }
+
+  event.preventDefault();
+  togglePullUp();
+};
+
+// Scroll handler to push down the nav
+const handleScroll = () => {
+  if (isPulledUp.value) {
+    // Push down after a short delay when scrolling starts
+    if (tooltipTimer.value) {
+      clearTimeout(tooltipTimer.value);
+    }
+    tooltipTimer.value = window.setTimeout(() => {
+      isPulledUp.value = false;
+    }, 300);
+  }
+};
+
+const togglePullUp = () => {
+  isPulledUp.value = !isPulledUp.value;
+};
 
 const updateTooltipPosition = (event: MouseEvent | TouchEvent, tooltipType: string) => {
   const clientX = 'touches' in event ? event.touches[0].clientX : event.clientX;
@@ -147,11 +268,11 @@ const hideTooltip = (tooltipType: string) => {
   }
 };
 
-const handleTouchStart = (event: TouchEvent, tooltipType: string) => {
+const handleTouchStartButton = (event: TouchEvent, tooltipType: string) => {
   showTooltip(event, tooltipType);
 };
 
-const handleTouchEnd = (tooltipType: string) => {
+const handleTouchEndButton = (tooltipType: string) => {
   hideTooltip(tooltipType);
 };
 
@@ -197,18 +318,18 @@ const shouldShowTooltip = (tooltipType: string) => {
 </script>
 
 <template>
-  <div class="bottom-nav">
+  <div class="bottom-nav" :class="{ 'pulled-up': isPulledUp }">
     <button class="nav-btn large-btn" @click="emit('scroll-to-top')"
       @mouseenter="(e) => showTooltip(e, 'scroll-to-top')" @mouseleave="() => hideTooltip('scroll-to-top')"
       @mousemove="(e) => updateTooltipPosition(e, 'scroll-to-top')"
-      @touchstart="(e) => handleTouchStart(e, 'scroll-to-top')" @touchend="() => handleTouchEnd('scroll-to-top')"
-      aria-label="Scroll to top" alt="Scroll to top">
-      <Arrow class="btn-icon" />
+      @touchstart="(e) => handleTouchStartButton(e, 'scroll-to-top')"
+      @touchend="() => handleTouchEndButton('scroll-to-top')" aria-label="Scroll to top" alt="Scroll to top">
+      <Arrow class="btn-icon rotate-90-left" />
     </button>
 
     <button class="nav-btn large-btn" @mouseenter="(e) => showTooltip(e, 'theme')"
       @mouseleave="() => hideTooltip('theme')" @mousemove="(e) => updateTooltipPosition(e, 'theme')"
-      @touchstart="(e) => handleTouchStart(e, 'theme')" @touchend="() => handleTouchEnd('theme')"
+      @touchstart="(e) => handleTouchStartButton(e, 'theme')" @touchend="() => handleTouchEndButton('theme')"
       aria-label="Toggle theme" alt="Toggle theme">
       <ThemeToggle />
     </button>
@@ -220,15 +341,17 @@ const shouldShowTooltip = (tooltipType: string) => {
         <button class="nav-btn short" @click="emit('previous-topic')" :disabled="!hasPreviousTopic"
           @mouseenter="(e) => showTooltip(e, 'previous-topic')" @mouseleave="() => hideTooltip('previous-topic')"
           @mousemove="(e) => updateTooltipPosition(e, 'previous-topic')"
-          @touchstart="(e) => handleTouchStart(e, 'previous-topic')" @touchend="() => handleTouchEnd('previous-topic')"
-          aria-label="Previous post in category" alt="Previous post in category">
+          @touchstart="(e) => handleTouchStartButton(e, 'previous-topic')"
+          @touchend="() => handleTouchEndButton('previous-topic')" aria-label="Previous post in category"
+          alt="Previous post in category">
           <nextPostInTopic class="btn-icon flipped short" />
         </button>
         <button class="nav-btn short" @click="emit('next-topic')" :disabled="!hasNextTopic"
           @mouseenter="(e) => showTooltip(e, 'next-topic')" @mouseleave="() => hideTooltip('next-topic')"
           @mousemove="(e) => updateTooltipPosition(e, 'next-topic')"
-          @touchstart="(e) => handleTouchStart(e, 'next-topic')" @touchend="() => handleTouchEnd('next-topic')"
-          aria-label="Next post in category" alt="Next post in category">
+          @touchstart="(e) => handleTouchStartButton(e, 'next-topic')"
+          @touchend="() => handleTouchEndButton('next-topic')" aria-label="Next post in category"
+          alt="Next post in category">
           <nextPostInTopic class="btn-icon short" />
         </button>
       </div>
@@ -237,15 +360,16 @@ const shouldShowTooltip = (tooltipType: string) => {
         <button class="nav-btn short" @click="emit('previous-group')" :disabled="!hasPreviousGroup"
           @mouseenter="(e) => showTooltip(e, 'previous-group')" @mouseleave="() => hideTooltip('previous-group')"
           @mousemove="(e) => updateTooltipPosition(e, 'previous-group')"
-          @touchstart="(e) => handleTouchStart(e, 'previous-group')" @touchend="() => handleTouchEnd('previous-group')"
-          aria-label="Previous post in group" alt="Previous post in group">
+          @touchstart="(e) => handleTouchStartButton(e, 'previous-group')"
+          @touchend="() => handleTouchEndButton('previous-group')" aria-label="Previous post in group"
+          alt="Previous post in group">
           <nextPostInGroup class="btn-icon flipped short" />
         </button>
         <button class="nav-btn short" @click="emit('next-group')" :disabled="!hasNextGroup"
           @mouseenter="(e) => showTooltip(e, 'next-group')" @mouseleave="() => hideTooltip('next-group')"
           @mousemove="(e) => updateTooltipPosition(e, 'next-group')"
-          @touchstart="(e) => handleTouchStart(e, 'next-group')" @touchend="() => handleTouchEnd('next-group')"
-          aria-label="Next post in group" alt="Next post in group">
+          @touchstart="(e) => handleTouchStartButton(e, 'next-group')"
+          @touchend="() => handleTouchEndButton('next-group')" aria-label="Next post in group" alt="Next post in group">
           <nextPostInGroup class="btn-icon short" />
         </button>
       </div>
@@ -258,6 +382,20 @@ const shouldShowTooltip = (tooltipType: string) => {
     }">
       {{ getTooltipText(currentTooltip) }}
     </div>
+  </div>
+
+  <!-- Hint message with close button -->
+  <div v-if="showHint && !isPulledUp" class="hint-message" :class="{ 'mobile-hint': isTouchDevice }">
+    <span class="hint-text">
+      {{ isTouchDevice ? 'Two-finger tap anywhere to pull up navigation' : 'Right-click anywhere to pull up navigation'
+      }}
+    </span>
+    <button class="hint-close-btn" @click="setHintDismissed" aria-label="Dismiss hint">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+        <path
+          d="M14.7,1.3c-0.4-0.4-1-0.4-1.4,0L8,6.6L2.7,1.3c-0.4-0.4-1-0.4-1.4,0s-0.4,1,0,1.4L6.6,8l-5.3,5.3c-0.4,0.4-0.4,1,0,1.4 C1.5,14.9,1.7,15,2,15s0.5-0.1,0.7-0.3L8,9.4l5.3,5.3c0.2,0.2,0.5,0.3,0.7,0.3s0.5-0.1,0.7-0.3c0.4-0.4,0.4-1,0-1.4L9.4,8l5.3-5.3 C15.1,2.3,15.1,1.7,14.7,1.3z" />
+      </svg>
+    </button>
   </div>
 </template>
 
@@ -280,6 +418,23 @@ const shouldShowTooltip = (tooltipType: string) => {
   flex-direction: row;
   align-items: center;
   position: relative;
+
+  /* Default position - at bottom of content */
+  margin-top: 20px;
+  transition: transform 0.3s ease, position 0.3s ease;
+}
+
+/* Pulled up state - fixed at bottom of viewport */
+.bottom-nav.pulled-up {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 40px);
+  max-width: 950px;
+  z-index: 1000;
+  margin-top: 0;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
 }
 
 .nav-btn {
@@ -301,7 +456,6 @@ const shouldShowTooltip = (tooltipType: string) => {
 .nav-btn.short {
   height: auto;
 }
-
 
 /* Larger buttons for scroll-to-top and theme */
 .nav-btn.large-btn {
@@ -332,6 +486,10 @@ const shouldShowTooltip = (tooltipType: string) => {
   transform: scaleX(-1);
 }
 
+.btn-icon.rotate-90-left {
+  transform: rotate(-90deg);
+}
+
 .column {
   width: auto;
   display: flex;
@@ -339,7 +497,6 @@ const shouldShowTooltip = (tooltipType: string) => {
   flex-wrap: nowrap;
   gap: 2px;
 }
-
 
 .row {
   display: flex;
@@ -383,5 +540,79 @@ h3 {
   font-size: 16px;
   padding: 10px 14px;
   border-width: 3px;
+}
+
+/* Hint message styles */
+.hint-message {
+  position: fixed;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--focused);
+  color: var(--text);
+  padding: 8px 12px 8px 16px;
+  border-radius: 6px;
+  font-size: 12px;
+  opacity: 0.9;
+  z-index: 999;
+  transition: opacity 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  max-width: 90%;
+  pointer-events: auto;
+}
+
+.hint-message.mobile-hint {
+  font-size: 11px;
+  padding: 10px 12px 10px 16px;
+}
+
+.hint-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hint-close-btn {
+  background: none;
+  border: none;
+  color: var(--text);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.7;
+  transition: opacity 0.2s ease, background-color 0.2s ease;
+  flex-shrink: 0;
+}
+
+.hint-close-btn:hover {
+  opacity: 1;
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+.hint-close-btn:active {
+  background-color: rgba(255, 255, 255, 0.3);
+}
+
+/* Responsive adjustments */
+@media (max-width: 480px) {
+  .hint-message {
+    font-size: 11px;
+    padding: 10px 12px 10px 14px;
+  }
+
+  .hint-close-btn {
+    padding: 3px;
+  }
+
+  .hint-close-btn svg {
+    width: 14px;
+    height: 14px;
+  }
 }
 </style>

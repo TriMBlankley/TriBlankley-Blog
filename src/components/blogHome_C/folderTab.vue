@@ -6,7 +6,7 @@ import { defineProps, defineEmits, ref, computed, onMounted, onUnmounted } from 
 
 //SVG imports
 import folderTabAccent from "@/assets/uiElements/folderTab.svg";
-import MobileFolderTab from "@/assets/uiElements/MobileFolderTab.svg"
+import MobileFolderTab from "@/assets/uiElements/mobileFolderTab.svg"
 
 // Logic ---------------------------------------------------
 const isMobile = ref(false);

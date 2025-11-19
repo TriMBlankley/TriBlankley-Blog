@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { useTheme } from '@/composables/useTheme';
 
-import LightMode from "@/assets/uiElements/LightMode.svg";
-import DarkMode from "@/assets/uiElements/DarkMode.svg";
+import LightMode from "@/assets/uiElements/lightMode.svg";
+import DarkMode from "@/assets/uiElements/darkMode.svg";
 
 const { isDarkMode, toggleTheme } = useTheme();
 </script>

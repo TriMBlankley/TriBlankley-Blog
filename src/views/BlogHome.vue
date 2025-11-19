@@ -12,7 +12,7 @@ import BlogLogo from '@/components/BlogLogo.vue';
 import FolderTabDropDownButton from '@/components/blogHome_C/FolderTabDropDownButton.vue';
 
 //SVG imports
-import HomeNav from '@/components/blogHome_C/homeNav.vue';
+import BottomNav from '@/components/BottomNav.vue';
 
 // Navigation functions
 const scrollToTop = () => {
@@ -263,7 +263,7 @@ watch(activeTabColor, (color) => {
             @click-post="handlePostClick"
           />
         </div>
-        <HomeNav
+        <BottomNav
           @scroll-to-top="scrollToTop"
         />
       </div>
@@ -343,6 +343,7 @@ watch(activeTabColor, (color) => {
   background: var(--focused);
   border: 7px solid var(--focused);
   border-radius: 15px;
+
 
   /* Behaviour ------------- */
   display: flex;
@@ -506,4 +507,5 @@ watch(activeTabColor, (color) => {
   flex-shrink: 0;
   margin-bottom: 1vh;
 }
+
 </style>
