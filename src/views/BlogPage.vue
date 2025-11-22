@@ -6,14 +6,101 @@ import "@/assets/base.css"
 
 
 import PostTitle from '@/components/BlogPost_C/PostTitle.vue'
-import BottomNav from '@/components/BlogPost_C/BottomNav.vue'
+import BottomNav from '@/components/BottomNav.vue'
 import MarkdownRenderer from '@/components/BlogPost_C/MarkdownRenderer.vue'
 import GalleryRenderer from '@/components/BlogPost_C/GalleryRenderer.vue'
 import AttachmentHandler from '@/components/BlogPost_C/AttachmentHandler.vue'
+import SettingsCog from '@/components/Settings_C/settingsCog.vue';
 
 
 const router = useRouter()
 const route = useRoute()
+
+// Add topic color state
+const topicColor = ref('var(--cd-blue)') // Default color
+
+// ... existing interface and refs ...
+
+// Function to fetch topic color
+const fetchTopicColor = async () => {
+  if (!postData.value?.postTopics?.length) {
+    console.log('❌ No post topics found for current post')
+    topicColor.value = 'var(--cd-blue)' // Use default if no topics
+    return
+  }
+
+  try {
+    console.log('🎨 Fetching topic color for topics:', postData.value.postTopics)
+
+    // Fetch all topics to find the matching color
+    const response = await fetch('/api/topics')
+    if (!response.ok) throw new Error('Failed to fetch topics')
+
+    const allTopics = await response.json()
+    console.log('📋 All topics:', allTopics)
+
+    // Find the first matching topic from the post's topics
+    const matchingTopic = allTopics.find((topic: any) =>
+      postData.value?.postTopics.includes(topic.topicName)
+    )
+
+    if (matchingTopic) {
+      topicColor.value = matchingTopic.topicColor
+      console.log('✅ Found matching topic color:', matchingTopic.topicColor)
+    } else {
+      // If no matching topic found, use the first topic's color or default
+      topicColor.value = allTopics.length > 0 ? allTopics[0].topicColor : 'var(--cd-blue)'
+      console.log('⚠️ No exact topic match, using fallback color:', topicColor.value)
+    }
+
+    // Apply the color to CSS custom property
+    document.documentElement.style.setProperty('--focused', topicColor.value)
+
+  } catch (error) {
+    console.error('❌ Error fetching topic color:', error)
+    topicColor.value = 'var(--cd-blue)' // Fallback to default
+    document.documentElement.style.setProperty('--focused', topicColor.value)
+  }
+}
+
+// Update fetchPost to also fetch topic color
+const fetchPost = async () => {
+  try {
+    isLoading.value = true
+    error.value = null
+
+    const response = await fetch(`/api/posts/${route.params.id}`)
+    if (!response.ok) {
+      if (response.status === 404) {
+        throw new Error('Post not found')
+      }
+      throw new Error(`Failed to load post: ${response.statusText}`)
+    }
+
+    postData.value = await response.json()
+    console.log('📄 Post data loaded:', postData.value)
+
+    if (postData.value && !postData.value.isPublished) {
+      error.value = 'This post is not published yet'
+      return
+    }
+
+    // Fetch topic color first, then other data
+    await fetchTopicColor()
+    await Promise.all([fetchTopicPosts(), fetchGroupPosts()])
+
+  } catch (err) {
+    console.error('Error loading post:', err)
+    error.value = err instanceof Error ? err.message : 'Unknown error occurred'
+  } finally {
+    isLoading.value = false
+  }
+}
+
+// Watch for topic color changes and update CSS
+watch(topicColor, (newColor) => {
+  document.documentElement.style.setProperty('--focused', newColor)
+})
 
 interface PostData {
   postId: number
@@ -213,37 +300,7 @@ const downloadFile = async (fileId: string, filename: string) => {
   }
 }
 
-// Fetch post data
-const fetchPost = async () => {
-  try {
-    isLoading.value = true
-    error.value = null
 
-    const response = await fetch(`/api/posts/${route.params.id}`)
-    if (!response.ok) {
-      if (response.status === 404) {
-        throw new Error('Post not found')
-      }
-      throw new Error(`Failed to load post: ${response.statusText}`)
-    }
-
-    postData.value = await response.json()
-    console.log('📄 Post data loaded:', postData.value)
-    console.log('🎵 Audio files found:', audioFiles.value)
-
-    if (postData.value && !postData.value.isPublished) {
-      error.value = 'This post is not published yet'
-      return
-    }
-
-    await Promise.all([fetchTopicPosts(), fetchGroupPosts()])
-  } catch (err) {
-    console.error('Error loading post:', err)
-    error.value = err instanceof Error ? err.message : 'Unknown error occurred'
-  } finally {
-    isLoading.value = false
-  }
-}
 
 onMounted(async () => {
   await fetchPost()
@@ -258,7 +315,7 @@ watch(() => route.params.id, async (newId) => {
 </script>
 
 <template>
-  <div class="blog-page" :style="{'--focused': topicColor}">
+  <div class="blog-page" :style="{ '--focused': topicColor }">
 
 
     <template v-if="isLoading">
@@ -277,49 +334,32 @@ watch(() => route.params.id, async (newId) => {
     </template>
 
     <template v-else-if="postData">
-      <PostTitle
-        :postTitle="postData.postTitle"
-        :postAuthor="postData.postAuthor"
-        :postDate="postData.postDate"
-      />
+      <PostTitle :postTitle="postData.postTitle" :postAuthor="postData.postAuthor" :postDate="postData.postDate" />
+
 
       <div class="separator"></div>
 
       <!-- Main content area -->
       <div class="content-container">
         <!-- Markdown content with inline audio widgets -->
-        <MarkdownRenderer
-          :postContent="postData.postContent"
-          :attachedFiles="postData.attachedFiles"
-        >
+        <MarkdownRenderer :postContent="postData.postContent" :attachedFiles="postData.attachedFiles">
           <!-- Audio widgets are now rendered inline within the markdown content -->
         </MarkdownRenderer>
 
         <!-- Image gallery -->
-        <GalleryRenderer
-          v-if="postData.showGalleryView"
-          :attachedFiles="postData.attachedFiles"
-          @download-file="downloadFile"
-        />
+        <GalleryRenderer v-if="postData.showGalleryView" :attachedFiles="postData.attachedFiles"
+          @download-file="downloadFile" />
 
         <!-- Attached files (non-image, non-audio) -->
-        <AttachmentHandler
-          :attachedFiles="postData.attachedFiles"
-          @download-file="downloadFile"
-        />
+        <AttachmentHandler :attachedFiles="postData.attachedFiles" @download-file="downloadFile" />
       </div>
 
-      <BottomNav
-        :has-previous-topic="hasPreviousTopicPost"
-        :has-next-topic="hasNextTopicPost"
-        :has-previous-group="hasPreviousGroupPost"
-        :has-next-group="hasNextGroupPost"
-        @scroll-to-top="scrollToTop"
-        @previous-topic="goToPreviousTopicPost"
-        @next-topic="goToNextTopicPost"
-        @previous-group="goToPreviousGroupPost"
-        @next-group="goToNextGroupPost"
-      />
+      <!-- In the template section, update the BottomNav usage: -->
+      <BottomNav :has-previous-topic="hasPreviousTopicPost" :has-next-topic="hasNextTopicPost"
+        :has-previous-group="hasPreviousGroupPost" :has-next-group="hasNextGroupPost" :show-navigation-buttons="true"
+        :show-scroll-to-top="true" :show-theme-toggle="true" @scroll-to-top="scrollToTop"
+        @previous-topic="goToPreviousTopicPost" @next-topic="goToNextTopicPost" @previous-group="goToPreviousGroupPost"
+        @next-group="goToNextGroupPost" />
     </template>
   </div>
 </template>
@@ -352,7 +392,8 @@ watch(() => route.params.id, async (newId) => {
 }
 
 /* Loading and error states */
-.loading-state, .error-state {
+.loading-state,
+.error-state {
   text-align: center;
   padding: 40px 20px;
 }
@@ -368,8 +409,13 @@ watch(() => route.params.id, async (newId) => {
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 .error-state h2 {
@@ -398,3 +444,4 @@ watch(() => route.params.id, async (newId) => {
 
 /* Remove the old audio section styles since audio widgets are now inline */
 </style>
+

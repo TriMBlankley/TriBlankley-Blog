@@ -1,7 +1,7 @@
 <script setup lang="ts">
 
-import { computed } from 'vue';
 import { useRouter } from 'vue-router';
+import { defineProps, defineEmits, ref, computed, onMounted, onUnmounted } from 'vue';
 
 // Content type svg's
 import filePostSVG from "@/assets/uiElements/filePost.svg";
@@ -148,168 +148,254 @@ const groupColorStyle = computed(() => {
   };
 });
 
+
+// Logic ---------------------------------------------------
+const isMobile = ref(false);
+const windowWidth = ref(window.innerWidth);
+
+const checkScreenSize = () => {
+  windowWidth.value = window.innerWidth;
+  isMobile.value = windowWidth.value < 750;
+};
+
+
+
+
+
+
+// Lifecycle hooks
+onMounted(() => {
+  // Initialize responsive state
+  checkScreenSize();
+  window.addEventListener('resize', checkScreenSize);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('resize', checkScreenSize);
+});
+
 </script>
 
 <template>
-  <div class="post" @click="navigateToPost" role="button" tabindex="0">
-    <div class="postIcon" :class="{ 'has-image': hasImage }" :style="postIconStyle">
-      <component v-if="shouldShowSVG" :is="contentTypeSVG" class="content-type-svg" />
+  <template v-if="isMobile">
+    <div class="post" @click="navigateToPost" role="button" tabindex="0">
 
-    </div>
+      <template v-if="!hasImage">
+      <div class="post-descriptor">
+        <div class="post-header">
 
-    <div class="postDescriptor">
-      <div class="post-header">
-        <h1>{{ post.postTitle }}</h1>
+          <h1>{{ post.postTitle }}</h1>
 
-        <div class="post-meta">
-          <span>By {{ post.postAuthor.join(', ') }}</span>
-          <span>{{ post.postDate }}</span>
         </div>
-        <!-- <div v-if="hasGroup" class="group-indicator" :style="groupColorStyle"></div> -->
+        <div class="post-meta">
+          <div class="grow"></div>
+          <span>By {{ post.postAuthor.join(', ') }}</span>
+        </div>
+
+        <p style="overflow: hidden;">
+          {{ truncatedContent }}
+        </p>
+
+        <component v-if="shouldShowSVG" :is="contentTypeSVG" class="content-type-svg no-image" />
+
+      </div>
+      </template>
+
+
+      <template v-if="hasImage">
+      <div class="postIcon" :class="{ 'has-image': hasImage }" :style="postIconStyle">
+        <div class="grow"></div>
+        <component v-if="shouldShowSVG" :is="contentTypeSVG" class="content-type-svg has-image" />
 
       </div>
 
-      <p style="overflow: hidden;">
-        {{ truncatedContent }}
-      </p>
+      <div class="post-descriptor">
+        <div class="post-header">
+          <h1>{{ post.postTitle }}</h1>
+        </div>
+        <div class="post-meta">
+          <div class="grow"></div>
+          <span>By {{ post.postAuthor.join(', ') }}</span>
+        </div>
+
+        <p style="overflow: hidden;">
+          {{ truncatedContent }}
+        </p>
+      </div>
+      </template>
     </div>
-  </div>
+  </template>
+
+
+  <template v-else>
+    <div class="post" @click="navigateToPost" role="button" tabindex="0">
+
+      <div class="postIcon" :class="{ 'has-image': hasImage }" :style="postIconStyle">
+
+        <component v-if="shouldShowSVG" :is="contentTypeSVG" class="content-type-svg" />
+
+      </div>
+
+      <div class="post-descriptor">
+        <div class="post-header">
+          <h1>{{ post.postTitle }}</h1>
+
+          <div class="post-meta">
+            <span>By {{ post.postAuthor.join(', ') }}</span>
+            <span>{{ post.postDate }}</span>
+          </div>
+          <!-- <div v-if="hasGroup" class="group-indicator" :style="groupColorStyle"></div> -->
+
+        </div>
+
+        <p style="overflow: hidden;">
+          {{ truncatedContent }}
+        </p>
+      </div>
+    </div>
+  </template>
 </template>
 
 <style scoped>
 .post {
   /* Size ------------- */
-  max-height: 166px;
+  max-height: 300px;
+  height: 300px; /* Add fixed height for consistency */
 
   /* Position ------------- */
   margin: 5px;
 
   /* Color ------------- */
   background-color: color-mix(in oklab, var(--background), var(--focused) 80%);
-
   border: 5px solid;
   border-color: color-mix(in oklab, var(--background), var(--focused) 80%);
   border-radius: 5px;
 
   /* Behaviour ------------- */
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   cursor: pointer;
+  overflow: hidden; /* Add this to contain all content */
 }
 
-.postDescriptor {
+.post-descriptor {
+  position: relative; /* For SVG positioning */
+
   /* Behaviour ------------- */
   display: flex;
   flex-direction: column;
   background-color: var(--background);
-  border-radius: 5px;
+  border-radius: 2.5px;
   border: none;
   padding: 7px;
   width: 100%;
+  height: 100%; /* Ensure it takes full height */
+  box-sizing: border-box; /* Include padding in height calculation */
+  overflow: hidden; /* Contain content */
 }
 
-.post-header {
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
-  /* justify-content: space-between; */
-  align-items: flex-start;
-  gap: 10px;
-}
-
-.post-header h1 {
+.post-descriptor p {
+  overflow: hidden;
   margin: 0;
-  flex: 1;
-
-}
-
-.content-type-badge {
-  background: var(--accent-light);
-  color: var(--accent);
-  padding: 4px 8px;
-  border-radius: 12px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.postIcon {
-  margin-right: 5px;
-  display: flex;
-  width: 10em;
-  height: 12em;
-  align-items: center;
-  justify-content: center;
-  min-width: 60px; /* Adjust as needed */
-  min-height: 60px; /* Adjust as needed */
-  background-color: var(--background);
-  border-radius: 5px;
-  position: relative; /* Added for group indicator positioning */
+  flex: 1; /* Allow paragraph to grow and take available space */
+  position: relative; /* Ensure proper stacking context */
+  z-index: 1; /* Text should be above SVG background but below the icon */
 }
 
 .content-type-svg {
-  height: 100%;
-  margin: 1em auto;
-  width: 7.5em;
+  height: 3.5em;
+  width: 3.5em;
   max-width: 90%;
+  background-color: var(--focused);
+  padding: 5px;
+  border-radius: 2.5px;
+
+  pointer-events: none; /* Allow clicks to pass through to underlying elements */
 }
 
-/* Group indicator styles */
-.group-indicator {
-  margin: auto 5px auto auto;
-  width: 20px;
-  height: 80%;
-  border-radius: 5px;
-  border: 2px solid color-mix(in oklab, var(--background), transparent 50%);
-
-  z-index: 3; /* Ensure it appears above the overlay and SVG */
-}
-
-/* Styles only applied when post has an image */
-.postIcon.has-image {
-  position: relative;
-  border-radius: 5px;
-  overflow: hidden;
-}
-
-.postIcon.has-image::before {
-  content: '';
+.content-type-svg.no-image {
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: color-mix(in oklab, var(--background), transparent 60%); /* Dark overlay for better SVG visibility */
-  z-index: 1;
+  bottom: 10px;
+  right: 10px;
+  z-index: 2; /* Above text but below interactive elements */
+
 }
 
-.postIcon.has-image .content-type-svg {
+.content-type-svg.has-image {
+  z-index: 2; /* Above text but below interactive elements */
+  margin: 5px;
+}
+
+
+/* For posts with images - ensure consistent height */
+.postIcon {
+  margin-bottom: 5px;
+  display: flex;
+  flex-direction: row;
+  box-sizing: border-box;
+  align-items: flex-start;
+  justify-content: center;
+  min-width: 60px;
+  min-height: 90px;
+  max-height: 120px; /* Limit image height */
+  background-color: var(--background);
+  border-radius: 2.5px;
   position: relative;
-  z-index: 2;
-  filter: brightness(1.2); /* Improve SVG visibility on dark backgrounds */
+  padding: 5px;
+  overflow: hidden; /* Contain image */
 }
 
-.post-meta {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  font-size: 0.875rem;
-  color: var(--text-offset);
-  margin: 0.25rem 0;
+/* Desktop layout */
+@media (min-width: 768px) {
+  .post {
+    max-height: 166px;
+    height: 166px; /* Fixed height for desktop */
+    display: flex;
+    flex-direction: row;
+  }
+
+  .postIcon {
+    margin-right: 5px;
+    margin-bottom: 0;
+    display: flex;
+    width: 10em;
+    height: 100%; /* Take full height of post */
+    min-height: auto;
+    max-height: none; /* Remove max-height constraint */
+    align-items: center;
+    justify-content: center;
+    min-width: 60px;
+    background-color: var(--background);
+    position: relative;
+    flex-shrink: 0; /* Prevent image area from shrinking */
+  }
+
+  .post-descriptor {
+    flex: 1; /* Take remaining space */
+    min-height: 0; /* Allow shrinking */
+  }
+
+  .content-type-svg:not(.no-image) {
+    height: 100%;
+    width: 7.5em;
+    max-width: 90%;
+  }
 }
 
-.post-topics {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-top: 0.5rem;
-}
+/* Mobile layout adjustments */
+@media (min-width: 767px) {
+  .post {
+    height: 150px; /* Allow natural height on mobile */
+  }
 
-.topic-tag {
-  padding: 0.25rem 0.5rem;
-  background: var(--accent-light);
-  color: var(--accent);
-  border-radius: 4px;
-  font-size: 0.75rem;
+  /* For mobile posts with images, ensure image doesn't dominate */
+  .postIcon {
+    max-height: 150px; /* Reasonable max height for mobile images */
+    flex-shrink: 0; /* Prevent image from shrinking */
+  }
+
+  .content-type-svg {
+    background-color: transparent;
+  }
 }
 </style>

@@ -6,12 +6,20 @@ import Arrow from "@/assets/uiElements/leftRightArrow.svg";
 import ThemeToggle from '@/components/Settings_C/ThemeToggle.vue';
 import { ref, onMounted, onUnmounted } from 'vue';
 
-defineProps<{
+// Define props with default values in a single call
+const props = withDefaults(defineProps<{
   hasPreviousTopic: boolean
   hasNextTopic: boolean
   hasPreviousGroup: boolean
   hasNextGroup: boolean
-}>()
+  showNavigationButtons?: boolean
+  showScrollToTop?: boolean
+  showThemeToggle?: boolean
+}>(), {
+  showNavigationButtons: false,
+  showScrollToTop: true,
+  showThemeToggle: true
+})
 
 const emit = defineEmits<{
   'scroll-to-top': []
@@ -21,6 +29,7 @@ const emit = defineEmits<{
   'next-group': []
 }>()
 
+// ... rest of the existing script code remains the same ...
 // Reactive state for hover tracking
 const isHoveringTopic = ref(false);
 const isHoveringGroup = ref(false);
@@ -167,6 +176,9 @@ const togglePullUp = () => {
 };
 
 const updateTooltipPosition = (event: MouseEvent | TouchEvent, tooltipType: string) => {
+  // Disable tooltips on mobile
+  if (isTouchDevice.value) return;
+
   const clientX = 'touches' in event ? event.touches[0].clientX : event.clientX;
   const clientY = 'touches' in event ? event.touches[0].clientY : event.clientY;
 
@@ -208,72 +220,58 @@ const updateTooltipPosition = (event: MouseEvent | TouchEvent, tooltipType: stri
 };
 
 const showTooltip = (event: MouseEvent | TouchEvent, tooltipType: string) => {
-  if (isTouchDevice.value) {
-    // On touch devices, show tooltip immediately and keep it visible
-    activeTooltip.value = tooltipType;
-    updateTooltipPosition(event, tooltipType);
+  // Disable tooltips on mobile
+  if (isTouchDevice.value) return;
 
-    // Clear any existing timer
-    if (tooltipTimer.value) {
-      clearTimeout(tooltipTimer.value);
-    }
-  } else {
-    // On desktop, use hover behavior
-    updateTooltipPosition(event, tooltipType);
-    switch (tooltipType) {
-      case 'scroll-to-top':
-        isHoveringScrollToTop.value = true;
-        break;
-      case 'theme':
-        isHoveringTheme.value = true;
-        break;
-      case 'previous-topic':
-      case 'next-topic':
-        isHoveringTopic.value = true;
-        break;
-      case 'previous-group':
-      case 'next-group':
-        isHoveringGroup.value = true;
-        break;
-    }
+  // On desktop, use hover behavior
+  updateTooltipPosition(event, tooltipType);
+  switch (tooltipType) {
+    case 'scroll-to-top':
+      isHoveringScrollToTop.value = true;
+      break;
+    case 'theme':
+      isHoveringTheme.value = true;
+      break;
+    case 'previous-topic':
+    case 'next-topic':
+      isHoveringTopic.value = true;
+      break;
+    case 'previous-group':
+    case 'next-group':
+      isHoveringGroup.value = true;
+      break;
   }
 };
 
 const hideTooltip = (tooltipType: string) => {
-  if (isTouchDevice.value) {
-    // On touch devices, hide after a delay
-    tooltipTimer.value = window.setTimeout(() => {
-      if (activeTooltip.value === tooltipType) {
-        activeTooltip.value = '';
-      }
-    }, 1500);
-  } else {
-    // On desktop, hide immediately
-    switch (tooltipType) {
-      case 'scroll-to-top':
-        isHoveringScrollToTop.value = false;
-        break;
-      case 'theme':
-        isHoveringTheme.value = false;
-        break;
-      case 'previous-topic':
-      case 'next-topic':
-        isHoveringTopic.value = false;
-        break;
-      case 'previous-group':
-      case 'next-group':
-        isHoveringGroup.value = false;
-        break;
-    }
+  // Disable tooltips on mobile
+  if (isTouchDevice.value) return;
+
+  // On desktop, hide immediately
+  switch (tooltipType) {
+    case 'scroll-to-top':
+      isHoveringScrollToTop.value = false;
+      break;
+    case 'theme':
+      isHoveringTheme.value = false;
+      break;
+    case 'previous-topic':
+    case 'next-topic':
+      isHoveringTopic.value = false;
+      break;
+    case 'previous-group':
+    case 'next-group':
+      isHoveringGroup.value = false;
+      break;
   }
 };
 
 const handleTouchStartButton = (event: TouchEvent, tooltipType: string) => {
-  showTooltip(event, tooltipType);
+  // Disable tooltips on mobile - no action needed
 };
 
 const handleTouchEndButton = (tooltipType: string) => {
-  hideTooltip(tooltipType);
+  // Disable tooltips on mobile - no action needed
 };
 
 const getTooltipText = (tooltipType: string) => {
@@ -296,30 +294,20 @@ const getTooltipText = (tooltipType: string) => {
 };
 
 const shouldShowTooltip = (tooltipType: string) => {
-  if (isTouchDevice.value) {
-    return activeTooltip.value === tooltipType;
-  } else {
-    switch (tooltipType) {
-      case 'scroll-to-top':
-        return isHoveringScrollToTop.value;
-      case 'theme':
-        return isHoveringTheme.value;
-      case 'previous-topic':
-      case 'next-topic':
-        return isHoveringTopic.value;
-      case 'previous-group':
-      case 'next-group':
-        return isHoveringGroup.value;
-      default:
-        return false;
-    }
-  }
+  // Only show tooltips on desktop
+  return !isTouchDevice.value && (
+    (tooltipType === 'scroll-to-top' && isHoveringScrollToTop.value) ||
+    (tooltipType === 'theme' && isHoveringTheme.value) ||
+    ((tooltipType === 'previous-topic' || tooltipType === 'next-topic') && isHoveringTopic.value) ||
+    ((tooltipType === 'previous-group' || tooltipType === 'next-group') && isHoveringGroup.value)
+  );
 };
 </script>
 
 <template>
-  <div class="bottom-nav" :class="{ 'pulled-up': isPulledUp }">
-    <button class="nav-btn large-btn" @click="emit('scroll-to-top')"
+  <div class="bottom-nav" >
+    <!-- Scroll to Top Button - conditionally rendered -->
+    <button v-if="showScrollToTop" class="nav-btn large-btn" @click="emit('scroll-to-top')"
       @mouseenter="(e) => showTooltip(e, 'scroll-to-top')" @mouseleave="() => hideTooltip('scroll-to-top')"
       @mousemove="(e) => updateTooltipPosition(e, 'scroll-to-top')"
       @touchstart="(e) => handleTouchStartButton(e, 'scroll-to-top')"
@@ -327,7 +315,8 @@ const shouldShowTooltip = (tooltipType: string) => {
       <Arrow class="btn-icon rotate-90-left" />
     </button>
 
-    <button class="nav-btn large-btn" @mouseenter="(e) => showTooltip(e, 'theme')"
+    <!-- Theme Toggle Button - conditionally rendered -->
+    <button v-if="showThemeToggle" class="nav-btn large-btn" @mouseenter="(e) => showTooltip(e, 'theme')"
       @mouseleave="() => hideTooltip('theme')" @mousemove="(e) => updateTooltipPosition(e, 'theme')"
       @touchstart="(e) => handleTouchStartButton(e, 'theme')" @touchend="() => handleTouchEndButton('theme')"
       aria-label="Toggle theme" alt="Toggle theme">
@@ -336,7 +325,8 @@ const shouldShowTooltip = (tooltipType: string) => {
 
     <div class="grow"></div>
 
-    <div class="column">
+    <!-- Navigation Buttons (Topic/Group) - conditionally rendered -->
+    <div v-if="showNavigationButtons" class="column">
       <div class="row">
         <button class="nav-btn short" @click="emit('previous-topic')" :disabled="!hasPreviousTopic"
           @mouseenter="(e) => showTooltip(e, 'previous-topic')" @mouseleave="() => hideTooltip('previous-topic')"
@@ -375,7 +365,7 @@ const shouldShowTooltip = (tooltipType: string) => {
       </div>
     </div>
 
-    <!-- Single tooltip element that changes content -->
+    <!-- Single tooltip element that changes content - only render on desktop -->
     <div v-show="shouldShowTooltip(currentTooltip)" class="tooltip" :class="{ 'touch-tooltip': isTouchDevice }" :style="{
       left: `${tooltipPosition.x}px`,
       top: `${tooltipPosition.y}px`
@@ -385,7 +375,7 @@ const shouldShowTooltip = (tooltipType: string) => {
   </div>
 
   <!-- Hint message with close button -->
-  <div v-if="showHint && !isPulledUp" class="hint-message" :class="{ 'mobile-hint': isTouchDevice }">
+  <!-- <div v-if="showHint && !isPulledUp" class="hint-message" :class="{ 'mobile-hint': isTouchDevice }">
     <span class="hint-text">
       {{ isTouchDevice ? 'Two-finger tap anywhere to pull up navigation' : 'Right-click anywhere to pull up navigation'
       }}
@@ -396,7 +386,7 @@ const shouldShowTooltip = (tooltipType: string) => {
           d="M14.7,1.3c-0.4-0.4-1-0.4-1.4,0L8,6.6L2.7,1.3c-0.4-0.4-1-0.4-1.4,0s-0.4,1,0,1.4L6.6,8l-5.3,5.3c-0.4,0.4-0.4,1,0,1.4 C1.5,14.9,1.7,15,2,15s0.5-0.1,0.7-0.3L8,9.4l5.3,5.3c0.2,0.2,0.5,0.3,0.7,0.3s0.5-0.1,0.7-0.3c0.4-0.4,0.4-1,0-1.4L9.4,8l5.3-5.3 C15.1,2.3,15.1,1.7,14.7,1.3z" />
       </svg>
     </button>
-  </div>
+  </div> -->
 </template>
 
 <style>

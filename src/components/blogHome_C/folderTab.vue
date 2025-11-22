@@ -92,7 +92,7 @@ onUnmounted(() => {
       </h1>
 
       <div class="tab-accent flipped">
-        <MobileFolderTab class="svg" :aria-hidden="true" />
+        <MobileFolderTab class="svg" :aria-hidden="true" style="min-width: 16px;" />
       </div>
     </div> <!-- folderTab Mobile -->
   </template>
@@ -166,12 +166,24 @@ onUnmounted(() => {
   margin: 0 0 0 -1.5px;
 }
 
+/* Add to your styles */
 .tab-accent :deep(svg) {
-  height: 100%; /* Make SVG fill the accent container height */
-  width: auto; /* Maintain aspect ratio */
-  /* iOS Chrome fixes */
-  transform: translateZ(0); /* Force hardware acceleration */
-  -webkit-transform: translateZ(0); /* Safari/iOS specific */
+  height: 100%;
+  width: auto;
+  /* Safari specific fixes */
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  -webkit-perspective: 1000;
+  perspective: 1000;
+}
+
+/* Specific mobile fixes */
+@media (max-width: 749px) {
+  .tab-accent :deep(svg) {
+    max-height: 2.3rem;
+  }
 }
 
 .tab-ribbon {
@@ -213,6 +225,7 @@ onUnmounted(() => {
   text-overflow: "-";
 
 }
+
 
 /* iOS Chrome specific fixes */
 @supports (-webkit-touch-callout: none) {

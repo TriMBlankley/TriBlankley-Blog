@@ -68,50 +68,33 @@ const updateTooltipPosition = (event: MouseEvent | TouchEvent) => {
 };
 
 const showTooltip = (event: MouseEvent | TouchEvent) => {
-  if (isTouchDevice.value) {
-    // On touch devices, show tooltip immediately and keep it visible
-    activeTooltip.value = 'home';
-    updateTooltipPosition(event);
+  // Disable tooltips on mobile
+  if (isTouchDevice.value) return;
 
-    // Clear any existing timer
-    if (tooltipTimer.value) {
-      clearTimeout(tooltipTimer.value);
-    }
-  } else {
-    // On desktop, use hover behavior
-    updateTooltipPosition(event);
-    isHovering.value = true;
-  }
+  // On desktop, use hover behavior
+  updateTooltipPosition(event);
+  isHovering.value = true;
 };
 
 const hideTooltip = () => {
-  if (isTouchDevice.value) {
-    // On touch devices, hide after a delay
-    tooltipTimer.value = window.setTimeout(() => {
-      if (activeTooltip.value === 'home') {
-        activeTooltip.value = '';
-      }
-    }, 1500);
-  } else {
-    // On desktop, hide immediately
-    isHovering.value = false;
-  }
+  // Disable tooltips on mobile
+  if (isTouchDevice.value) return;
+
+  // On desktop, hide immediately
+  isHovering.value = false;
 };
 
 const handleTouchStart = (event: TouchEvent) => {
-  showTooltip(event);
+  // Disable tooltips on mobile - no action needed
 };
 
 const handleTouchEnd = () => {
-  hideTooltip();
+  // Disable tooltips on mobile - no action needed
 };
 
 const shouldShowTooltip = () => {
-  if (isTouchDevice.value) {
-    return activeTooltip.value === 'home';
-  } else {
-    return isHovering.value;
-  }
+  // Only show tooltips on desktop
+  return !isTouchDevice.value && isHovering.value;
 };
 
 const getTooltipText = () => {
@@ -130,7 +113,7 @@ const getTooltipText = () => {
     </div>
   </button>
 
-  <!-- Tooltip element -->
+  <!-- Tooltip element - only render on desktop -->
   <div v-show="shouldShowTooltip()" class="tooltip" :class="{ 'touch-tooltip': isTouchDevice }" :style="{
     left: `${tooltipPosition.x}px`,
     top: `${tooltipPosition.y}px`
@@ -150,6 +133,7 @@ const getTooltipText = () => {
   display: flex;
   align-items: center;
   justify-content: center;
+  min-width: 3rem;
   width: 4rem;
   height: auto;
 }

@@ -16,6 +16,12 @@ const router = createRouter({
       component: () => import('../views/BlogPage.vue'),
       props: true
     },
+    {
+      path: '/AdminSettings',
+      name: 'AdminSettings',
+      component: () => import('../components/Settings_C/HomeSettings.vue'),
+      props: true
+    },
   ],
 });
 

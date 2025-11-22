@@ -11,12 +11,13 @@ const route = useRoute();
 
 const isHomeRoute = computed(() => route.name === 'Home');
 
+// Close theme toggle when theme is changed
+const closeThemeToggle = () => {
+  showThemeToggle.value = false;
+};
+
 const toggleSettings = () => {
-  if (isHomeRoute.value) {
-    showHomeSettings.value = !showHomeSettings.value;
-  } else {
-    showThemeToggle.value = !showThemeToggle.value;
-  }
+  showThemeToggle.value = !showThemeToggle.value;
 };
 
 const closeHomeSettings = () => {
@@ -30,14 +31,8 @@ const closeHomeSettings = () => {
       <SettingsCogSVG class="settings-icon" />
     </button>
 
-    <div v-if="showThemeToggle && !isHomeRoute" class="theme-toggle-dropdown">
+    <div v-if="showThemeToggle" class="theme-toggle-dropdown">
       <ThemeToggle />
-    </div>
-
-    <div v-if="showHomeSettings && isHomeRoute" class="settings-modal-overlay">
-      <div class="settings-modal">
-        <HomeSettings @close="closeHomeSettings" />
-      </div>
     </div>
   </div>
 </template>
@@ -60,8 +55,6 @@ const closeHomeSettings = () => {
 }
 
 .settings-icon {
-  width: 100%;
-  height: 100%;
   color: var(--text);
 }
 

@@ -189,83 +189,52 @@ watch(activeTabColor, (color) => {
   <div class="blog-home">
     <div class="post-view">
 
-        <!-- Mobile Layout: Dropdown Button + Active Tab -->
-        <template v-if="isMobile">
-          <div class="mobile-tab-container" @click.stop>
-            <FolderTabDropDownButton
-              @click="showDropdown = !showDropdown"
-            />
-            <FolderTab
-              v-if="currentActiveTab"
-              :key="currentActiveTab.topicName"
-              :title="currentActiveTab.topicName"
-              :color="currentActiveTab.topicColor"
-              :is-active="true"
-              @tab-clicked="handleTabClick"
-            />
-            <div class="tab-accent flipped">
-              <MobileFolderTab />
+      <!-- Mobile Layout: Dropdown Button + Active Tab -->
+      <template v-if="isMobile">
+        <div class="mobile-tab-container" @click.stop>
+          <FolderTabDropDownButton @click="showDropdown = !showDropdown" />
+          <FolderTab v-if="currentActiveTab" :key="currentActiveTab.topicName" :title="currentActiveTab.topicName"
+            :color="currentActiveTab.topicColor" :is-active="true" @tab-clicked="handleTabClick" />
+          <div class="tab-accent flipped">
+            <MobileFolderTab />
+          </div>
+
+          <div class="grow"></div>
+
+          <BlogLogo />
+
+          <!-- Dropdown Menu -->
+          <div v-if="showDropdown" class="dropdown-menu">
+            <div class="dropdown-item" :class="{ 'active': !activeTopic }" @click="handleAllTopicsSelect">
+              All Topics
             </div>
-
-            <div class="grow"></div>
-
-            <BlogLogo />
-
-            <!-- Dropdown Menu -->
-            <div v-if="showDropdown" class="dropdown-menu">
-              <div
-                class="dropdown-item"
-                :class="{ 'active': !activeTopic }"
-                @click="handleAllTopicsSelect"
-              >
-                All Topics
-              </div>
-              <div
-                v-for="topic in topics"
-                :key="topic.topicName"
-                class="dropdown-item"
-                :class="{ 'active': activeTopic === topic.topicName }"
-                @click="handleDropdownTopicSelect(topic)"
-              >
-                {{ topic.topicName }}
-              </div>
+            <div v-for="topic in topics" :key="topic.topicName" class="dropdown-item"
+              :class="{ 'active': activeTopic === topic.topicName }" @click="handleDropdownTopicSelect(topic)">
+              {{ topic.topicName }}
             </div>
           </div>
-        </template>
+        </div>
+      </template>
 
-        <!-- Desktop Layout: All Tabs -->
-        <template v-else>
-          <div class="tab-motif" ref="tabContainerRef">
-            <FolderTab
-              v-for="topic in topics"
-              :key="topic.topicName"
-              :title="topic.topicName"
-              :color="topic.topicColor"
-              :is-active="activeTopic === topic.topicName"
-              @tab-clicked="handleTabClick"
-            />
+      <!-- Desktop Layout: All Tabs -->
+      <template v-else>
+        <div class="tab-motif" ref="tabContainerRef">
+          <FolderTab v-for="topic in topics" :key="topic.topicName" :title="topic.topicName" :color="topic.topicColor"
+            :is-active="activeTopic === topic.topicName" @tab-clicked="handleTabClick" />
 
-            <FolderTab
-              :title="allTopicsTab.topicName"
-              :color="allTopicsTab.topicColor"
-              :is-active="!activeTopic"
-              @tab-clicked="handleTabClick"
-            />
-          </div>
-        </template>
+          <FolderTab :title="allTopicsTab.topicName" :color="allTopicsTab.topicColor" :is-active="!activeTopic"
+            @tab-clicked="handleTabClick" />
+        </div>
+      </template>
 
       <div class="post-container">
         <div class="post-cards">
-          <PostDescriptor
-            v-for="post in posts"
-            :key="post.postId"
-            :post="post"
-            @click-post="handlePostClick"
-          />
+          <PostDescriptor v-for="post in posts" :key="post.postId" :post="post" @click-post="handlePostClick" />
         </div>
-        <BottomNav
-          @scroll-to-top="scrollToTop"
-        />
+        <!-- In the template section, update the BottomNav usage: -->
+        <BottomNav @scroll-to-top="scrollToTop" :show-navigation-buttons="false" :show-scroll-to-top="true"
+          :show-theme-toggle="true" :has-previous-topic="false" :has-next-topic="false" :has-previous-group="false"
+          :has-next-group="false" />
       </div>
     </div>
 
@@ -400,7 +369,7 @@ watch(activeTabColor, (color) => {
   align-items: center;
 }
 
-.folder-tab-drop-down-button{
+.folder-tab-drop-down-button {
   width: 125px;
   margin-top: -70px;
   margin-left: -40px;
@@ -485,9 +454,6 @@ watch(activeTabColor, (color) => {
   color: var(--text);
 }
 
-.dropdown-item:last-child {
-  border-bottom: none;
-}
 
 .dropdown-item:hover {
   background-color: color-mix(in oklab, var(--background), var(--focused) 20%);
@@ -507,5 +473,4 @@ watch(activeTabColor, (color) => {
   flex-shrink: 0;
   margin-bottom: 1vh;
 }
-
 </style>
