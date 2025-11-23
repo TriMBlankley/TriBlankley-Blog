@@ -396,7 +396,7 @@ const shouldShowTooltip = (tooltipType: string) => {
 
   /* Position ------------- */
   padding: 4px;
-  padding-left: 6px;
+  /* padding-left: 6px; */
 
   /* Color ------------- */
   background-color: var(--focused);
@@ -410,7 +410,7 @@ const shouldShowTooltip = (tooltipType: string) => {
   position: relative;
 
   /* Default position - at bottom of content */
-  margin-top: 20px;
+  margin-top: 7.5px;
   transition: transform 0.3s ease, position 0.3s ease;
 }
 

@@ -240,6 +240,8 @@ onUnmounted(() => {
         <div class="post-header">
           <h1>{{ post.postTitle }}</h1>
 
+          <div class="grow"></div>
+
           <div class="post-meta">
             <span>By {{ post.postAuthor.join(', ') }}</span>
             <span>{{ post.postDate }}</span>
@@ -249,7 +251,7 @@ onUnmounted(() => {
         </div>
 
         <p style="overflow: hidden;">
-          {{ truncatedContent }}
+          {{ post.postContent }}
         </p>
       </div>
     </div>
@@ -294,6 +296,7 @@ onUnmounted(() => {
   overflow: hidden; /* Contain content */
 }
 
+
 .post-descriptor p {
   overflow: hidden;
   margin: 0;
@@ -336,7 +339,7 @@ onUnmounted(() => {
   align-items: flex-start;
   justify-content: center;
   min-width: 60px;
-  min-height: 90px;
+  min-height: 120px;
   max-height: 120px; /* Limit image height */
   background-color: var(--background);
   border-radius: 2.5px;
@@ -380,6 +383,15 @@ onUnmounted(() => {
     width: 7.5em;
     max-width: 90%;
   }
+}
+
+.post-header {
+  display: flex;
+  flex-direction: row;
+}
+.post-meta {
+  display: flex;
+  flex-direction: column;
 }
 
 /* Mobile layout adjustments */

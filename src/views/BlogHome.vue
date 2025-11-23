@@ -241,7 +241,7 @@ watch(activeTabColor, (color) => {
     <!-- Hide logo-and-settings on mobile -->
     <div v-if="!isMobile" class="logo-and-settings">
       <BlogLogo />
-      <SettingsCog style="width: 30px;" />
+      <SettingsCog style="width: 2rem;" />
     </div>
   </div>
 </template>
