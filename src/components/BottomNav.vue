@@ -427,58 +427,7 @@ const shouldShowTooltip = (tooltipType: string) => {
   box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
 }
 
-.nav-btn {
-  display: flex;
-  border: none;
-  border-radius: 7.5px;
-  padding: 6px;
-  margin-left: 4px;
-  background-color: rgba(255, 255, 255, 0.2);
-  color: var(--text);
-  cursor: pointer;
-  transition: background-color 0.2s;
-  align-items: center;
-  justify-content: center;
-  /* Consistent base styling */
-  height: 2.5em;
-}
 
-.nav-btn.short {
-  height: auto;
-}
-
-/* Larger buttons for scroll-to-top and theme */
-.nav-btn.large-btn {
-  height: 3em;
-  width: 3em;
-}
-
-.nav-btn:hover:not(:disabled) {
-  background-color: rgba(255, 255, 255, 0.3);
-}
-
-.nav-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-/* Consistent icon styling */
-.btn-icon {
-  height: 1.5em;
-  width: auto;
-}
-
-.btn-icon.short {
-  height: 1em;
-}
-
-.btn-icon.flipped {
-  transform: scaleX(-1);
-}
-
-.btn-icon.rotate-90-left {
-  transform: rotate(-90deg);
-}
 
 .column {
   width: auto;

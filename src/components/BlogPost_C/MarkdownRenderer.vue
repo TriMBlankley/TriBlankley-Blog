@@ -1,10 +1,23 @@
 <script setup lang="ts">
-import { ref, onMounted, watch, nextTick, computed } from 'vue'
+import {
+  ref,
+  onMounted,
+  watch,
+  nextTick,
+  computed,
+  h,
+  createApp
+} from 'vue'
 import { marked } from 'marked'
 import DOMPurify from 'dompurify'
+
+import "@/assets/syntaxHighlighting.css"
 import { useTheme } from '@/composables/useTheme'
 import AvWidget from './AvWidget.vue'
-import "@/assets/syntaxHighlighting.css"
+
+import CopyIcon from "@/assets/uiElements/copy.svg";
+import XButton from "@/assets/uiElements/xButton.svg";
+import CheckIcon from "@/assets/uiElements/check.svg";
 
 interface AttachedFile {
   filename: string
@@ -537,32 +550,80 @@ const renderMarkdownContent = async (content: string) => {
   }
 }
 
-// Add copy buttons to code blocks
+
+
+
+// ... rest of the code
+
+// Alternative if CopyIcon is a Vue component
+
 const addCopyButtons = () => {
   const preElements = document.querySelectorAll('.markdown-content pre')
   console.log(`📋 Found ${preElements.length} pre elements for copy buttons`)
+
   preElements.forEach((pre) => {
     if (pre.querySelector('.copy-btn')) return
 
     const code = pre.querySelector('code')
     if (!code) return
 
+    // Create button container
     const copyBtn = document.createElement('button')
     copyBtn.className = 'copy-btn'
-    copyBtn.textContent = 'Copy'
+    copyBtn.setAttribute('aria-label', 'Copy code')
+
+    // Create a wrapper div for the Vue component
+    const iconContainer = document.createElement('div')
+    copyBtn.appendChild(iconContainer)
+
+    // Create and mount the Vue component
+    const iconApp = createApp({
+      render() {
+        return h(CopyIcon, { width: 16, height: 16 })
+      }
+    })
+
+    iconApp.mount(iconContainer)
+
     copyBtn.onclick = async () => {
       try {
         const textToCopy = code.textContent || ''
         await navigator.clipboard.writeText(textToCopy)
-        copyBtn.textContent = 'Copied!'
+
+        // Change to success icon
+        iconContainer.innerHTML = `
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+          </svg>
+        `
+        copyBtn.setAttribute('aria-label', 'Copied!')
+
         setTimeout(() => {
-          copyBtn.textContent = 'Copy'
+          // Re-mount original icon
+          iconApp.unmount()
+          const newIconContainer = document.createElement('div')
+          copyBtn.appendChild(newIconContainer)
+          iconApp.mount(newIconContainer)
+          copyBtn.setAttribute('aria-label', 'Copy code')
         }, 2000)
       } catch (err) {
         console.error('Failed to copy code:', err)
-        copyBtn.textContent = 'Failed'
+
+        // Change to error icon
+        iconContainer.innerHTML = `
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+          </svg>
+        `
+        copyBtn.setAttribute('aria-label', 'Failed to copy')
+
         setTimeout(() => {
-          copyBtn.textContent = 'Copy'
+          // Re-mount original icon
+          iconApp.unmount()
+          const newIconContainer = document.createElement('div')
+          copyBtn.appendChild(newIconContainer)
+          iconApp.mount(newIconContainer)
+          copyBtn.setAttribute('aria-label', 'Copy code')
         }, 2000)
       }
     }
@@ -657,13 +718,6 @@ watch(() => props.attachedFiles, async (newFiles) => {
 
 <template>
   <div class="markdown-content">
-    <!-- Debug info -->
-    <!-- <div v-if="mediaWidgetPositions.length > 0" class="debug-info">
-      <p>🎵 Found {{ mediaWidgetPositions.length }} media widgets to render</p>
-      <div v-for="widget in mediaWidgetPositions" :key="widget.fileId + '-' + widget.index" class="debug-widget-item">
-        {{ widget.filename }} ({{ widget.type }}, Position: {{ widget.index }})
-      </div>
-    </div> -->
 
     <!-- Render content split around media widgets -->
     <template v-if="splitContentWithWidgets.length > 0">
@@ -822,27 +876,6 @@ watch(() => props.attachedFiles, async (newFiles) => {
   font-weight: 600;
 }
 
-.markdown-content :deep(.copy-btn) {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  background: color-mix(in oklab, var(--focused), transparent 20%);
-  color: white;
-  border: none;
-  padding: 6px 12px;
-  border-radius: 4px;
-  font-size: 12px;
-  cursor: pointer;
-  opacity: 0.7;
-  transition: opacity 0.2s ease;
-  z-index: 10;
-}
-
-.markdown-content :deep(.copy-btn:hover) {
-  opacity: 1;
-  background: var(--focused);
-}
-
 .markdown-content :deep(img) {
   max-width: 95%;
   max-height: 80vh;
@@ -859,6 +892,36 @@ watch(() => props.attachedFiles, async (newFiles) => {
   text-indent: 0;
   margin: 1em auto;
 }
+
+
+
+
+
+
+.markdown-content :deep(.copy-btn) {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: color-mix(in oklab, var(--focused), transparent 20%);
+  color: var(--text);
+  border: none;
+  padding: 6px 6px;
+  border-radius: 5px;
+  font-size: 12px;
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity 0.2s ease;
+  z-index: 10;
+}
+
+.markdown-content :deep(.copy-btn:hover) {
+  opacity: 1;
+  background: var(--focused);
+}
+
+
+
+
 
 /* Hide the media markers in the final output */
 .markdown-content :deep(.audio-widget-marker),
