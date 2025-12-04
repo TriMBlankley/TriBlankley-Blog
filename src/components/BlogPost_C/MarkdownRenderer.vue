@@ -553,10 +553,6 @@ const renderMarkdownContent = async (content: string) => {
 
 
 
-// ... rest of the code
-
-// Alternative if CopyIcon is a Vue component
-
 const addCopyButtons = () => {
   const preElements = document.querySelectorAll('.markdown-content pre')
   console.log(`📋 Found ${preElements.length} pre elements for copy buttons`)
@@ -576,53 +572,56 @@ const addCopyButtons = () => {
     const iconContainer = document.createElement('div')
     copyBtn.appendChild(iconContainer)
 
-    // Create and mount the Vue component
-    const iconApp = createApp({
-      render() {
-        return h(CopyIcon, { width: 16, height: 16 })
-      }
-    })
+    // Store reference to the current app
+    let currentApp = null
 
-    iconApp.mount(iconContainer)
+    // Function to mount an icon
+    const mountIcon = (IconComponent) => {
+      // Unmount previous app if exists
+      if (currentApp) {
+        currentApp.unmount()
+      }
+
+      // Clear container
+      iconContainer.innerHTML = ''
+
+      // Create and mount new app
+      currentApp = createApp({
+        render() {
+          return h(IconComponent, { width: 16, height: 16 })
+        }
+      })
+
+      currentApp.mount(iconContainer)
+    }
+
+    // Mount initial CopyIcon
+    mountIcon(CopyIcon)
 
     copyBtn.onclick = async () => {
       try {
         const textToCopy = code.textContent || ''
         await navigator.clipboard.writeText(textToCopy)
 
-        // Change to success icon
-        iconContainer.innerHTML = `
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
-          </svg>
-        `
+        // Change to success icon (CheckIcon)
+        mountIcon(CheckIcon)
         copyBtn.setAttribute('aria-label', 'Copied!')
 
         setTimeout(() => {
-          // Re-mount original icon
-          iconApp.unmount()
-          const newIconContainer = document.createElement('div')
-          copyBtn.appendChild(newIconContainer)
-          iconApp.mount(newIconContainer)
+          // Return to original icon
+          mountIcon(CopyIcon)
           copyBtn.setAttribute('aria-label', 'Copy code')
         }, 2000)
       } catch (err) {
         console.error('Failed to copy code:', err)
 
-        // Change to error icon
-        iconContainer.innerHTML = `
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
-          </svg>
-        `
+        // Change to error icon (XButton)
+        mountIcon(XButton)
         copyBtn.setAttribute('aria-label', 'Failed to copy')
 
         setTimeout(() => {
-          // Re-mount original icon
-          iconApp.unmount()
-          const newIconContainer = document.createElement('div')
-          copyBtn.appendChild(newIconContainer)
-          iconApp.mount(newIconContainer)
+          // Return to original icon
+          mountIcon(CopyIcon)
           copyBtn.setAttribute('aria-label', 'Copy code')
         }, 2000)
       }
@@ -632,6 +631,8 @@ const addCopyButtons = () => {
     pre.appendChild(copyBtn)
   })
 }
+
+
 
 // Handle download event from AvWidget
 const handleDownload = (fileId: string, filename: string) => {
@@ -899,17 +900,19 @@ watch(() => props.attachedFiles, async (newFiles) => {
 
 
 .markdown-content :deep(.copy-btn) {
+  height: 3em;
+  width: 3em;
   position: absolute;
   top: 8px;
   right: 8px;
-  background: color-mix(in oklab, var(--focused), transparent 20%);
+  padding: 6px 6px;
+  background: color-mix(in oklab, var(--focused), transparent 0%);
   color: var(--text);
   border: none;
-  padding: 6px 6px;
   border-radius: 5px;
   font-size: 12px;
   cursor: pointer;
-  opacity: 0.7;
+  opacity: 0.66;
   transition: opacity 0.2s ease;
   z-index: 10;
 }

@@ -1,5 +1,9 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+
+import DownloadIcon from "@/assets/uiElements/download.svg"
+import FilePostIcon from "@/assets/uiElements/filePost.svg"
+
 interface AttachedFile {
   filename: string
   fileId: string
@@ -45,15 +49,23 @@ const handleDownload = (fileId: string, filename: string) => {
         v-for="file in otherAttachedFiles"
         :key="file.fileId"
         class="file-item"
-        @click="handleDownload(file.fileId, file.filename)"
       >
-        <div class="file-icon">📎</div>
+        <div class="file-icon">
+          <FilePostIcon />
+        </div>
         <div class="file-details">
           <span class="file-name">{{ file.filename }}</span>
           <span class="file-date">
             Uploaded: {{ new Date(file.uploadDate).toLocaleDateString() }}
           </span>
         </div>
+        <button
+          class="nav-btn large-btn download-btn"
+          @click="handleDownload(file.fileId, file.filename)"
+          :aria-label="`Download ${file.filename}`"
+        >
+          <DownloadIcon class="btn-icon" />
+        </button>
       </div>
     </div>
   </div>
@@ -80,34 +92,47 @@ const handleDownload = (fileId: string, filename: string) => {
 .file-item {
   display: flex;
   align-items: center;
-  padding: 12px;
+  padding: 5px;
   border: 1px solid color-mix(in oklab, var(--text), transparent 70%);
   border-radius: 8px;
-  cursor: pointer;
   transition: background-color 0.2s ease;
-}
-
-.file-item:hover {
-  background-color: color-mix(in oklab, var(--focused), transparent 90%);
 }
 
 .file-icon {
   font-size: 20px;
-  margin-right: 12px;
+
+  flex-shrink: 0;
+  height: 2em;
+  margin: 5px;
+  margin-right: 10px;
 }
 
 .file-details {
   display: flex;
   flex-direction: column;
+  flex-grow: 1;
+  min-width: 0; /* Allow text truncation */
 }
 
 .file-name {
   font-weight: 500;
   color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .file-date {
   font-size: 12px;
   color: color-mix(in oklab, var(--text), transparent 40%);
+}
+
+.download-btn {
+  margin-left: 12px;
+  flex-shrink: 0;
+}
+
+.download-btn:hover {
+  background-color: color-mix(in oklab, var(--focused), transparent 66%);
 }
 </style>

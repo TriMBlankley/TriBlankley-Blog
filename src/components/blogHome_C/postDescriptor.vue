@@ -311,7 +311,7 @@ onUnmounted(() => {
   max-width: 90%;
   background-color: var(--focused);
   padding: 5px;
-  border-radius: 2.5px;
+  border-radius: 5px;
 
   pointer-events: none; /* Allow clicks to pass through to underlying elements */
 }
