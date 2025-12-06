@@ -81,7 +81,7 @@ const createGroup = async () => {
     errorMessage.value = '';
   } catch (error) {
     console.error('Error creating group:', error);
-    errorMessage.value = error.message;
+    errorMessage.value = error instanceof Error ? error.message : 'An unknown error occurred';
   } finally {
     isLoading.value = false;
   }
@@ -137,7 +137,7 @@ const updateGroup = async () => {
     errorMessage.value = '';
   } catch (error) {
     console.error('Error updating group:', error);
-    errorMessage.value = error.message;
+    errorMessage.value = error instanceof Error ? error.message : 'An unknown error occurred';
   } finally {
     isLoading.value = false;
   }
@@ -171,7 +171,7 @@ const deleteGroup = async (group: PostGroup) => {
     errorMessage.value = '';
   } catch (error) {
     console.error('Error deleting group:', error);
-    errorMessage.value = error.message;
+    errorMessage.value = error instanceof Error ? error.message : 'An unknown error occurred';
   } finally {
     isLoading.value = false;
   }

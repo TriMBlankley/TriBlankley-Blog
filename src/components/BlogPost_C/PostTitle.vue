@@ -7,7 +7,7 @@ defineProps({
     required: true
   },
   postAuthor: {
-    type: String,
+    type: Array as () => string[], // Changed from String to string array
     required: true
   },
   postDate: {

@@ -7,10 +7,12 @@ import path from 'path';
 // Import post Schemas:
 import { blogPost, blogTopic, PostGroup } from "./blogPostSchema.js";
 
-const app = express();
-app.use(express.json({ limit: '500mb' })); // Increase from 500mb to 100mb
-app.use(express.urlencoded({ limit: '500mb', extended: true }));
+// Import backup functions
+import { createBackup, listBackups } from './backupUtility.js';
 
+const app = express();
+app.use(express.json({ limit: '500mb' }));
+app.use(express.urlencoded({ limit: '500mb', extended: true }));
 
 // Connect to MongoDB
 mongoose.connect('mongodb://localhost:27017/blogDB')
@@ -29,12 +31,75 @@ conn.once('open', () => {
   });
 });
 
-// Health check endpoint
+// ===============================
+// AUTOMATIC BACKUP FUNCTIONALITY
+// ===============================
+
+/**
+ * Create an automatic backup when database changes
+ */
+async function createAutomaticBackup() {
+  try {
+    const backupName = `auto-backup-${Date.now()}`;
+    console.log(`🔄 Creating automatic backup: ${backupName}`);
+    await createBackup(backupName);
+    console.log(`✅ Automatic backup completed: ${backupName}`);
+  } catch (error) {
+    console.error('⚠️ Automatic backup failed:', error.message);
+    // Don't throw error, just log it
+  }
+}
+
+/**
+ * Wrap a database operation with automatic backup
+ */
+async function withAutoBackup(operation) {
+  try {
+    const result = await operation();
+    // Create backup after successful operation
+    await createAutomaticBackup();
+    return result;
+  } catch (error) {
+    console.error('Operation failed:', error.message);
+    throw error;
+  }
+}
+
+// ===============================
+// BACKUP API ENDPOINTS (Correctly placed after app initialization)
+// ===============================
+
+app.post('/api/backup', async (req, res) => {
+  try {
+    const { backupName } = req.body;
+    const result = await createBackup(backupName);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/backups', async (req, res) => {
+  try {
+    const backups = listBackups();
+    res.json(backups);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ===============================
+// HEALTH CHECK
+// ===============================
+
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
-// Post Groups API ------------------------------------------------------------------------
+// ===============================
+// POST GROUPS API
+// ===============================
+
 app.get('/api/post-groups', async (req, res) => {
   try {
     const groups = await PostGroup.find().sort({ createdDate: -1 });
@@ -59,44 +124,16 @@ app.post('/api/post-groups', async (req, res) => {
       groupDescription
     });
 
-    const savedGroup = await newGroup.save();
+    const savedGroup = await withAutoBackup(async () => {
+      return await newGroup.save();
+    });
+
     res.status(201).json(savedGroup);
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
 });
 
-// Get posts by group
-app.get('/api/posts/group/:groupId', async (req, res) => {
-  try {
-    const posts = await blogPost.find({
-      'postGroup.groupId': req.params.groupId
-    }).sort({ 'postGroup.sequence': 1 });
-    res.json(posts);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// Update post sequence in group
-app.put('/api/posts/:id/sequence', async (req, res) => {
-  try {
-    const { sequence } = req.body;
-    const updatedPost = await blogPost.findOneAndUpdate(
-      { postId: parseInt(req.params.id) },
-      { 'postGroup.sequence': sequence },
-      { new: true }
-    );
-    res.json(updatedPost);
-  } catch (err) {
-    res.status(400).json({ error: err.message });
-  }
-});
-
-
-// Add to the existing Post Groups API section in dbAPI.js
-
-// Update post group
 app.put('/api/post-groups/:id', async (req, res) => {
   try {
     const { groupName, groupDescription, groupColor } = req.body;
@@ -112,29 +149,33 @@ app.put('/api/post-groups/:id', async (req, res) => {
       }
     }
 
-    const updatedGroup = await PostGroup.findByIdAndUpdate(
-      req.params.id,
-      {
-        ...(groupName && { groupName }),
-        ...(groupDescription !== undefined && { groupDescription }),
-        ...(groupColor && { groupColor }),
-        updatedDate: new Date()
-      },
-      { new: true }
-    );
+    const updatedGroup = await withAutoBackup(async () => {
+      const updated = await PostGroup.findByIdAndUpdate(
+        req.params.id,
+        {
+          ...(groupName && { groupName }),
+          ...(groupDescription !== undefined && { groupDescription }),
+          ...(groupColor && { groupColor }),
+          updatedDate: new Date()
+        },
+        { new: true }
+      );
 
-    if (!updatedGroup) {
-      return res.status(404).json({ error: 'Post group not found' });
-    }
-
-    // Update group color in all associated posts
-    await blogPost.updateMany(
-      { 'postGroup.groupId': req.params.id },
-      {
-        'postGroup.groupName': updatedGroup.groupName,
-        'postGroup.groupColor': updatedGroup.groupColor
+      if (!updated) {
+        throw new Error('Post group not found');
       }
-    );
+
+      // Update group color in all associated posts
+      await blogPost.updateMany(
+        { 'postGroup.groupId': req.params.id },
+        {
+          'postGroup.groupName': updated.groupName,
+          'postGroup.groupColor': updated.groupColor
+        }
+      );
+
+      return updated;
+    });
 
     res.json(updatedGroup);
   } catch (err) {
@@ -142,21 +183,24 @@ app.put('/api/post-groups/:id', async (req, res) => {
   }
 });
 
-// Delete post group
 app.delete('/api/post-groups/:id', async (req, res) => {
   try {
-    // Remove group reference from all posts
-    await blogPost.updateMany(
-      { 'postGroup.groupId': req.params.id },
-      { $unset: { postGroup: 1 } }
-    );
+    await withAutoBackup(async () => {
+      // Remove group reference from all posts
+      await blogPost.updateMany(
+        { 'postGroup.groupId': req.params.id },
+        { $unset: { postGroup: 1 } }
+      );
 
-    // Delete the group
-    const deletedGroup = await PostGroup.findByIdAndDelete(req.params.id);
+      // Delete the group
+      const deletedGroup = await PostGroup.findByIdAndDelete(req.params.id);
 
-    if (!deletedGroup) {
-      return res.status(404).json({ error: 'Post group not found' });
-    }
+      if (!deletedGroup) {
+        throw new Error('Post group not found');
+      }
+
+      return deletedGroup;
+    });
 
     res.json({ message: 'Post group deleted successfully' });
   } catch (err) {
@@ -164,20 +208,10 @@ app.delete('/api/post-groups/:id', async (req, res) => {
   }
 });
 
-// Get single post group
-app.get('/api/post-groups/:id', async (req, res) => {
-  try {
-    const group = await PostGroup.findById(req.params.id);
-    if (!group) {
-      return res.status(404).json({ error: 'Post group not found' });
-    }
-    res.json(group);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
+// ===============================
+// TOPICS API
+// ===============================
 
-// Topics API ------------------------------------------------------------------------
 app.get('/api/topics', async (req, res) => {
   try {
     const topics = await blogTopic.find().sort({ topicOrder: 1 });
@@ -189,15 +223,20 @@ app.get('/api/topics', async (req, res) => {
 
 app.post('/api/topics', async (req, res) => {
   try {
-    await blogTopic.deleteMany({});
-    const newTopics = await blogTopic.insertMany(req.body);
+    const newTopics = await withAutoBackup(async () => {
+      await blogTopic.deleteMany({});
+      return await blogTopic.insertMany(req.body);
+    });
     res.json(newTopics);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// Posts API ---------------------------------------------------------------------------
+// ===============================
+// POSTS API
+// ===============================
+
 app.get('/api/posts', async (req, res) => {
   try {
     const posts = await blogPost.find().sort({ postId: -1 });
@@ -207,7 +246,6 @@ app.get('/api/posts', async (req, res) => {
   }
 });
 
-// Get single post by ID
 app.get('/api/posts/:id', async (req, res) => {
   try {
     const post = await blogPost.findOne({ postId: parseInt(req.params.id) });
@@ -220,37 +258,36 @@ app.get('/api/posts/:id', async (req, res) => {
   }
 });
 
-// In the app.post('/api/posts') endpoint - update the post creation
 app.post('/api/posts', async (req, res) => {
   try {
-    // Generate a new postId by finding the highest existing one and adding 1
-    const highestPost = await blogPost.findOne().sort('-postId');
-    const newPostId = highestPost ? highestPost.postId + 1 : 1;
+    const savedPost = await withAutoBackup(async () => {
+      // Generate a new postId by finding the highest existing one and adding 1
+      const highestPost = await blogPost.findOne().sort('-postId');
+      const newPostId = highestPost ? highestPost.postId + 1 : 1;
 
-    // Ensure postAuthor is properly formatted as an array
-    const postData = {
-      ...req.body,
-      postId: newPostId,
-      postDate: new Date().toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
-      })
-    };
+      const postData = {
+        ...req.body,
+        postId: newPostId,
+        postDate: new Date().toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric'
+        })
+      };
 
-    // Validate and ensure postAuthor is an array
-    if (postData.postAuthor && !Array.isArray(postData.postAuthor)) {
-      // If it's a string, convert to array
-      if (typeof postData.postAuthor === 'string') {
-        postData.postAuthor = [postData.postAuthor];
-      } else {
-        postData.postAuthor = [];
+      // Validate and ensure postAuthor is an array
+      if (postData.postAuthor && !Array.isArray(postData.postAuthor)) {
+        if (typeof postData.postAuthor === 'string') {
+          postData.postAuthor = [postData.postAuthor];
+        } else {
+          postData.postAuthor = [];
+        }
       }
-    }
 
-    const newPost = new blogPost(postData);
+      const newPost = new blogPost(postData);
+      return await newPost.save();
+    });
 
-    const savedPost = await newPost.save();
     res.status(201).json(savedPost);
   } catch (err) {
     console.error('Error creating post:', err);
@@ -260,11 +297,13 @@ app.post('/api/posts', async (req, res) => {
 
 app.put('/api/posts/:id', async (req, res) => {
   try {
-    const updatedPost = await blogPost.findOneAndUpdate(
-      { postId: parseInt(req.params.id) },
-      req.body,
-      { new: true }
-    );
+    const updatedPost = await withAutoBackup(async () => {
+      return await blogPost.findOneAndUpdate(
+        { postId: parseInt(req.params.id) },
+        req.body,
+        { new: true }
+      );
+    });
     res.json(updatedPost);
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -273,19 +312,23 @@ app.put('/api/posts/:id', async (req, res) => {
 
 app.delete('/api/posts/:id', async (req, res) => {
   try {
-    await blogPost.findOneAndDelete({ postId: parseInt(req.params.id) });
+    await withAutoBackup(async () => {
+      return await blogPost.findOneAndDelete({ postId: parseInt(req.params.id) });
+    });
     res.json({ message: 'Post deleted successfully' });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
 });
 
-// Enhanced File Upload endpoint with sequencing -------------------------------------
-// In the file upload endpoint - update the upload handler
+// ===============================
+// FILE UPLOAD API
+// ===============================
+
 app.post('/api/upload/:postId', async (req, res) => {
   try {
     const { postId } = req.params;
-    const { filename, base64Data, fileType = 'attachment', sequence, attachmentType = 'image' } = req.body; // NEW: Added attachmentType
+    const { filename, base64Data, fileType = 'attachment', sequence, attachmentType = 'image' } = req.body;
 
     // Validate post exists
     const post = await blogPost.findOne({ postId: parseInt(postId) });
@@ -295,28 +338,26 @@ app.post('/api/upload/:postId', async (req, res) => {
 
     const buffer = Buffer.from(base64Data, 'base64');
 
-    return new Promise((resolve, reject) => {
+    const result = await new Promise((resolve, reject) => {
       const uploadStream = gfs.openUploadStream(filename);
 
       uploadStream.end(buffer);
 
       uploadStream.on('finish', async (file) => {
         try {
-          // Create the file object without setting sequence if it's undefined
           const fileData = {
             filename: filename,
             fileId: uploadStream.id,
             fileType: fileType,
             uploadDate: new Date(),
-            attachmentType: attachmentType // NEW: Store attachment type
+            attachmentType: attachmentType
           };
 
-          // Only add sequence if it's defined (not undefined)
           if (sequence !== undefined) {
             fileData.sequence = sequence;
           }
 
-          // Add file reference to post with file type and sequence
+          // Add file reference to post
           await blogPost.findOneAndUpdate(
             { postId: parseInt(postId) },
             {
@@ -326,13 +367,12 @@ app.post('/api/upload/:postId', async (req, res) => {
             }
           );
 
-          res.json({
+          resolve({
             message: 'File uploaded successfully',
             fileId: uploadStream.id,
             filename: filename,
-            attachmentType: attachmentType // NEW: Return attachment type
+            attachmentType: attachmentType
           });
-          resolve();
         } catch (error) {
           console.error('Error updating post with file:', error);
           reject(error);
@@ -345,18 +385,23 @@ app.post('/api/upload/:postId', async (req, res) => {
       });
     });
 
+    // Create backup after successful file upload
+    await createAutomaticBackup();
+
+    res.json(result);
   } catch (err) {
     console.error('Upload endpoint error:', err);
     res.status(500).json({ error: err.message });
   }
 });
 
-// File Download Endpoint ---------------------------------------------------------
+// ===============================
+// FILE DOWNLOAD API
+// ===============================
+
 app.get('/api/file/:fileId', async (req, res) => {
   try {
     const fileId = new mongoose.Types.ObjectId(req.params.fileId);
-
-    // First, get file metadata to determine the size
     const filesCollection = conn.db.collection('uploads.files');
     const fileDoc = await filesCollection.findOne({ _id: fileId });
 
@@ -364,13 +409,11 @@ app.get('/api/file/:fileId', async (req, res) => {
       return res.status(404).json({ error: 'File not found' });
     }
 
-    // Set proper headers for file download
     res.setHeader('Content-Type', fileDoc.contentType || 'application/octet-stream');
     res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(fileDoc.filename)}"`);
     res.setHeader('Content-Length', fileDoc.length);
     res.setHeader('Accept-Ranges', 'bytes');
 
-    // Handle range requests for partial content (optional but good for large files)
     const range = req.headers.range;
     if (range) {
       const parts = range.replace(/bytes=/, "").split("-");
@@ -394,9 +437,7 @@ app.get('/api/file/:fileId', async (req, res) => {
       });
 
     } else {
-      // Standard full file download
       const downloadStream = gfs.openDownloadStream(fileId);
-
       downloadStream.pipe(res);
 
       downloadStream.on('error', (err) => {
@@ -415,7 +456,10 @@ app.get('/api/file/:fileId', async (req, res) => {
   }
 });
 
-// Error handling middleware
+// ===============================
+// ERROR HANDLING
+// ===============================
+
 app.use((err, req, res, next) => {
   console.error('Unhandled error:', err);
   res.status(500).json({ error: 'Internal server error' });
@@ -423,4 +467,5 @@ app.use((err, req, res, next) => {
 
 app.listen(8050, () => {
   console.log('Server running on http://localhost:8050');
+  console.log('📊 Automatic backup system: ACTIVE');
 });

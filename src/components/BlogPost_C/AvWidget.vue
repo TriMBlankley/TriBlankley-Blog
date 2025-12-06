@@ -1,10 +1,10 @@
 <!-- [file name]: AvWidget.vue -->
 <script setup lang="ts">
-import { ref, onMounted, watch, nextTick } from 'vue'
+import { ref, onMounted, watch, type VNodeRef, computed } from 'vue'  // Add computed import
 
 interface Props {
-  audioUrl: string
-  videoUrl: string
+  audioUrl?: string  // Make optional
+  videoUrl?: string  // Make optional
   filename: string
   fileId: string
   fileType?: 'audio' | 'video'
@@ -27,13 +27,19 @@ const videoLoaded = ref(false)
 const isSeeking = ref(false)
 const isVideo = ref(props.fileType === 'video')
 
+// Add computed property for active URL
+const activeUrl = computed(() => {
+  return isVideo.value ? props.videoUrl : props.audioUrl
+})
+
 console.log('🔊 AvWidget mounted with props:', {
   audioUrl: props.audioUrl,
   videoUrl: props.videoUrl,
   filename: props.filename,
   fileId: props.fileId,
   fileType: props.fileType,
-  isVideo: isVideo.value
+  isVideo: isVideo.value,
+  activeUrl: activeUrl.value
 })
 
 // Format time for display
@@ -386,10 +392,10 @@ const setupMediaElement = () => {
   }
 }
 
-// Use template ref with a callback to ensure we get the element
-const setAudioRef = (el: HTMLAudioElement | null) => {
+// Fixed: Use proper VNodeRef type with type assertion
+const setAudioRef: VNodeRef = (el: any) => {
   console.log('🎯 Setting audio ref:', el)
-  audioElement.value = el
+  audioElement.value = el as HTMLAudioElement | null
   if (el && !isVideo.value) {
     // Small delay to ensure the element is fully in the DOM
     setTimeout(() => {
@@ -398,9 +404,9 @@ const setAudioRef = (el: HTMLAudioElement | null) => {
   }
 }
 
-const setVideoRef = (el: HTMLVideoElement | null) => {
+const setVideoRef: VNodeRef = (el: any) => {
   console.log('🎯 Setting video ref:', el)
-  videoElement.value = el
+  videoElement.value = el as HTMLVideoElement | null
   if (el && isVideo.value) {
     // Small delay to ensure the element is fully in the DOM
     setTimeout(() => {
@@ -442,7 +448,6 @@ onMounted(async () => {
   trySetup()
 })
 
-// Watch for URL changes
 watch(() => props.audioUrl, (newUrl) => {
   if (!isVideo.value && audioElement.value) {
     console.log('🔄 Audio URL changed to:', newUrl)
@@ -475,36 +480,30 @@ watch(() => props.fileType, (newFileType) => {
 <template>
   <div class="media-widget" :class="{ 'video-widget': isVideo, 'audio-widget': !isVideo }">
     <!-- Hidden audio element that's always in the DOM -->
-    <audio
-      v-if="!isVideo"
-      :ref="setAudioRef"
-      :src="audioUrl"
+    <audio v-if="!isVideo" :ref="setAudioRef" :src="audioUrl" <!-- Now optional prop -->
       preload="auto"
       class="media-element audio-element"
       crossorigin="anonymous"
       style="display: none"
-    ></audio>
+      ></audio>
 
     <!-- Hidden video element that's always in the DOM -->
-    <video
-      v-else
-      :ref="setVideoRef"
-      :src="videoUrl"
+    <video v-else :ref="setVideoRef" :src="videoUrl" <!-- Now optional prop -->
       preload="auto"
       class="media-element video-element"
       crossorigin="anonymous"
       style="display: none"
       playsinline
-    ></video>
+      ></video>
 
     <!-- Loading State -->
     <div v-if="isLoading && !hasError" class="loading-state">
       <div class="spinner"></div>
       <!-- <p>Loading {{ isVideo ? 'video' : 'audio' }}...</p>
-      <p class="debug-info">URL: {{ isVideo ? videoUrl : audioUrl }}</p>
-      <p class="debug-info">Element: {{ (isVideo ? videoElement : audioElement) ? 'Found' : 'Not Found' }}</p>
-      <p class="debug-info">Loaded: {{ isVideo ? videoLoaded : audioLoaded ? 'Yes' : 'No' }}</p>
-      <p class="debug-info" v-if="isSeeking">Seeking...</p> -->
+        <p class="debug-info">URL: {{ isVideo ? videoUrl : audioUrl }}</p>
+        <p class="debug-info">Element: {{ (isVideo ? videoElement : audioElement) ? 'Found' : 'Not Found' }}</p>
+        <p class="debug-info">Loaded: {{ isVideo ? videoLoaded : audioLoaded ? 'Yes' : 'No' }}</p>
+        <p class="debug-info" v-if="isSeeking">Seeking...</p> -->
     </div>
 
     <!-- Error State -->
@@ -520,15 +519,8 @@ watch(() => props.fileType, (newFileType) => {
     <div v-else class="media-player">
       <!-- Video Display -->
       <div v-if="isVideo" class="video-display">
-        <video
-          :ref="setVideoRef"
-          :src="videoUrl"
-          preload="auto"
-          class="video-preview"
-          crossorigin="anonymous"
-          playsinline
-          @click="togglePlayPause"
-        ></video>
+        <video :ref="setVideoRef" :src="videoUrl" preload="auto" class="video-preview" crossorigin="anonymous"
+          playsinline @click="togglePlayPause"></video>
         <div v-if="!isPlaying" class="video-overlay" @click="togglePlayPause">
           <div class="play-button">▶️</div>
         </div>
@@ -536,12 +528,8 @@ watch(() => props.fileType, (newFileType) => {
 
       <div class="media-controls">
         <!-- Play/Pause Button -->
-        <button
-          @click="togglePlayPause"
-          class="control-btn play-pause-btn"
-          :title="isPlaying ? 'Pause' : 'Play'"
-          :disabled="!audioElement && !videoElement || (!audioLoaded && !videoLoaded) || isSeeking"
-        >
+        <button @click="togglePlayPause" class="control-btn play-pause-btn" :title="isPlaying ? 'Pause' : 'Play'"
+          :disabled="!audioElement && !videoElement || (!audioLoaded && !videoLoaded) || isSeeking">
           {{ isPlaying ? '⏸️' : '▶️' }}
         </button>
 
@@ -551,49 +539,29 @@ watch(() => props.fileType, (newFileType) => {
         </span>
 
         <!-- Progress Bar -->
-        <div
-          class="progress-bar"
-          @click="seek"
-          :class="{ 'disabled': (!audioElement && !videoElement) || (!audioLoaded && !videoLoaded) || isSeeking }"
-        >
+        <div class="progress-bar" @click="seek"
+          :class="{ 'disabled': (!audioElement && !videoElement) || (!audioLoaded && !videoLoaded) || isSeeking }">
           <div class="progress-background"></div>
-          <div
-            class="progress-fill"
-            :style="{ width: duration ? (currentTime / duration) * 100 + '%' : '0%' }"
-          ></div>
+          <div class="progress-fill" :style="{ width: duration ? (currentTime / duration) * 100 + '%' : '0%' }"></div>
           <div class="progress-thumb" :style="{ left: duration ? (currentTime / duration) * 100 + '%' : '0%' }"></div>
         </div>
 
         <!-- Volume Controls -->
         <div class="volume-controls">
-          <button
-            @click="toggleMute"
-            class="control-btn volume-btn"
-            :title="isMuted ? 'Unmute' : 'Mute'"
-            :disabled="(!audioElement && !videoElement) || (!audioLoaded && !videoLoaded) || isSeeking"
-          >
+          <button @click="toggleMute" class="control-btn volume-btn" :title="isMuted ? 'Unmute' : 'Mute'"
+            :disabled="(!audioElement && !videoElement) || (!audioLoaded && !videoLoaded) || isSeeking">
             {{ volumeIcon }}
           </button>
-          <div
-            class="volume-slider"
-            @click="setVolume"
-            :class="{ 'disabled': (!audioElement && !videoElement) || (!audioLoaded && !videoLoaded) || isSeeking }"
-          >
+          <div class="volume-slider" @click="setVolume"
+            :class="{ 'disabled': (!audioElement && !videoElement) || (!audioLoaded && !videoLoaded) || isSeeking }">
             <div class="volume-background"></div>
-            <div
-              class="volume-fill"
-              :style="{ width: (isMuted ? 0 : volume) * 100 + '%' }"
-            ></div>
+            <div class="volume-fill" :style="{ width: (isMuted ? 0 : volume) * 100 + '%' }"></div>
           </div>
         </div>
 
         <!-- Download Button -->
-        <button
-          @click="downloadFile"
-          class="control-btn download-btn"
-          :title="'Download ' + (isVideo ? 'video' : 'audio')"
-          :disabled="isSeeking"
-        >
+        <button @click="downloadFile" class="control-btn download-btn"
+          :title="'Download ' + (isVideo ? 'video' : 'audio')" :disabled="isSeeking">
           ⬇️
         </button>
       </div>
@@ -698,8 +666,13 @@ watch(() => props.fileType, (newFileType) => {
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 .error-state {

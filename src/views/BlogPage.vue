@@ -334,7 +334,9 @@ watch(() => route.params.id, async (newId) => {
     </template>
 
     <template v-else-if="postData">
-      <PostTitle :postTitle="postData.postTitle" :postAuthor="postData.postAuthor" :postDate="postData.postDate" />
+      <PostTitle :postTitle="postData.postTitle"
+        :postAuthor="Array.isArray(postData.postAuthor) ? postData.postAuthor : [postData.postAuthor]"
+        :postDate="postData.postDate" />
 
 
       <div class="separator"></div>
@@ -444,4 +446,3 @@ watch(() => route.params.id, async (newId) => {
 
 /* Remove the old audio section styles since audio widgets are now inline */
 </style>
-
