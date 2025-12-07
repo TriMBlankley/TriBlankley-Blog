@@ -1,1 +1,1 @@
-There may be times that i do not want to showcase images in the text, or, i may want to showcase many images on a single post, to this end i want a "Gallery" to appear at the bottom of the conent. As an example. here is a bunch of photos of my new-to-me car!
+There may be times that i do not want to showcase images in the text, or, i may want to showcase many images on a single post, to this end i want a "Gallery" to appear at the bottom of the conent. As an example. here is a bunch of photos of my new-to-me car, a 2009 Mazda RX-8:   

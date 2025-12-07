@@ -18,6 +18,7 @@ export default {
         contentType: 'Text',
         isPublished: false,
         showGalleryView: false, // NEW: Gallery view checkbox
+        isNSFW: false,
         postGroup: null
       },
       selectedTopic: '',
@@ -694,6 +695,7 @@ export default {
         contentType: 'Text',
         isPublished: false,
         showGalleryView: false, // NEW: Reset gallery view
+        isNSFW: false,
         postGroup: null
       };
       this.currentAuthor = ''; // NEW: Reset current author input
@@ -1086,6 +1088,23 @@ export default {
           </div>
           <p class="field-description">When enabled, this post will display in a gallery format instead of the standard
             blog view.</p>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <h2>Additional Options</h2>
+
+        <div class="form-group">
+          <label for="isNSFW">Is NSFW</label>
+          <div class="checkbox-group">
+            <input id="isNSFW" v-model="postData.isNSFW" type="checkbox">
+            <label for="isNSFW" class="checkbox-label">
+              Is post NSFW?
+            </label>
+          </div>
+          <p class="field-description">
+            When checked, the post will not display on the gloabal blog, only on the NSFW mirror.
+          </p>
         </div>
       </div>
 

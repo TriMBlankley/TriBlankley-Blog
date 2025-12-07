@@ -43,12 +43,14 @@
         <div class="post-header">
           <h3 class="post-title">{{ post.postTitle }}</h3>
           <div class="post-meta">
-            <span class="post-author">By {{ post.postAuthor }}</span>
+            <span class="post-author">By {{ formatAuthors(post.postAuthor) }}</span>
             <span class="post-date">{{ formatDate(post.createdAt) }}</span>
             <span class="post-status" :class="post.isPublished ? 'published' : 'draft'">
               {{ post.isPublished ? 'Published' : 'Draft' }}
             </span>
             <span class="post-content-type">{{ post.contentType }}</span>
+            <span v-if="post.showGalleryView" class="gallery-view-badge">Gallery</span>
+            <span v-if="post.isNSFW" class="NSFW-badge">NSFW</span>
           </div>
         </div>
 
@@ -118,7 +120,7 @@
       </div>
     </div>
 
-    <!-- Edit Post Modal - Full Featured -->
+    <!-- Edit Post Modal - Updated to match PostCreator -->
     <div v-if="showEditModal" class="modal-overlay">
       <div class="modal-content edit-modal">
         <div class="modal-header">
@@ -171,18 +173,31 @@
                 <span v-if="fieldErrors.postTitle" class="error-text">{{ fieldErrors.postTitle }}</span>
               </div>
 
+              <!-- Post Authors (Multiple) -->
               <div class="form-group">
-                <label for="editAuthor">Author *</label>
-                <input
-                  id="editAuthor"
-                  v-model="editingPost.postAuthor"
-                  type="text"
-                  required
-                  placeholder="Enter author name"
-                  class="form-input"
-                  :class="{ 'error': fieldErrors.postAuthor }"
-                >
-                <span v-if="fieldErrors.postAuthor" class="error-text">{{ fieldErrors.postAuthor }}</span>
+                <label for="postAuthor">Authors *</label>
+                <div class="authors-input-container">
+                  <div class="author-input-group">
+                    <input id="postAuthor" v-model="currentAuthor" type="text"
+                      placeholder="Enter author name and press Enter"
+                      class="form-input" :class="{ 'error': fieldErrors.postAuthor }"
+                      @keypress="handleAuthorKeypress">
+                    <button type="button" @click="addAuthor" class="btn btn-outline add-author-btn">
+                      Add
+                    </button>
+                  </div>
+                  <span v-if="fieldErrors.postAuthor" class="error-text">{{ fieldErrors.postAuthor }}</span>
+
+                  <!-- Authors List -->
+                  <div v-if="editingPost.postAuthor.length > 0" class="authors-list">
+                    <div v-for="(author, index) in editingPost.postAuthor" :key="index" class="author-tag">
+                      <span>{{ author }}</span>
+                      <button type="button" @click="removeAuthor(index)" class="remove-author-btn" title="Remove author">
+                        ✕
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <!-- Content Type Selection -->
@@ -219,6 +234,35 @@
                   </label>
                 </div>
               </div>
+
+              <div class="form-group">
+                <label for="editGalleryView">Gallery View</label>
+                <div class="checkbox-group">
+                  <input
+                    id="editGalleryView"
+                    v-model="editingPost.showGalleryView"
+                    type="checkbox"
+                  >
+                  <label for="editGalleryView" class="checkbox-label">
+                    Show Gallery View?
+                  </label>
+                </div>
+                <p class="field-description">When enabled, this post will display in a gallery format instead of the standard blog view.</p>
+              </div>
+
+              <div class="form-group">
+                <label for="editIsNSFW">Is NSFW</label>
+                <div class="checkbox-group">
+                  <input
+                    id="editIsNSFW"
+                    v-model="editingPost.isNSFW"
+                    type="checkbox"
+                  >
+                  <label for="editIsNSFW" class="checkbox-label">
+                    Does the post contrain not-safe-for-work content?
+                  </label>
+                </div>
+              </div>
             </div>
 
             <!-- Post Topic Selection -->
@@ -227,7 +271,7 @@
               <div class="form-group">
                 <label>Select Post Topic</label>
                 <select
-                  v-model="editingPost.postTopics[0]"
+                  v-model="selectedTopic"
                   class="form-input"
                   :class="{ 'error': fieldErrors.postTopics }"
                   required
@@ -240,12 +284,12 @@
                 <span v-if="fieldErrors.postTopics" class="error-text">{{ fieldErrors.postTopics }}</span>
               </div>
 
-              <div v-if="editingPost.postTopics[0]" class="selected-topic-display">
+              <div v-if="selectedTopic" class="selected-topic-display">
                 <span class="topic-tag" :style="{
-                  backgroundColor: getTopicColor(editingPost.postTopics[0]) + '20',
-                  borderColor: getTopicColor(editingPost.postTopics[0])
+                  backgroundColor: getTopicColor(selectedTopic) + '20',
+                  borderColor: getTopicColor(selectedTopic)
                 }">
-                  {{ editingPost.postTopics[0] }}
+                  {{ selectedTopic }}
                 </span>
               </div>
             </div>
@@ -256,7 +300,7 @@
               <div class="form-group">
                 <label>Assign to Post Group</label>
                 <div class="group-selection">
-                  <select v-model="editingPost.postGroupId" class="form-input">
+                  <select v-model="selectedGroupId" class="form-input">
                     <option value="">No Group</option>
                     <option
                       v-for="group in availableGroups"
@@ -275,7 +319,7 @@
                     + Create New Group
                   </button>
                   <button
-                    v-if="editingPost.postGroupId"
+                    v-if="selectedGroupId"
                     type="button"
                     @click="editSelectedGroup"
                     class="btn btn-outline"
@@ -298,87 +342,6 @@
                   {{ selectedGroup.groupName }}
                 </span>
               </div>
-
-              <!-- Create New Group Modal -->
-              <div v-if="showCreateGroup" class="modal-overlay">
-                <div class="modal-content">
-                  <h3>Create New Post Group</h3>
-                  <div class="form-group">
-                    <label>Group Name *</label>
-                    <input
-                      v-model="newGroup.groupName"
-                      type="text"
-                      class="form-input"
-                      placeholder="Enter group name"
-                      :class="{ 'error': fieldErrors.groupName }"
-                    >
-                    <span v-if="fieldErrors.groupName" class="error-text">{{ fieldErrors.groupName }}</span>
-                  </div>
-                  <div class="form-group">
-                    <label>Description</label>
-                    <textarea v-model="newGroup.groupDescription" class="form-input" placeholder="Optional description"></textarea>
-                  </div>
-                  <div class="form-group">
-                    <label>Group Color</label>
-                    <div class="color-picker-container">
-                      <input
-                        v-model="newGroup.groupColor"
-                        type="color"
-                        class="color-picker"
-                      >
-                      <span class="color-value">{{ newGroup.groupColor }}</span>
-                    </div>
-                  </div>
-                  <div class="modal-actions">
-                    <button @click="createNewGroup" class="btn btn-primary" :disabled="!newGroup.groupName">
-                      Create Group
-                    </button>
-                    <button @click="cancelCreateGroup" class="btn btn-secondary">Cancel</button>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Edit Group Modal -->
-              <div v-if="showEditGroup" class="modal-overlay">
-                <div class="modal-content">
-                  <h3>Edit Post Group</h3>
-                  <div class="form-group">
-                    <label>Group Name *</label>
-                    <input
-                      v-model="editingGroup.groupName"
-                      type="text"
-                      class="form-input"
-                      placeholder="Enter group name"
-                      :class="{ 'error': fieldErrors.editingGroupName }"
-                    >
-                    <span v-if="fieldErrors.editingGroupName" class="error-text">{{ fieldErrors.editingGroupName }}</span>
-                  </div>
-                  <div class="form-group">
-                    <label>Description</label>
-                    <textarea v-model="editingGroup.groupDescription" class="form-input" placeholder="Optional description"></textarea>
-                  </div>
-                  <div class="form-group">
-                    <label>Group Color</label>
-                    <div class="color-picker-container">
-                      <input
-                        v-model="editingGroup.groupColor"
-                        type="color"
-                        class="color-picker"
-                      >
-                      <span class="color-value">{{ editingGroup.groupColor }}</span>
-                    </div>
-                  </div>
-                  <div class="modal-actions">
-                    <button @click="updateGroup" class="btn btn-primary" :disabled="!editingGroup.groupName">
-                      Update Group
-                    </button>
-                    <button @click="deleteGroup" class="btn btn-danger">
-                      Delete Group
-                    </button>
-                    <button @click="cancelEditGroup" class="btn btn-secondary">Cancel</button>
-                  </div>
-                </div>
-              </div>
             </div>
 
             <!-- Markdown Content -->
@@ -395,7 +358,7 @@
                   >
                   <div class="upload-box" :class="{ 'has-file': markdownFile, 'error': fieldErrors.postContent }">
                     <span v-if="!markdownFile" class="upload-placeholder">
-                      📄 Upload Markdown File (.md) or edit below *
+                      📄 Upload Markdown File (.md) *
                     </span>
                     <span v-else class="file-info">
                       ✅ {{ markdownFile.name }} ({{ formatFileSize(markdownFile.size) }})
@@ -405,6 +368,7 @@
                 <span v-if="fieldErrors.postContent" class="error-text">{{ fieldErrors.postContent }}</span>
               </div>
 
+              <!-- Direct Content Editing -->
               <div class="form-group">
                 <label for="editContent">Content *</label>
                 <textarea
@@ -413,7 +377,7 @@
                   required
                   rows="10"
                   class="form-textarea"
-                  placeholder="Or edit markdown content directly here..."
+                  placeholder="Edit markdown content directly here..."
                 ></textarea>
               </div>
 
@@ -432,56 +396,70 @@
               </div>
             </div>
 
-            <!-- Image Upload for Sequencing -->
+            <!-- Sequenced Attachments -->
             <div class="form-section">
-              <h2>Images for Sequencing</h2>
+              <h2>Sequenced Attachments</h2>
               <p class="section-description">
-                Upload images that will be referenced in your markdown as Image 1, Image 2, etc.
-                Use <code>![Image Description](image{{ uploadedImages.length > 0 ? uploadedImages.length + 1 : 1 }})</code> in your markdown to reference the next image.
+                Upload images, audio, or video files that will be referenced in your markdown as Image 1, Audio 1, Video 1, etc.
+                Use
+                <code>![Description](image{{sequencedAttachments.filter(a => a.attachmentType === 'image').length + 1}})</code>
+                for images,
+                <code>[Description](audio{{sequencedAttachments.filter(a => a.attachmentType === 'audio').length + 1}})</code>
+                for audio, or
+                <code>[Description](video{{sequencedAttachments.filter(a => a.attachmentType === 'video').length + 1}})</code>
+                for video in your markdown.
               </p>
 
               <div class="file-upload-area">
                 <label class="file-upload-label">
-                  <input
-                    type="file"
-                    multiple
-                    accept="image/*"
-                    @change="handleImageUpload"
-                    :disabled="uploadedImages.length >= 20"
-                    class="file-input"
-                  >
-                  <div class="upload-box" :class="{ 'disabled': uploadedImages.length >= 20 }">
+                  <input type="file" multiple accept="image/*,audio/*,video/*" @change="handleSequencedAttachmentUpload"
+                    :disabled="sequencedAttachments.length >= 20" class="file-input">
+                  <div class="upload-box" :class="{ 'disabled': sequencedAttachments.length >= 20 }">
                     <span class="upload-placeholder">
-                      🖼️ Upload Images ({{ uploadedImages.length }}/20)
+                      📁 Upload Sequenced Attachments ({{ sequencedAttachments.length }}/20)
                     </span>
                   </div>
                 </label>
               </div>
 
-              <!-- Image Sequence List -->
-              <div v-if="uploadedImages.length > 0" class="image-sequence-list">
-                <h3>Image Sequence</h3>
-                <div class="image-sequence-grid">
-                  <div
-                    v-for="(image, index) in uploadedImages"
-                    :key="index"
-                    class="sequence-item"
-                  >
-                    <div class="sequence-number">Image {{ index + 1 }}</div>
-                    <img :src="getImagePreview(image.file)" :alt="image.file.name" class="sequence-preview">
-                    <div class="image-details">
-                      <span class="image-name">{{ image.file.name }}</span>
-                      <span class="image-size">{{ formatFileSize(image.file.size) }}</span>
+              <!-- Sequenced Attachments List -->
+              <div v-if="sequencedAttachments.length > 0" class="attachments-list">
+                <div v-for="(attachment, index) in sequencedAttachments" :key="index" class="attachment-item sequenced">
+                  <div class="attachment-preview">
+                    <div v-if="attachment.file.type.startsWith('image/')" class="image-preview">
+                      <img :src="getImagePreview(attachment.file)" :alt="attachment.file.name">
                     </div>
-                    <button
-                      type="button"
-                      @click="removeImage(index)"
-                      class="remove-btn"
-                      title="Remove image"
-                    >
-                      🗑️
-                    </button>
+                    <div v-else class="file-icon">
+                      {{ getSequencedAttachmentIcon(attachment.attachmentType) }}
+                    </div>
                   </div>
+                  <div class="attachment-info">
+                    <div class="attachment-name">{{ attachment.file.name }}</div>
+                    <div class="attachment-meta">
+                      <span class="file-size">{{ formatFileSize(attachment.file.size) }}</span>
+                      <span class="sequence-number">Sequence: {{ attachment.sequence }}</span>
+
+                      <!-- Attachment Type Selector -->
+                      <div class="attachment-type-selector">
+                        <label>Type:</label>
+                        <select :value="attachment.attachmentType" @change="updateAttachmentType(index, $event.target.value)"
+                          class="type-select">
+                          <option value="image">Image</option>
+                          <option value="audio">Audio</option>
+                          <option value="video">Video</option>
+                        </select>
+                      </div>
+
+                      <!-- Type Badge Display -->
+                      <span class="type-badge" :class="attachment.attachmentType">
+                        {{ getSequencedAttachmentTypeLabel(attachment.attachmentType) }}
+                      </span>
+                    </div>
+                  </div>
+                  <button type="button" @click="removeSequencedAttachment(index)" class="remove-btn"
+                    title="Remove attachment">
+                    ✕
+                  </button>
                 </div>
               </div>
             </div>
@@ -490,66 +468,67 @@
             <div class="form-section">
               <h2>Additional Attachments</h2>
               <p class="section-description">
-                Upload any additional files (images, PDFs, documents, etc.) that will be displayed at the bottom of the post.
-                Maximum file size: 100MB per file.
+                Upload additional files that will be available for download with your post.
               </p>
 
               <div class="file-upload-area">
                 <label class="file-upload-label">
-                  <input
-                    type="file"
-                    multiple
-                    accept="image/*,.pdf,.doc,.docx,.zip,.txt,.gif,.png,.jpg,.jpeg"
-                    @change="handleAttachmentUpload"
-                    :disabled="attachedFiles.length >= 10"
-                    class="file-input"
-                  >
+                  <input type="file" multiple @change="handleAttachmentUpload" :disabled="attachedFiles.length >= 10"
+                    class="file-input">
                   <div class="upload-box" :class="{ 'disabled': attachedFiles.length >= 10 }">
                     <span class="upload-placeholder">
-                      📎 Add Attachments ({{ attachedFiles.length }}/10)
+                      📎 Upload Additional Files ({{ attachedFiles.length }}/10)
                     </span>
                   </div>
                 </label>
               </div>
 
-              <!-- Attachment List -->
-              <div v-if="attachedFiles.length > 0" class="file-list">
-                <div
-                  v-for="(file, index) in attachedFiles"
-                  :key="index"
-                  class="file-item"
-                >
+              <!-- Attachments List -->
+              <div v-if="attachedFiles.length > 0" class="attachments-list">
+                <div v-for="(file, index) in attachedFiles" :key="index" class="attachment-item">
+                  <div class="attachment-info">
+                    <div class="attachment-header">
+                      <span class="attachment-name">{{ file.name }}</span>
+                    </div>
+                    <div class="attachment-details">
+                      <span class="file-size">{{ formatFileSize(file.size) }}</span>
+                      <span class="file-type">{{ getFileTypeLabel(file.type, file.name) }}</span>
+                    </div>
+                  </div>
+                  <button type="button" @click="removeAttachment(index)" class="remove-btn" title="Remove attachment">
+                    ✕
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Existing Files Information -->
+            <div v-if="existingFiles.length > 0" class="form-section">
+              <h2>Existing Files</h2>
+              <p class="section-description">
+                Files currently attached to this post. These will remain unless you delete them.
+              </p>
+
+              <div class="existing-files-list">
+                <div v-for="(file, index) in existingFiles" :key="index" class="existing-file-item">
                   <div class="file-info">
                     <span class="file-icon">{{ getFileIcon(file.type) }}</span>
                     <div class="file-details">
-                      <span class="file-name">{{ file.name }}</span>
-                      <span class="file-size">{{ formatFileSize(file.size) }}</span>
-                      <span v-if="file.type.startsWith('image/')" class="file-type-badge">Image</span>
+                      <span class="file-name">{{ file.filename }}</span>
+                      <span class="file-meta">
+                        <span class="file-size">{{ formatFileSize(file.size) }}</span>
+                        <span class="file-type">{{ file.attachmentType || file.fileType }}</span>
+                      </span>
                     </div>
                   </div>
                   <button
                     type="button"
-                    @click="removeAttachment(index)"
-                    class="remove-btn"
-                    title="Remove file"
+                    @click="confirmDeleteFile(file)"
+                    class="btn btn-danger btn-sm"
+                    title="Delete file"
                   >
                     🗑️
                   </button>
-                </div>
-              </div>
-
-              <!-- Image Previews for Attachments -->
-              <div v-if="hasAttachmentImages" class="image-previews">
-                <h3>Attachment Image Previews</h3>
-                <div class="image-grid">
-                  <div
-                    v-for="(file, index) in attachmentImages"
-                    :key="index"
-                    class="image-preview-item"
-                  >
-                    <img :src="getImagePreview(file)" :alt="file.name" class="preview-image">
-                    <span class="image-name">{{ file.name }}</span>
-                  </div>
                 </div>
               </div>
             </div>
@@ -575,6 +554,87 @@
               </button>
             </div>
           </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Create New Group Modal -->
+    <div v-if="showCreateGroup" class="modal-overlay">
+      <div class="modal-content">
+        <h3>Create New Post Group</h3>
+        <div class="form-group">
+          <label>Group Name *</label>
+          <input
+            v-model="newGroup.groupName"
+            type="text"
+            class="form-input"
+            placeholder="Enter group name"
+            :class="{ 'error': fieldErrors.groupName }"
+          >
+          <span v-if="fieldErrors.groupName" class="error-text">{{ fieldErrors.groupName }}</span>
+        </div>
+        <div class="form-group">
+          <label>Description</label>
+          <textarea v-model="newGroup.groupDescription" class="form-input" placeholder="Optional description"></textarea>
+        </div>
+        <div class="form-group">
+          <label>Group Color</label>
+          <div class="color-picker-container">
+            <input
+              v-model="newGroup.groupColor"
+              type="color"
+              class="color-picker"
+            >
+            <span class="color-value">{{ newGroup.groupColor }}</span>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button @click="createNewGroup" class="btn btn-primary" :disabled="!newGroup.groupName">
+            Create Group
+          </button>
+          <button @click="cancelCreateGroup" class="btn btn-secondary">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Edit Group Modal -->
+    <div v-if="showEditGroup" class="modal-overlay">
+      <div class="modal-content">
+        <h3>Edit Post Group</h3>
+        <div class="form-group">
+          <label>Group Name *</label>
+          <input
+            v-model="editingGroup.groupName"
+            type="text"
+            class="form-input"
+            placeholder="Enter group name"
+            :class="{ 'error': fieldErrors.editingGroupName }"
+          >
+          <span v-if="fieldErrors.editingGroupName" class="error-text">{{ fieldErrors.editingGroupName }}</span>
+        </div>
+        <div class="form-group">
+          <label>Description</label>
+          <textarea v-model="editingGroup.groupDescription" class="form-input" placeholder="Optional description"></textarea>
+        </div>
+        <div class="form-group">
+          <label>Group Color</label>
+          <div class="color-picker-container">
+            <input
+              v-model="editingGroup.groupColor"
+              type="color"
+              class="color-picker"
+            >
+            <span class="color-value">{{ editingGroup.groupColor }}</span>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button @click="updateGroup" class="btn btn-primary" :disabled="!editingGroup.groupName">
+            Update Group
+          </button>
+          <button @click="deleteGroup" class="btn btn-danger">
+            Delete Group
+          </button>
+          <button @click="cancelEditGroup" class="btn btn-secondary">Cancel</button>
         </div>
       </div>
     </div>
@@ -646,10 +706,12 @@ export default {
       editingPost: null,
       originalPostId: null,
       markdownFile: null,
-      uploadedImages: [],
+      currentAuthor: '',
+      selectedTopic: '',
+      selectedGroupId: '',
+      sequencedAttachments: [],
       attachedFiles: [],
-      existingImages: [],
-      existingAttachments: [],
+      existingFiles: [],
 
       // Group management
       newGroup: {
@@ -691,7 +753,7 @@ export default {
         const query = this.searchQuery.toLowerCase();
         filtered = filtered.filter(post =>
           post.postTitle.toLowerCase().includes(query) ||
-          post.postAuthor.toLowerCase().includes(query) ||
+          this.formatAuthors(post.postAuthor).toLowerCase().includes(query) ||
           post.postContent.toLowerCase().includes(query) ||
           post.postTopics.some(topic => topic.toLowerCase().includes(query))
         );
@@ -705,9 +767,9 @@ export default {
       return (
         this.editingPost &&
         this.editingPost.postTitle.trim() &&
-        this.editingPost.postAuthor.trim() &&
+        this.editingPost.postAuthor.length > 0 &&
         this.editingPost.postContent.trim() &&
-        this.editingPost.postTopics.length > 0 &&
+        this.selectedTopic.trim() &&
         this.editingPost.contentType.trim()
       );
     },
@@ -727,8 +789,19 @@ export default {
     },
 
     selectedGroup() {
-      if (!this.editingPost.postGroupId) return null;
-      return this.availableGroups.find(group => group._id === this.editingPost.postGroupId);
+      if (!this.selectedGroupId) return null;
+      return this.availableGroups.find(group => group._id === this.selectedGroupId);
+    }
+  },
+
+  watch: {
+    selectedTopic(newTopic) {
+      if (newTopic) {
+        this.editingPost.postTopics = [newTopic];
+      } else {
+        this.editingPost.postTopics = [];
+      }
+      this.clearFieldError('postTopics');
     }
   },
 
@@ -790,26 +863,38 @@ export default {
         const postDetails = await response.json();
         this.originalPostId = post.postId;
 
-        // Initialize editing state
-        this.editingPost = { ...postDetails };
+        // Initialize editing state with all fields
+        this.editingPost = {
+          postTitle: postDetails.postTitle || '',
+          postAuthor: Array.isArray(postDetails.postAuthor) ? postDetails.postAuthor :
+                     postDetails.postAuthor ? [postDetails.postAuthor] : [],
+          postContent: postDetails.postContent || '',
+          postTopics: Array.isArray(postDetails.postTopics) ? postDetails.postTopics :
+                     postDetails.postTopics ? [postDetails.postTopics] : [],
+          contentType: postDetails.contentType || 'Text',
+          isPublished: postDetails.isPublished || false,
+          showGalleryView: postDetails.showGalleryView || false,
+          isNSFW: postDetails.isNSFW || false,
+          postGroup: postDetails.postGroup || null
+        };
+
+        // Set selected topic
+        this.selectedTopic = this.editingPost.postTopics[0] || '';
+
+        // Set selected group
+        this.selectedGroupId = postDetails.postGroup?.groupId || '';
 
         // Initialize file arrays
-        this.uploadedImages = [];
+        this.currentAuthor = '';
+        this.sequencedAttachments = [];
         this.attachedFiles = [];
-        this.existingImages = postDetails.images || [];
-        this.existingAttachments = postDetails.attachments || [];
         this.markdownFile = null;
 
-        // Set group ID if exists
-        if (postDetails.postGroup) {
-          this.editingPost.postGroupId = postDetails.postGroup.groupId;
+        // Load existing files if available
+        if (postDetails.files) {
+          this.existingFiles = postDetails.files;
         } else {
-          this.editingPost.postGroupId = '';
-        }
-
-        // Ensure postTopics is an array
-        if (!Array.isArray(this.editingPost.postTopics)) {
-          this.editingPost.postTopics = this.editingPost.postTopics ? [this.editingPost.postTopics] : [];
+          this.existingFiles = [];
         }
 
         this.showEditModal = true;
@@ -834,10 +919,12 @@ export default {
       this.showEditModal = false;
       this.editingPost = null;
       this.originalPostId = null;
-      this.uploadedImages = [];
+      this.currentAuthor = '';
+      this.selectedTopic = '';
+      this.selectedGroupId = '';
+      this.sequencedAttachments = [];
       this.attachedFiles = [];
-      this.existingImages = [];
-      this.existingAttachments = [];
+      this.existingFiles = [];
       this.markdownFile = null;
       this.errorMessage = '';
       this.fieldErrors = {};
@@ -846,9 +933,57 @@ export default {
 
     hasUnsavedChanges() {
       // Check if there are any uploaded files or changes to the post
-      return this.uploadedImages.length > 0 ||
+      return this.sequencedAttachments.length > 0 ||
              this.attachedFiles.length > 0 ||
-             this.markdownFile !== null;
+             this.markdownFile !== null ||
+             (this.editingPost && this.checkPostChanges());
+    },
+
+    checkPostChanges() {
+      if (!this.editingPost) return false;
+
+      // Get original post
+      const originalPost = this.posts.find(p => p.postId === this.originalPostId);
+      if (!originalPost) return true;
+
+      // Check for changes in main fields
+      return originalPost.postTitle !== this.editingPost.postTitle ||
+             JSON.stringify(originalPost.postAuthor) !== JSON.stringify(this.editingPost.postAuthor) ||
+             originalPost.postContent !== this.editingPost.postContent ||
+             JSON.stringify(originalPost.postTopics) !== JSON.stringify(this.editingPost.postTopics) ||
+             originalPost.contentType !== this.editingPost.contentType ||
+             originalPost.isPublished !== this.editingPost.isPublished ||
+             originalPost.showGalleryView !== this.editingPost.showGalleryView ||
+             originalPost.postGroup?.groupId !== this.selectedGroupId;
+    },
+
+    // NEW: Add author to the list
+    addAuthor() {
+      if (this.currentAuthor.trim() && !this.editingPost.postAuthor.includes(this.currentAuthor.trim())) {
+        this.editingPost.postAuthor.push(this.currentAuthor.trim());
+        this.currentAuthor = '';
+        this.clearFieldError('postAuthor');
+      }
+    },
+
+    // NEW: Remove author from the list
+    removeAuthor(index) {
+      this.editingPost.postAuthor.splice(index, 1);
+    },
+
+    // NEW: Handle Enter key in author input
+    handleAuthorKeypress(event) {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        this.addAuthor();
+      }
+    },
+
+    formatAuthors(authors) {
+      if (Array.isArray(authors)) {
+        return authors.join(', ');
+      }
+      return authors || 'Unknown';
     },
 
     getTopicColor(topicName) {
@@ -863,7 +998,7 @@ export default {
       }
 
       try {
-        const sessionToken = getSessionToken() || ''; // Provide empty string as default
+        const sessionToken = getSessionToken() || '';
         const response = await fetch('/api/post-groups', {
           method: 'POST',
           headers: {
@@ -887,7 +1022,7 @@ export default {
 
         const newGroup = await response.json();
         this.availableGroups.push(newGroup);
-        this.editingPost.postGroupId = newGroup._id;
+        this.selectedGroupId = newGroup._id;
         this.showCreateGroup = false;
         this.newGroup = { groupName: '', groupDescription: '', groupColor: '#007bff' };
         this.fieldErrors.groupName = '';
@@ -903,9 +1038,9 @@ export default {
     },
 
     editSelectedGroup() {
-      if (!this.editingPost.postGroupId) return;
+      if (!this.selectedGroupId) return;
 
-      const group = this.availableGroups.find(g => g._id === this.editingPost.postGroupId);
+      const group = this.availableGroups.find(g => g._id === this.selectedGroupId);
       if (group) {
         this.editingGroup = { ...group };
         this.showEditGroup = true;
@@ -980,8 +1115,8 @@ export default {
         this.availableGroups = this.availableGroups.filter(g => g._id !== this.editingGroup._id);
 
         // Clear selected group if it was the deleted one
-        if (this.editingPost.postGroupId === this.editingGroup._id) {
-          this.editingPost.postGroupId = '';
+        if (this.selectedGroupId === this.editingGroup._id) {
+          this.selectedGroupId = '';
         }
 
         this.showEditGroup = false;
@@ -1031,31 +1166,88 @@ export default {
       reader.readAsText(file);
     },
 
-    handleImageUpload(event) {
+    // UPDATED: Handle sequenced attachment upload with automatic type detection
+    handleSequencedAttachmentUpload(event) {
       const files = Array.from(event.target.files);
-      const remainingSlots = 20 - this.uploadedImages.length;
+      const remainingSlots = 20 - this.sequencedAttachments.length;
 
       if (files.length > remainingSlots) {
-        this.showError(`You can only upload ${remainingSlots} more images.`);
+        this.showError(`You can only upload ${remainingSlots} more sequenced attachments.`);
         return;
       }
 
-      // Validate file sizes (10MB limit for images)
-      const oversizedFiles = files.filter(file => file.size > 10 * 1024 * 1024);
+      // Validate file sizes (100MB limit for all sequenced attachments)
+      const oversizedFiles = files.filter(file => file.size > 100 * 1024 * 1024);
       if (oversizedFiles.length > 0) {
-        this.showError('Some images exceed the 10MB size limit');
+        this.showError('Some files exceed the 100MB size limit');
         return;
       }
 
-      // Add images with their sequence numbers
+      // Add files with their sequence numbers and auto-detect type
       files.forEach(file => {
-        this.uploadedImages.push({
+        this.sequencedAttachments.push({
           file: file,
-          sequence: this.uploadedImages.length + 1
+          sequence: this.sequencedAttachments.length + 1,
+          attachmentType: this.detectAttachmentType(file) // Auto-detect type
         });
       });
 
       event.target.value = '';
+    },
+
+    // UPDATED: Enhanced type detection
+    detectAttachmentType(file) {
+      if (file.type.startsWith('image/')) return 'image';
+      if (file.type.startsWith('audio/')) return 'audio';
+      if (file.type.startsWith('video/')) return 'video';
+
+      // Fallback based on extension
+      const fileName = file.name.toLowerCase();
+      if (fileName.endsWith('.mp3') || fileName.endsWith('.wav') || fileName.endsWith('.ogg') ||
+        fileName.endsWith('.flac') || fileName.endsWith('.aac') || fileName.endsWith('.m4a')) {
+        return 'audio';
+      }
+      if (fileName.endsWith('.mp4') || fileName.endsWith('.avi') || fileName.endsWith('.mov') ||
+        fileName.endsWith('.mkv') || fileName.endsWith('.webm') || fileName.endsWith('.m4v') ||
+        fileName.endsWith('.wmv') || fileName.endsWith('.flv')) {
+        return 'video';
+      }
+
+      return 'image'; // Default to image for compatibility
+    },
+
+    // Update attachment type
+    updateAttachmentType(index, newType) {
+      this.sequencedAttachments[index].attachmentType = newType;
+    },
+
+    // Remove sequenced attachment
+    removeSequencedAttachment(index) {
+      this.sequencedAttachments.splice(index, 1);
+      // Update sequence numbers
+      this.sequencedAttachments.forEach((attachment, idx) => {
+        attachment.sequence = idx + 1;
+      });
+    },
+
+    // Get icon for sequenced attachment
+    getSequencedAttachmentIcon(attachmentType) {
+      switch (attachmentType) {
+        case 'image': return '🖼️';
+        case 'audio': return '🎵';
+        case 'video': return '🎬';
+        default: return '📎';
+      }
+    },
+
+    // Get type label for sequenced attachment
+    getSequencedAttachmentTypeLabel(attachmentType) {
+      switch (attachmentType) {
+        case 'image': return 'Image';
+        case 'audio': return 'Audio';
+        case 'video': return 'Video';
+        default: return 'File';
+      }
     },
 
     handleAttachmentUpload(event) {
@@ -1074,16 +1266,22 @@ export default {
         return;
       }
 
+      // Validate for potentially dangerous file types if needed
+      const dangerousFiles = files.filter(file => this.isPotentiallyDangerous(file));
+      if (dangerousFiles.length > 0) {
+        if (!confirm('Warning: You are uploading executable files. Make sure you trust these files. Continue?')) {
+          return;
+        }
+      }
+
       this.attachedFiles.push(...files);
       event.target.value = '';
     },
 
-    removeImage(index) {
-      this.uploadedImages.splice(index, 1);
-      // Update sequence numbers
-      this.uploadedImages.forEach((img, idx) => {
-        img.sequence = idx + 1;
-      });
+    isPotentiallyDangerous(file) {
+      const dangerousExtensions = ['.exe', '.bat', '.cmd', '.sh', '.ps1', '.js', '.vbs'];
+      const fileName = file.name.toLowerCase();
+      return dangerousExtensions.some(ext => fileName.endsWith(ext));
     },
 
     removeAttachment(index) {
@@ -1110,6 +1308,30 @@ export default {
       return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
     },
 
+    getFileTypeLabel(fileType, fileName = '') {
+      if (fileType.startsWith('image/')) return 'Image';
+      if (fileType.includes('pdf')) return 'PDF';
+      if (fileType.includes('zip') || fileType.includes('rar') || fileType.includes('tar') ||
+        fileType.includes('7z') || fileName.endsWith('.zip') || fileName.endsWith('.rar')) return 'Archive';
+      if (fileType.includes('document') || fileType.includes('word') ||
+        fileName.endsWith('.doc') || fileName.endsWith('.docx')) return 'Word Doc';
+      if (fileType.includes('spreadsheet') || fileType.includes('excel') ||
+        fileName.endsWith('.xls') || fileName.endsWith('.xlsx')) return 'Spreadsheet';
+      if (fileType.includes('presentation') || fileType.includes('powerpoint') ||
+        fileName.endsWith('.ppt') || fileName.endsWith('.pptx')) return 'Presentation';
+      if (fileType.includes('text/') || fileName.endsWith('.txt')) return 'Text';
+      if (fileType.includes('audio/')) return 'Audio';
+      if (fileType.includes('video/')) return 'Video';
+      if (fileName.endsWith('.exe') || fileName.endsWith('.msi')) return 'Executable';
+      if (fileName.endsWith('.js')) return 'JavaScript';
+      if (fileName.endsWith('.py')) return 'Python';
+      if (fileName.endsWith('.java')) return 'Java';
+
+      // Extract extension for unknown types
+      const extension = fileName.split('.').pop();
+      return extension ? extension.toUpperCase() : 'File';
+    },
+
     formatDate(dateString) {
       return new Date(dateString).toLocaleDateString('en-US', {
         year: 'numeric',
@@ -1133,91 +1355,6 @@ export default {
       };
     },
 
-    async updatePost() {
-      if (!this.validateForm()) {
-        return;
-      }
-
-      this.isSubmitting = true;
-      this.uploadProgress = 0;
-      this.currentTask = 'Preparing post data...';
-
-      try {
-        const formData = new FormData();
-
-        // Add post data
-        formData.append('postData', JSON.stringify({
-          postTitle: this.editingPost.postTitle,
-          postAuthor: this.editingPost.postAuthor,
-          postContent: this.editingPost.postContent,
-          postTopics: this.editingPost.postTopics,
-          contentType: this.editingPost.contentType,
-          isPublished: this.editingPost.isPublished,
-          postGroupId: this.editingPost.postGroupId || null
-        }));
-
-        // Add markdown file if uploaded
-        if (this.markdownFile) {
-          formData.append('markdownFile', this.markdownFile);
-        }
-
-        // Add sequence images
-        this.uploadedImages.forEach((imageData, index) => {
-          formData.append(`sequenceImages`, imageData.file);
-        });
-
-        // Add attachments
-        this.attachedFiles.forEach((file, index) => {
-          formData.append(`attachments`, file);
-        });
-
-        // Simulate upload progress
-        const progressInterval = setInterval(() => {
-          if (this.uploadProgress < 90) {
-            this.uploadProgress += 10;
-            this.currentTask = `Uploading files... (${this.uploadProgress}%)`;
-          }
-        }, 200);
-
-        const response = await fetch(`/api/posts/${this.originalPostId}`, {
-          method: 'PUT',
-          body: formData
-        });
-
-        clearInterval(progressInterval);
-        this.uploadProgress = 100;
-        this.currentTask = 'Processing post...';
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          let errorMessage = 'Failed to update post';
-          try {
-            const errorData = JSON.parse(errorText);
-            errorMessage = errorData.error || errorMessage;
-          } catch {
-            errorMessage = errorText || errorMessage;
-          }
-          throw new Error(errorMessage);
-        }
-
-        const updatedPost = await response.json();
-
-        // Update the post in the posts list
-        const index = this.posts.findIndex(p => p.postId === this.originalPostId);
-        if (index !== -1) {
-          this.posts[index] = updatedPost;
-        }
-
-        this.showSuccessModal = true;
-      } catch (error) {
-        console.error('Error updating post:', error);
-        this.showError(`Failed to update post: ${error.message}`);
-      } finally {
-        this.isSubmitting = false;
-        this.uploadProgress = 0;
-      }
-    },
-
     validateForm() {
       this.fieldErrors = {};
 
@@ -1225,20 +1362,20 @@ export default {
         this.fieldErrors.postTitle = 'Post title is required';
       }
 
-      if (!this.editingPost.postAuthor.trim()) {
-        this.fieldErrors.postAuthor = 'Author name is required';
+      if (this.editingPost.postAuthor.length === 0) {
+        this.fieldErrors.postAuthor = 'At least one author is required';
       }
 
       if (!this.editingPost.postContent.trim()) {
         this.fieldErrors.postContent = 'Post content is required';
       }
 
-      if (!this.editingPost.postTopics.length || !this.editingPost.postTopics[0]) {
-        this.fieldErrors.postTopics = 'Please select a topic';
+      if (!this.selectedTopic.trim()) {
+        this.fieldErrors.postTopics = 'Please select a post topic';
       }
 
-      if (!this.editingPost.contentType) {
-        this.fieldErrors.contentType = 'Content type is required';
+      if (!this.editingPost.contentType.trim()) {
+        this.fieldErrors.contentType = 'Please select a content type';
       }
 
       return Object.keys(this.fieldErrors).length === 0;
@@ -1250,12 +1387,207 @@ export default {
       }
     },
 
+    async uploadFileToGridFS(postId, file, fileType = 'attachment', sequence = 0, attachmentType = 'image') {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = async () => {
+          try {
+            const sessionToken = getSessionToken() || '';
+            const base64Data = reader.result.split(',')[1];
+            const response = await fetch(`/api/upload/${postId}`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'X-Session-Token': sessionToken
+              },
+              body: JSON.stringify({
+                filename: file.name,
+                base64Data: base64Data,
+                fileType: fileType,
+                sequence: sequence,
+                attachmentType: attachmentType
+              })
+            });
+
+            if (!response.ok) {
+              const errorText = await response.text();
+              let errorMessage = `Upload failed: ${response.statusText}`;
+              try {
+                const errorData = JSON.parse(errorText);
+                errorMessage = errorData.error || errorMessage;
+              } catch {
+                errorMessage = errorText || errorMessage;
+              }
+              throw new Error(errorMessage);
+            }
+
+            const result = await response.json();
+            resolve(result.fileId);
+          } catch (error) {
+            reject(error);
+          }
+        };
+        reader.onerror = () => reject(new Error('File reading failed'));
+        reader.readAsDataURL(file);
+      });
+    },
+
+    async updatePost() {
+      if (!this.validateForm()) {
+        this.showError('Please fix the form errors before submitting');
+        return;
+      }
+
+      this.isSubmitting = true;
+      this.uploadProgress = 0;
+      this.errorMessage = '';
+
+      try {
+        // Prepare post data with group information
+        const postData = { ...this.editingPost };
+
+        if (this.selectedGroupId) {
+          const selectedGroup = this.availableGroups.find(g => g._id === this.selectedGroupId);
+          postData.postGroup = {
+            groupId: this.selectedGroupId,
+            groupName: selectedGroup.groupName,
+            groupColor: selectedGroup.groupColor,
+            sequence: 0
+          };
+        } else {
+          postData.postGroup = null;
+        }
+
+        // Ensure postTopics is properly set
+        postData.postTopics = [this.selectedTopic];
+
+        // 1. Update the post
+        this.currentTask = 'Updating post...';
+        this.uploadProgress = 10;
+
+        const sessionToken = getSessionToken() || '';
+        const postResponse = await fetch(`/api/posts/${this.originalPostId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Session-Token': sessionToken
+          },
+          body: JSON.stringify(postData)
+        });
+
+        if (!postResponse.ok) {
+          const errorText = await postResponse.text();
+          let errorMessage = 'Failed to update post';
+          try {
+            const errorData = JSON.parse(errorText);
+            errorMessage = errorData.error || errorMessage;
+          } catch {
+            errorMessage = errorText || errorMessage;
+          }
+          throw new Error(errorMessage);
+        }
+
+        const updatedPost = await postResponse.json();
+        this.uploadProgress = 30;
+
+        // 2. Upload sequenced attachments (images, audio, video)
+        if (this.sequencedAttachments.length > 0) {
+          this.currentTask = 'Uploading sequenced attachments...';
+          const attachmentCount = this.sequencedAttachments.length;
+
+          for (let i = 0; i < this.sequencedAttachments.length; i++) {
+            const attachment = this.sequencedAttachments[i];
+            this.currentTask = `Uploading sequenced ${attachment.attachmentType} ${i + 1} of ${attachmentCount}...`;
+
+            await this.uploadFileToGridFS(
+              this.originalPostId,
+              attachment.file,
+              'in-text',
+              attachment.sequence,
+              attachment.attachmentType
+            );
+
+            this.uploadProgress = 30 + (i / attachmentCount) * 30;
+          }
+        }
+
+        // 3. Upload additional attachments (including images)
+        if (this.attachedFiles.length > 0) {
+          this.currentTask = 'Uploading attachments...';
+          const attachmentCount = this.attachedFiles.length;
+
+          for (let i = 0; i < this.attachedFiles.length; i++) {
+            const file = this.attachedFiles[i];
+            const fileType = file.type.startsWith('image/') ? 'image' : 'attachment';
+            this.currentTask = `Uploading attachment ${i + 1} of ${attachmentCount}...`;
+
+            await this.uploadFileToGridFS(this.originalPostId, file, fileType);
+
+            this.uploadProgress = 60 + (i / attachmentCount) * 35;
+          }
+        }
+
+        this.uploadProgress = 100;
+        this.currentTask = 'Finalizing...';
+
+        // Update the post in the list
+        const index = this.posts.findIndex(p => p.postId === this.originalPostId);
+        if (index !== -1) {
+          this.posts[index] = updatedPost;
+        }
+
+        // Show success modal
+        setTimeout(() => {
+          this.showSuccessModal = true;
+          this.isSubmitting = false;
+        }, 500);
+
+      } catch (error) {
+        console.error('Error updating post:', error);
+        this.showError(`Failed to update post: ${error.message}`);
+        this.isSubmitting = false;
+      }
+    },
+
+    confirmDeleteFile(file) {
+      this.confirmAction = {
+        title: 'Delete File',
+        message: `Are you sure you want to delete "${file.filename}"? This action cannot be undone.`,
+        confirmText: 'Delete File',
+        action: () => this.deleteFile(file)
+      };
+      this.showConfirmModal = true;
+    },
+
+    async deleteFile(file) {
+      try {
+        const response = await fetch(`/api/files/${file._id}`, {
+          method: 'DELETE'
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to delete file');
+        }
+
+        // Remove file from existing files list
+        this.existingFiles = this.existingFiles.filter(f => f._id !== file._id);
+        this.showConfirmModal = false;
+
+        this.showError('File deleted successfully!', 'success');
+      } catch (error) {
+        console.error('Error deleting file:', error);
+        this.showError('Failed to delete file');
+      }
+    },
+
     async togglePublishStatus(post) {
       try {
+        const sessionToken = getSessionToken() || '';
         const response = await fetch(`/api/posts/${post.postId}/status`, {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
+            'X-Session-Token': sessionToken
           },
           body: JSON.stringify({
             isPublished: !post.isPublished
@@ -1296,8 +1628,12 @@ export default {
 
     async confirmDelete(post) {
       try {
+        const sessionToken = getSessionToken() || '';
         const response = await fetch(`/api/posts/${post.postId}`, {
-          method: 'DELETE'
+          method: 'DELETE',
+          headers: {
+            'X-Session-Token': sessionToken
+          }
         });
 
         if (!response.ok) {
@@ -1335,7 +1671,7 @@ export default {
       this.closeEditModal();
       // Navigate to the post view
       if (this.originalPostId) {
-        this.$router.push(`/posts/${this.originalPostId}`);
+        this.$router.push(`/BlogPage/${this.originalPostId}`);
       }
     },
 
@@ -1353,6 +1689,15 @@ export default {
     clearError() {
       this.errorMessage = '';
     }
+  },
+
+  beforeUnmount() {
+    // Clean up object URLs to prevent memory leaks
+    this.sequencedAttachments.forEach(attachment => {
+      if (attachment.file.type.startsWith('image/')) {
+        URL.revokeObjectURL(this.getImagePreview(attachment.file));
+      }
+    });
   }
 };
 </script>
@@ -1492,6 +1837,15 @@ export default {
   color: #856404;
 }
 
+.gallery-view-badge {
+  background: #e3f2fd;
+  color: #1976d2;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.8em;
+  font-weight: 600;
+}
+
 .post-content-preview {
   color: #666;
   line-height: 1.5;
@@ -1574,6 +1928,11 @@ export default {
 
 .btn-danger:hover:not(:disabled) {
   background: #c82333;
+}
+
+.btn-sm {
+  padding: 4px 8px;
+  font-size: 0.8em;
 }
 
 .btn-edit {
@@ -1753,6 +2112,68 @@ export default {
   cursor: pointer;
 }
 
+.field-description {
+  font-size: 0.875rem;
+  color: #6c757d;
+  margin-top: 5px;
+  font-style: italic;
+}
+
+/* Multiple Authors Styles */
+.authors-input-container {
+  margin-bottom: 10px;
+}
+
+.author-input-group {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.author-input-group .form-input {
+  flex: 1;
+}
+
+.add-author-btn {
+  white-space: nowrap;
+}
+
+.authors-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.author-tag {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #e9ecef;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 14px;
+}
+
+.remove-author-btn {
+  background: none;
+  border: none;
+  color: #6c757d;
+  cursor: pointer;
+  padding: 2px;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.remove-author-btn:hover {
+  background-color: #dc3545;
+  color: white;
+}
+
 /* File Upload Styles */
 .file-upload-label {
   display: block;
@@ -1797,97 +2218,186 @@ export default {
   font-weight: 500;
 }
 
-/* Image and File Lists */
-.image-sequence-list,
-.file-list {
-  margin-top: 20px;
-}
-
-.image-sequence-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 15px;
-  margin-top: 15px;
-}
-
-.sequence-item {
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  padding: 15px;
-  background: white;
-  text-align: center;
-}
-
-.sequence-number {
-  font-weight: 600;
-  color: #007bff;
-  margin-bottom: 10px;
-}
-
-.sequence-preview {
-  width: 100%;
-  height: 120px;
-  object-fit: cover;
-  border-radius: 4px;
-  margin-bottom: 10px;
-}
-
-.image-details {
-  font-size: 0.85em;
-  color: #666;
-}
-
-.file-item {
+/* Attachments List */
+.attachments-list {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 15px;
-  border: 1px solid #e0e0e0;
-  border-radius: 6px;
-  background: white;
-  margin-bottom: 10px;
-}
-
-.file-info {
-  display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: 10px;
 }
 
-.file-details {
+.attachment-item {
   display: flex;
-  flex-direction: column;
+  justify-content: between;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  background-color: #f8f9fa;
 }
 
-.file-name {
+.attachment-item.sequenced {
+  border-left: 4px solid #007bff;
+}
+
+.attachment-info {
+  flex: 1;
+}
+
+.attachment-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 5px;
+}
+
+.attachment-name {
   font-weight: 500;
+  color: #333;
 }
 
-.file-size {
-  font-size: 0.8em;
+.attachment-details {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+}
+
+.file-size,
+.file-type {
   color: #666;
-}
-
-.file-type-badge {
-  background: #e9ecef;
-  color: #495057;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 0.7em;
-  margin-top: 2px;
+  font-size: 0.85rem;
 }
 
 .remove-btn {
   background: none;
   border: none;
-  cursor: pointer;
   color: #dc3545;
+  cursor: pointer;
+  font-size: 1.2rem;
   padding: 5px;
   border-radius: 4px;
 }
 
 .remove-btn:hover {
-  background: #f8d7da;
+  background-color: #f8d7da;
+}
+
+/* Sequenced Attachment Styles */
+.attachment-preview {
+  margin-right: 15px;
+}
+
+.image-preview img {
+  width: 60px;
+  height: 60px;
+  object-fit: cover;
+  border-radius: 4px;
+}
+
+.file-icon {
+  font-size: 2rem;
+}
+
+.attachment-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.sequence-number {
+  background-color: #007bff;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: bold;
+}
+
+.attachment-type-selector {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.attachment-type-selector label {
+  font-size: 0.875rem;
+  color: #6c757d;
+  margin: 0;
+}
+
+.type-select {
+  padding: 4px 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  background-color: white;
+}
+
+.type-badge {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.type-badge.image {
+  background-color: #e3f2fd;
+  color: #1976d2;
+}
+
+.type-badge.audio {
+  background-color: #f3e5f5;
+  color: #7b1fa2;
+}
+
+.type-badge.video {
+  background-color: #fff3e0;
+  color: #f57c00;
+}
+
+/* Existing Files */
+.existing-files-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.existing-file-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  background: white;
+}
+
+.existing-file-item .file-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.existing-file-item .file-icon {
+  font-size: 1.5rem;
+}
+
+.existing-file-item .file-details {
+  display: flex;
+  flex-direction: column;
+}
+
+.existing-file-item .file-name {
+  font-weight: 500;
+}
+
+.existing-file-item .file-meta {
+  display: flex;
+  gap: 10px;
+  font-size: 0.85em;
+  color: #666;
 }
 
 /* Preview Section */
@@ -2060,38 +2570,6 @@ export default {
   margin-top: 10px;
 }
 
-/* Image Previews */
-.image-previews {
-  margin-top: 20px;
-}
-
-.image-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 15px;
-  margin-top: 15px;
-}
-
-.image-preview-item {
-  text-align: center;
-}
-
-.preview-image {
-  width: 100%;
-  height: 120px;
-  object-fit: cover;
-  border-radius: 6px;
-  border: 1px solid #e0e0e0;
-}
-
-.image-name {
-  display: block;
-  margin-top: 8px;
-  font-size: 0.8em;
-  color: #666;
-  word-break: break-word;
-}
-
 /* Section Description */
 .section-description {
   color: #666;
@@ -2172,8 +2650,8 @@ export default {
     flex-direction: column;
   }
 
-  .image-sequence-grid {
-    grid-template-columns: 1fr;
+  .author-input-group {
+    flex-direction: column;
   }
 }
 

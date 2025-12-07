@@ -22,6 +22,7 @@ const postSchema = new mongoose.Schema({
   postDate: { type: String, required: true },
   postContent: { type: String, required: true },
   contentType: { type: String, default: 'Text' },
+  isNSFW: { type: Boolean, default: false },
   postTopics: { type: [String], default: [] },
   isPublished: { type: Boolean, default: false },
   showGalleryView: { type: Boolean, default: false }, // NEW: Gallery view flag

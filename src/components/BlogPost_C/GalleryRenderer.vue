@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 
+import Arrow from "@/assets//uiElements/leftRightArrow.svg";
+import DownloadIcon from "@/assets/uiElements/download.svg"
+
 interface AttachedFile {
   filename: string
   fileId: string
@@ -88,7 +91,7 @@ const getImageNumber = (image: AttachedFile) => {
         @click="prevImage"
         :disabled="currentImageIndex === 0"
       >
-        ‹
+        <Arrow class="btn-icon flipped"/>
       </button>
 
       <!-- Main carousel image -->
@@ -113,7 +116,7 @@ const getImageNumber = (image: AttachedFile) => {
             @click="handleDownload(allImages[currentImageIndex].fileId, allImages[currentImageIndex].filename)"
             class="download-btn"
           >
-            Download
+            <DownloadIcon class="btn-icon"/>
           </button>
         </div>
       </div>
@@ -125,7 +128,7 @@ const getImageNumber = (image: AttachedFile) => {
         @click="nextImage"
         :disabled="currentImageIndex === allImages.length - 1"
       >
-        ›
+      <Arrow class="btn-icon"/>
       </button>
     </div>
 
@@ -201,13 +204,12 @@ const getImageNumber = (image: AttachedFile) => {
 
 .carousel-nav {
   background: var(--focused);
-  color: white;
+  color: var(--text);
   border: none;
   width: 50px;
   height: 50px;
-  border-radius: 50%;
+  border-radius: 5px;
   font-size: 24px;
-  font-weight: bold;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -217,8 +219,7 @@ const getImageNumber = (image: AttachedFile) => {
 }
 
 .carousel-nav:hover:not(:disabled) {
-  background: color-mix(in oklab, var(--focused), black 20%);
-  transform: scale(1.05);
+  background: color-mix(in oklab, var(--focused), var(--background) 20%);
 }
 
 .carousel-nav:disabled {
