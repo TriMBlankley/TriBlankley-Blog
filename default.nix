@@ -6,19 +6,23 @@ buildNpmPackage rec {
   pname = "TriBlankley-Blog";
   version = "0.2.5";
 
-  src = ./.;
+  src = lib.cleanSource ./.;
 
-  npmDepsHash = "sha256-hs4yZpRgfl2I/+mk0YB1uSOFmY6/vg9dF0GGNPZqpDQ=";
+  npmDepsHash = "sha256-I8fFUFoWWmgFywts14gN5AW/epv3/9431fbxA4GDp08=";
 
-  # The prepack script runs the build script, which we'd rather do in the build phase.
-  # npmPackFlags = [ "--ignore-scripts" ];
+  # Two outputs:
+  #  - $out/dist: point your HTTP server at this root directory for
+  #    the website frontend.
+  #  - $out/blogDB: run `node $out/blogDB/dbAPI.js` to run the backend
+  #    server, which listens on 127.0.0.1:8050 by default. The main
+  #    HTTP server should make this server's root path accessible
+  #    under the subpath "/api".
+  installPhase = ''
+    mkdir -p $out
+    cp -r dist $out/dist
 
-  # NODE_OPTIONS = "--openssl-legacy-provider";
-
-  # meta = {
-  #   description = "Modern web UI for various torrent clients with a Node.js backend and React frontend";
-  #   homepage = "https://flood.js.org";
-  #   license = lib.licenses.gpl3Only;
-  #   maintainers = with lib.maintainers; [ winter ];
-  # };
+    cp -r ${./blogDB} $out/blogDB
+    chmod +w $out/blogDB
+    cp -r node_modules $out/blogDB/node_modules
+  '';
 }
