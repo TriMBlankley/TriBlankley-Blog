@@ -2,6 +2,10 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 
+const getSessionToken = () => {
+  return localStorage.getItem('settingsSessionToken');
+}
+
 interface PostGroup {
   _id: string;
   groupName: string;
@@ -51,10 +55,12 @@ const createGroup = async () => {
 
   try {
     isLoading.value = true;
+    const sessionToken = getSessionToken() || ''; // Provide empty string as default
     const response = await fetch('/api/post-groups', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'X-Session-Token': sessionToken
       },
       body: JSON.stringify({
         groupName: form.value.groupName,

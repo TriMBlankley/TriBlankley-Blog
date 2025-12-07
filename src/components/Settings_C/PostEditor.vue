@@ -617,6 +617,10 @@
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 
+const getSessionToken = () => {
+  return localStorage.getItem('settingsSessionToken');
+}
+
 export default {
   name: 'EnhancedPostEditor',
 
@@ -859,10 +863,12 @@ export default {
       }
 
       try {
+        const sessionToken = getSessionToken() || ''; // Provide empty string as default
         const response = await fetch('/api/post-groups', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'X-Session-Token': sessionToken
           },
           body: JSON.stringify(this.newGroup)
         });

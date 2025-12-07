@@ -1,7 +1,9 @@
 <!-- [file name]: PostCreator.vue -->
 <script>
-import { marked } from 'marked';
-import DOMPurify from 'dompurify';
+
+const getSessionToken = () => {
+  return localStorage.getItem('settingsSessionToken');
+}
 
 export default {
   name: 'EnhancedPostCreator',
@@ -150,10 +152,12 @@ export default {
       }
 
       try {
+        const sessionToken = getSessionToken() || ''; // Provide empty string as default
         const response = await fetch('/api/post-groups', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'X-Session-Token': sessionToken
           },
           body: JSON.stringify(this.newGroup)
         });
@@ -354,12 +358,12 @@ export default {
       // Fallback based on extension
       const fileName = file.name.toLowerCase();
       if (fileName.endsWith('.mp3') || fileName.endsWith('.wav') || fileName.endsWith('.ogg') ||
-          fileName.endsWith('.flac') || fileName.endsWith('.aac') || fileName.endsWith('.m4a')) {
+        fileName.endsWith('.flac') || fileName.endsWith('.aac') || fileName.endsWith('.m4a')) {
         return 'audio';
       }
       if (fileName.endsWith('.mp4') || fileName.endsWith('.avi') || fileName.endsWith('.mov') ||
-          fileName.endsWith('.mkv') || fileName.endsWith('.webm') || fileName.endsWith('.m4v') ||
-          fileName.endsWith('.wmv') || fileName.endsWith('.flv')) {
+        fileName.endsWith('.mkv') || fileName.endsWith('.webm') || fileName.endsWith('.m4v') ||
+        fileName.endsWith('.wmv') || fileName.endsWith('.flv')) {
         return 'video';
       }
 
@@ -513,11 +517,13 @@ export default {
         const reader = new FileReader();
         reader.onload = async () => {
           try {
+            const sessionToken = getSessionToken() || ''; // Provide empty string as default
             const base64Data = reader.result.split(',')[1];
             const response = await fetch(`/api/upload/${postId}`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
+                'X-Session-Token': sessionToken
               },
               body: JSON.stringify({
                 filename: file.name,
@@ -579,10 +585,12 @@ export default {
         this.currentTask = 'Creating post...';
         this.uploadProgress = 10;
 
+        const sessionToken = getSessionToken() || ''; // Provide empty string as default
         const postResponse = await fetch('/api/posts', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'X-Session-Token': sessionToken
           },
           body: JSON.stringify(postData)
         });
@@ -772,15 +780,8 @@ export default {
           <label for="postAuthor">Authors *</label>
           <div class="authors-input-container">
             <div class="author-input-group">
-              <input
-                id="postAuthor"
-                v-model="currentAuthor"
-                type="text"
-                placeholder="Enter author name and press Enter"
-                class="form-input"
-                :class="{ 'error': fieldErrors.postAuthor }"
-                @keypress="handleAuthorKeypress"
-              >
+              <input id="postAuthor" v-model="currentAuthor" type="text" placeholder="Enter author name and press Enter"
+                class="form-input" :class="{ 'error': fieldErrors.postAuthor }" @keypress="handleAuthorKeypress">
               <button type="button" @click="addAuthor" class="btn btn-outline add-author-btn">
                 Add
               </button>
@@ -973,10 +974,15 @@ export default {
       <div class="form-section">
         <h2>Sequenced Attachments</h2>
         <p class="section-description">
-          Upload images, audio, or video files that will be referenced in your markdown as Image 1, Audio 1, Video 1, etc.
-          Use <code>![Description](image{{ sequencedAttachments.filter(a => a.attachmentType === 'image').length + 1 }})</code> for images,
-          <code>[Description](audio{{ sequencedAttachments.filter(a => a.attachmentType === 'audio').length + 1 }})</code> for audio, or
-          <code>[Description](video{{ sequencedAttachments.filter(a => a.attachmentType === 'video').length + 1 }})</code> for video in your markdown.
+          Upload images, audio, or video files that will be referenced in your markdown as Image 1, Audio 1, Video 1,
+          etc.
+          Use
+          <code>![Description](image{{sequencedAttachments.filter(a => a.attachmentType === 'image').length + 1}})</code>
+          for images,
+          <code>[Description](audio{{sequencedAttachments.filter(a => a.attachmentType === 'audio').length + 1}})</code>
+          for audio, or
+          <code>[Description](video{{sequencedAttachments.filter(a => a.attachmentType === 'video').length + 1}})</code>
+          for video in your markdown.
         </p>
 
         <div class="file-upload-area">
@@ -1012,7 +1018,7 @@ export default {
                 <div class="attachment-type-selector">
                   <label>Type:</label>
                   <select :value="attachment.attachmentType" @change="updateAttachmentType(index, $event.target.value)"
-                          class="type-select">
+                    class="type-select">
                     <option value="image">Image</option>
                     <option value="audio">Audio</option>
                     <option value="video">Video</option>
@@ -1025,7 +1031,8 @@ export default {
                 </span>
               </div>
             </div>
-            <button type="button" @click="removeSequencedAttachment(index)" class="remove-btn" title="Remove attachment">
+            <button type="button" @click="removeSequencedAttachment(index)" class="remove-btn"
+              title="Remove attachment">
               ✕
             </button>
           </div>
@@ -1077,7 +1084,8 @@ export default {
               Show Gallery View?
             </label>
           </div>
-          <p class="field-description">When enabled, this post will display in a gallery format instead of the standard blog view.</p>
+          <p class="field-description">When enabled, this post will display in a gallery format instead of the standard
+            blog view.</p>
         </div>
       </div>
 
@@ -1781,5 +1789,3 @@ export default {
   flex-wrap: wrap;
 }
 </style>
-
-

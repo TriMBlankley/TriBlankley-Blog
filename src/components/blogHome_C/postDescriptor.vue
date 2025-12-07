@@ -232,6 +232,7 @@ onUnmounted(() => {
 
       <div class="postIcon" :class="{ 'has-image': hasImage }" :style="postIconStyle">
 
+        <component v-if="shouldShowSVG" class="content-type-svg-background" />
         <component v-if="shouldShowSVG" :is="contentTypeSVG" class="content-type-svg" />
 
       </div>
@@ -305,6 +306,16 @@ onUnmounted(() => {
   z-index: 1; /* Text should be above SVG background but below the icon */
 }
 
+.content-type-svg-background {
+  background-color: var(--background);
+  opacity: 33%;
+
+  width: 100%;
+  height: 100%;
+
+  position: absolute;
+  z-index: 11;
+}
 .content-type-svg {
   height: 3.5em;
   width: 3.5em;
@@ -314,6 +325,8 @@ onUnmounted(() => {
   border-radius: 5px;
 
   pointer-events: none; /* Allow clicks to pass through to underlying elements */
+  position: relative;
+  z-index: 12;
 }
 
 .content-type-svg.no-image {
@@ -333,8 +346,6 @@ onUnmounted(() => {
 /* For posts with images - ensure consistent height */
 .postIcon {
   margin-bottom: 5px;
-  display: flex;
-  flex-direction: row;
   box-sizing: border-box;
   align-items: flex-start;
   justify-content: center;

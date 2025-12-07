@@ -28,6 +28,7 @@
     "@tiptap/vue-3": "^3.2.0",
     "archiver": "^6.0.0",
     "axios": "^1.7.9",
+    "bcrypt": "^6.0.0",
     "braces": "^3.0.2",
     "cors": "^2.8.5",
     "dompurify": "^3.2.6",
