@@ -72,6 +72,16 @@ svg {
   transform: rotate(-90deg);
 }
 
+button {
+  background-color: var(--background);
+  color: var(--text);
+  font-family: inherit;
+}
+
+.grow {
+  display: flex;
+  flex-grow: 1;
+}
 @media (hover: hover) {
   a:hover {
     background-color: var(--ac-links-highlight);

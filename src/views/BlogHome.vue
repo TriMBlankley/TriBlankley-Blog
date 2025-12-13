@@ -370,7 +370,7 @@ watch(activeTabColor, (color) => {
   /* Behaviour ------------- */
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: end;
 }
 
 .folder-tab-drop-down-button {

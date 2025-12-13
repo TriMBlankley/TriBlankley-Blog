@@ -76,195 +76,168 @@ const handlePasswordChangeSuccess = () => {
   <div class="home-settings">
     <div class="title-nav">
       <h1 class="top-banner">
-          Settings:
-          <ThemeToggle style="margin-left: 20px;"/>
+        Settings:
+        <ThemeToggle style="margin-left: 20px;" />
       </h1>
-      <XButton @close="handleClose" aria-label="Close settings"/>
+      <XButton @close="handleClose" aria-label="Close settings" />
     </div>
+
+    <div class="h-rule"></div>
 
     <div class="settings-content">
       <div class="settings-class">
-        <button
-          @click="handleTabClick('blogTopics')"
-          :class="{ active: activeTab === 'blogTopics' }"
-        >
+        <button @click="handleTabClick('blogTopics')" :class="{ active: activeTab === 'blogTopics' }">
           Blog Topics
         </button>
-        <button
-          @click="handleTabClick('groupEditor')"
-          :class="{ active: activeTab === 'groupEditor' }"
-        >
+        <button @click="handleTabClick('groupEditor')" :class="{ active: activeTab === 'groupEditor' }">
           Group Editor
         </button>
-        <button
-          @click="handleTabClick('postCreator')"
-          :class="{ active: activeTab === 'postCreator' }"
-        >
+        <button @click="handleTabClick('postCreator')" :class="{ active: activeTab === 'postCreator' }">
           Post Creator
         </button>
-        <button
-          @click="handleTabClick('postEditor')"
-          :class="{ active: activeTab === 'postEditor' }"
-        >
+        <button @click="handleTabClick('postEditor')" :class="{ active: activeTab === 'postEditor' }">
           Post Editor
         </button>
+        <div class="grow"></div>
+
         <!-- Add Change Password button -->
-        <button
-          @click="handleTabClick('changePassword')"
-          :class="{ active: activeTab === 'changePassword' }"
-          class="change-password-btn"
-        >
+        <button @click="handleTabClick('changePassword')" :class="{ active: activeTab === 'changePassword' }"
+          class="change-password-btn">
           🔐 Change Password
         </button>
       </div>
 
+      <div class="v-rule"></div>
+
       <div class="class-options">
         <!-- Blog Topics content will appear here -->
-        <TopicEditor
-          v-if="activeTab === 'blogTopics'"
-          :require-auth="!isAuthenticated"
-        />
+        <TopicEditor v-if="activeTab === 'blogTopics'" :require-auth="!isAuthenticated" />
 
         <!-- Group Editor -->
-        <GroupEditor
-          v-if="activeTab === 'groupEditor'"
-          :require-auth="!isAuthenticated"
-        />
+        <GroupEditor v-if="activeTab === 'groupEditor'" :require-auth="!isAuthenticated" />
 
         <!-- Blog Post Creator -->
-        <PostCreator
-          v-if="activeTab === 'postCreator'"
-          :require-auth="!isAuthenticated"
-        />
+        <PostCreator v-if="activeTab === 'postCreator'" :require-auth="!isAuthenticated" />
 
         <!-- Post Editor -->
-        <PostEditor
-          v-if="activeTab === 'postEditor'"
-          :require-auth="!isAuthenticated"
-        />
+        <PostEditor v-if="activeTab === 'postEditor'" :require-auth="!isAuthenticated" />
+
 
         <!-- Change Password Component -->
-        <ChangePassword
-          v-if="activeTab === 'changePassword'"
-          @success="handlePasswordChangeSuccess"
-          @cancel="() => activeTab = 'settings'"
-        />
+        <ChangePassword v-if="activeTab === 'changePassword'" @success="handlePasswordChangeSuccess"
+          @cancel="() => activeTab = 'settings'" />
       </div>
     </div>
 
     <!-- Password Dialog -->
-    <PasswordDialog
-      v-if="showPasswordDialog"
-      @success="handlePasswordSuccess"
-      @cancel="handlePasswordCancel"
-    />
+    <PasswordDialog v-if="showPasswordDialog" @success="handlePasswordSuccess" @cancel="handlePasswordCancel" />
   </div>
 </template>
 
 <style>
 .home-settings {
-    /* Size ------------- */
-    width: 100%;
-    height: 100%;
+  /* Size ------------- */
+  /* width: 100%; */
+  height: 100%;
 
-    /* Position ------------- */
-    z-index: 10000;
-    position: relative;
+  /* Position ------------- */
+  z-index: 1000;
+  position: relative;
 
-    /* Color ------------- */
-    background-color: var(--background);
-    border: none;
-    border-radius: 5px;
+  /* Color ------------- */
+  background-color: var(--background);
+  border: none;
+  border-radius: 5px;
 
-    /* max-width: 50px; */
+  /* max-width: 50px; */
 
 
-    /* Behaviour ------------- */
-    display: flex;
-    flex-direction: column;
+  /* Behaviour ------------- */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .title-nav {
-    /* Size ------------- */
-    height: 60px;
-    /* padding: 0 20px; */
-    padding: 0 10px;
+  /* Size ------------- */
+  height: 60px;
+  /* padding: 0 20px; */
+  padding: 0 10px;
 
-    /* Position ------------- */
+  /* Position ------------- */
 
-    /* Color ------------- */
-    border-bottom: 1px solid #e0e0e0;
+  /* Color ------------- */
 
-    /* Behaviour ------------- */
-    display: flex;
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: center;
+  /* Behaviour ------------- */
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .tabs button {
-    padding: 8px 16px;
-    border: none;
-    cursor: pointer;
-    font-size: 16px;
-    color: #666;
-    border-bottom: 2px solid transparent;
+  padding: 8px 16px;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  color: #666;
+  border-bottom: 2px solid transparent;
 }
 
 .tabs button.active {
-    color: #007bff;
-    border-bottom-color: #007bff;
-    font-weight: 600;
+  color: #007bff;
+  border-bottom-color: #007bff;
+  font-weight: 600;
 }
 
 
 .exit-button:hover {
-    background: #e0e0e0;
+  background: #e0e0e0;
 }
 
 .settings-content {
-    /* Size ------------- */
-    flex: 1;
+  /* Size ------------- */
+  flex: 1;
 
-    /* Position ------------- */
+  /* Position ------------- */
 
-    /* Color ------------- */
+  /* Color ------------- */
 
-    /* Behaviour ------------- */
-    display: flex;
-    flex-direction: row;
+  /* Behaviour ------------- */
+  display: flex;
+  flex-direction: row;
 }
 
 .settings-class {
-    /* Size ------------- */
-    width: 125px;
-    padding: 10px 0;
+  /* Size ------------- */
+  width: 105x;
+  padding: 10px 0;
 
-    /* Position ------------- */
+  /* Position ------------- */
 
-    /* Color ------------- */
-    /* border-right: 1px solid #e0e0e0; */
+  /* Color ------------- */
+  /* border-right: 1px solid #e0e0e0; */
 
-    /* Behaviour ------------- */
-    display: flex;
-    flex-direction: column;
+  /* Behaviour ------------- */
+  display: flex;
+  flex-direction: column;
 }
 
 .settings-class button {
-    padding: 10px 10px;
-    border: none;
-    cursor: pointer;
-    text-align: left;
-    /* color: #333; */
-    border-left: 3px solid transparent;
+  margin: 5px;
+  padding: 10px 10px;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  border-radius: 5px;
 }
 
 .settings-class button:hover {
-    /* background: #f0f0f0; */
+  background-color: color-mix(in oklab, var(--background), var(--focused) 20%);
 }
 
 .settings-class button.active {
-    /* font-weight: 500; */
+  background-color: color-mix(in oklab, var(--background), var(--focused) 40%);
 }
 
 .top-banner {
@@ -274,18 +247,18 @@ const handlePasswordChangeSuccess = () => {
 }
 
 .class-options {
-    /* Size ------------- */
-    flex: 1;
-    padding: 20px;
+  /* Size ------------- */
+  flex: 1;
+  padding: 20px;
 
-    /* Position ------------- */
+  /* Position ------------- */
 
-    /* Color ------------- */
+  /* Color ------------- */
 
-    /* Behaviour ------------- */
-    display: flex;
-    flex-direction: column;
-    overflow-y: auto;
+  /* Behaviour ------------- */
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
 }
 
 
@@ -304,6 +277,20 @@ const handlePasswordChangeSuccess = () => {
 .change-password-btn.active {
   background-color: #dc3545;
   color: white;
+}
+
+.h-rule{
+  background-color: var(--focused);
+  height: 3px;
+  margin: 0px 10px;
+  border-radius: 10px;
+}
+
+.v-rule{
+  background-color: var(--focused);
+  width: 3px;
+  margin: 10px 0px;
+  border-radius: 10px;
 }
 
 </style>

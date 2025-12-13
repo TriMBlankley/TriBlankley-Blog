@@ -132,13 +132,13 @@
     border-color: var(--focused);
     border-radius: 10px;
     padding: 0;
-    min-width: 900px;
-    max-width: 720px;
-    max-height: 90vh;
-    overflow: hidden;
+    min-width: 0;
+    max-width: 900px;
+    height: 90vh;
     position: relative;
     z-index: 1001;
     animation: slideUp 0.3s ease-out;
+    flex-grow: 1;
   }
 
   /* Animations */
