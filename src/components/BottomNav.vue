@@ -316,12 +316,12 @@ const shouldShowTooltip = (tooltipType: string) => {
     </button>
 
     <!-- Theme Toggle Button - conditionally rendered -->
-    <button v-if="showThemeToggle" class="nav-btn large-btn" @mouseenter="(e) => showTooltip(e, 'theme')"
+    <div v-if="showThemeToggle" @mouseenter="(e) => showTooltip(e, 'theme')"
       @mouseleave="() => hideTooltip('theme')" @mousemove="(e) => updateTooltipPosition(e, 'theme')"
       @touchstart="(e) => handleTouchStartButton(e, 'theme')" @touchend="() => handleTouchEndButton('theme')"
       aria-label="Toggle theme" alt="Toggle theme">
       <ThemeToggle />
-    </button>
+    </div>
 
     <div class="grow"></div>
 

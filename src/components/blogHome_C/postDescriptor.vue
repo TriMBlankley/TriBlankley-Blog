@@ -269,7 +269,7 @@ onUnmounted(() => {
   margin: 5px;
 
   /* Color ------------- */
-  background-color: color-mix(in oklab, var(--background), var(--focused) 80%);
+  background-color: var(--focused);
   border: 5px solid;
   border-color: color-mix(in oklab, var(--background), var(--focused) 80%);
   border-radius: 5px;

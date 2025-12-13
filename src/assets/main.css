@@ -24,9 +24,10 @@ svg {
   border-radius: 7.5px;
   padding: 6px;
   margin-left: 4px;
-  background-color: rgba(255, 255, 255, 0.2);
+  
   color: var(--text);
   cursor: pointer;
+  background: none;
   transition: background-color 0.2s;
   align-items: center;
   justify-content: center;
@@ -45,7 +46,7 @@ svg {
 }
 
 .nav-btn:hover:not(:disabled) {
-  background-color: rgba(255, 255, 255, 0.3);
+  background-color: color-mix(in oklab, var(--text), transparent 85%);
 }
 
 .nav-btn:disabled {

@@ -21,11 +21,11 @@ in
     enable = true;
     virtualHosts."triblankleyblog.com" = {
       # Use this to enable HTTPS:
-      # forceSSL = true;
-      # enableACME = true;
+      forceSSL = true;
+      enableACME = true;
 
       locations."/" = {
-        root = "${build}/root";
+        root = "${build}/dist";
       };
 
       locations."/api" = {

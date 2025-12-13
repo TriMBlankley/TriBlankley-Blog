@@ -8,6 +8,7 @@ import FolderTab from '@/components/blogHome_C/folderTab.vue';
 import PostDescriptor from '@/components/blogHome_C/postDescriptor.vue';
 import SettingsCog from '@/components/Settings_C/settingsCog.vue';
 import FilterAndNews from '@/components/blogHome_C/filterAndNews.vue';
+import HomeSettings from '@/components/Settings_C/HomeSettings.vue';
 import BlogLogo from '@/components/BlogLogo.vue';
 import FolderTabDropDownButton from '@/components/blogHome_C/FolderTabDropDownButton.vue';
 
@@ -200,8 +201,9 @@ watch(activeTabColor, (color) => {
           </div>
 
           <div class="grow"></div>
-
+          <SettingsCog />
           <BlogLogo />
+
 
           <!-- Dropdown Menu -->
           <div v-if="showDropdown" class="dropdown-menu">
@@ -241,7 +243,7 @@ watch(activeTabColor, (color) => {
     <!-- Hide logo-and-settings on mobile -->
     <div v-if="!isMobile" class="logo-and-settings">
       <BlogLogo />
-      <SettingsCog style="width: 2rem;" />
+      <SettingsCog />
     </div>
   </div>
 </template>
@@ -268,10 +270,12 @@ watch(activeTabColor, (color) => {
   /* Size ------------- */
   flex-grow: 1;
   min-width: 0;
+  max-width: 1500px;
 
   /* Position ------------- */
   position: relative;
-  margin: 1.5em 0.5em auto v-bind(left_right_margin);
+  /* margin: 1.5em 0.5em auto v-bind(left_right_margin); */
+  margin: 1.5em auto auto auto;
 
   /* Behaviour ------------- */
   flex: 1;

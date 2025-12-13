@@ -9,6 +9,7 @@ import PostEditor from '@/components/Settings_C/PostEditor.vue';
 import GroupEditor from '@/components/Settings_C/GroupEditor.vue';
 import PasswordDialog from '@/components/Settings_C/PasswordDialog.vue';
 import ChangePassword from '@/components/Settings_C/ChangePassword.vue'; // Add this import
+import XButton from '@/components/XButton.vue';
 
 const emit = defineEmits<{
   (e: 'close'): void;
@@ -74,17 +75,11 @@ const handlePasswordChangeSuccess = () => {
 <template>
   <div class="home-settings">
     <div class="title-nav">
-      <div class="tabs">
-        <button
-          @click="handleTabClick('settings')"
-          :class="{ active: activeTab === 'settings' }"
-        >
-          Settings
-        </button>
-      </div>
-      <button @click="handleClose" class="exit-button" aria-label="Close settings">
-        <span class="exit-icon">×</span>
-      </button>
+      <h1 class="top-banner">
+          Settings:
+          <ThemeToggle style="margin-left: 20px;"/>
+      </h1>
+      <XButton @close="handleClose" aria-label="Close settings"/>
     </div>
 
     <div class="settings-content">
@@ -124,13 +119,6 @@ const handlePasswordChangeSuccess = () => {
       </div>
 
       <div class="class-options">
-        <!-- General settings content can go here -->
-        <div v-if="activeTab === 'settings'">
-          <h3>General Settings</h3>
-          <!-- Add your general settings here -->
-          <ThemeToggle />
-        </div>
-
         <!-- Blog Topics content will appear here -->
         <TopicEditor
           v-if="activeTab === 'blogTopics'"
@@ -184,7 +172,12 @@ const handlePasswordChangeSuccess = () => {
     position: relative;
 
     /* Color ------------- */
-    background: #ffffff;
+    background-color: var(--background);
+    border: none;
+    border-radius: 5px;
+
+    /* max-width: 50px; */
+
 
     /* Behaviour ------------- */
     display: flex;
@@ -194,12 +187,12 @@ const handlePasswordChangeSuccess = () => {
 .title-nav {
     /* Size ------------- */
     height: 60px;
-    padding: 0 20px;
+    /* padding: 0 20px; */
+    padding: 0 10px;
 
     /* Position ------------- */
 
     /* Color ------------- */
-    background: #f5f5f5;
     border-bottom: 1px solid #e0e0e0;
 
     /* Behaviour ------------- */
@@ -211,7 +204,6 @@ const handlePasswordChangeSuccess = () => {
 
 .tabs button {
     padding: 8px 16px;
-    background: none;
     border: none;
     cursor: pointer;
     font-size: 16px;
@@ -225,19 +217,6 @@ const handlePasswordChangeSuccess = () => {
     font-weight: 600;
 }
 
-.exit-button {
-    background: none;
-    border: none;
-    cursor: pointer;
-    font-size: 24px;
-    color: #666;
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
 
 .exit-button:hover {
     background: #e0e0e0;
@@ -258,14 +237,13 @@ const handlePasswordChangeSuccess = () => {
 
 .settings-class {
     /* Size ------------- */
-    width: 200px;
-    padding: 20px 0;
+    width: 125px;
+    padding: 10px 0;
 
     /* Position ------------- */
 
     /* Color ------------- */
-    background: #f9f9f9;
-    border-right: 1px solid #e0e0e0;
+    /* border-right: 1px solid #e0e0e0; */
 
     /* Behaviour ------------- */
     display: flex;
@@ -273,25 +251,26 @@ const handlePasswordChangeSuccess = () => {
 }
 
 .settings-class button {
-    padding: 12px 20px;
-    background: none;
+    padding: 10px 10px;
     border: none;
     cursor: pointer;
     text-align: left;
-    font-size: 14px;
-    color: #333;
+    /* color: #333; */
     border-left: 3px solid transparent;
 }
 
 .settings-class button:hover {
-    background: #f0f0f0;
+    /* background: #f0f0f0; */
 }
 
 .settings-class button.active {
-    background: #e8f4ff;
-    border-left-color: #007bff;
-    color: #007bff;
-    font-weight: 500;
+    /* font-weight: 500; */
+}
+
+.top-banner {
+  display: flex;
+  flex-direction: row;
+  padding-left: 0px;
 }
 
 .class-options {
