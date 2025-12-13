@@ -101,10 +101,10 @@
     position: absolute;
     top: 100%;
     right: 0;
-    background: var(--focused);
+    background: var(--text);
     padding: 5px;
     border-radius: 8px;
-    border: 1px solid var(--focused);
+    border: 1px solid var(--text);
     margin-top: 5px;
     z-index: 101;
   }
@@ -126,10 +126,10 @@
 
   /* Modal Container */
   .settings-modal {
-    background: var(--focused);
+    background: var(--text);
 
     border: 7.5px solid;
-    border-color: var(--focused);
+    border-color: var(--text);
     border-radius: 10px;
     padding: 0;
     min-width: 0;

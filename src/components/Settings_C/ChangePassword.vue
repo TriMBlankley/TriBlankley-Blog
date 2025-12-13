@@ -43,7 +43,7 @@
               v-model="form.currentPassword"
               :type="showCurrentPassword ? 'text' : 'password'"
               placeholder="Enter current password"
-              class="form-input"
+              class="text-input"
               :class="{ 'error': fieldErrors.currentPassword }"
               required
               autocomplete="current-password"
@@ -72,7 +72,7 @@
               v-model="form.newPassword"
               :type="showNewPassword ? 'text' : 'password'"
               placeholder="Enter new password"
-              class="form-input"
+              class="text-input"
               :class="{ 'error': fieldErrors.newPassword }"
               required
               autocomplete="new-password"
@@ -101,7 +101,7 @@
               v-model="form.confirmPassword"
               :type="showConfirmPassword ? 'text' : 'password'"
               placeholder="Confirm new password"
-              class="form-input"
+              class="text-input"
               :class="{ 'error': fieldErrors.confirmPassword || passwordsMatch === false }"
               required
               autocomplete="new-password"
@@ -143,6 +143,8 @@
             When enabled, all active sessions will be terminated immediately. Users will need to log in again.
           </p>
         </div>
+
+        <div class="h-rule"></div>
 
         <!-- Form Actions -->
         <div class="form-actions">
@@ -336,7 +338,6 @@ const clearError = () => {
 .change-password {
   height: 100%;
   width: 100%;
-  padding: 20px;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
@@ -344,11 +345,8 @@ const clearError = () => {
 
 .change-password-container {
   max-width: 600px;
-  margin: 0 auto;
+  margin: 0px auto;
   background: var(--background);
-  padding: 30px;
-  border-radius: 8px;
-  border: 1px solid var(--text-offset);
 }
 
 .change-password-header {
@@ -442,25 +440,15 @@ const clearError = () => {
   align-items: center;
 }
 
-.form-input {
-  width: 100%;
-  padding: 12px 45px 12px 12px;
-  border: 2px solid var(--text-offset);
-  border-radius: 6px;
-  font-size: var(--font-size-base);
-  transition: border-color 0.3s ease;
-  font-family: 'OpenDyslexic';
-  background: var(--background);
-  color: var(--text);
-}
 
-.form-input:focus {
+
+.text-input:focus {
   outline: none;
   border-color: var(--ac-links);
 }
 
-.form-input.error {
-  border-color: #dc3545;
+.text-input.error {
+  border-color: var(--ac-red);
 }
 
 .toggle-password-btn {
@@ -494,10 +482,10 @@ const clearError = () => {
 /* Session Management */
 .session-management {
   margin-top: 30px;
-  padding: 20px;
-  background-color: var(--mt-light-offset);
-  border-radius: 6px;
-  border: 1px solid var(--text-offset);
+  padding: 10px;
+  background-color: color-mix(in oklab, var(--background), var(--text) 20%);
+  border-radius: 5px;
+  border: 2.5px solid var(--text);
 }
 
 .checkbox-group {
@@ -532,9 +520,6 @@ const clearError = () => {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
-  margin-top: 30px;
-  padding-top: 20px;
-  border-top: 1px solid var(--text-offset);
 }
 
 /* Button Styles */
@@ -588,6 +573,10 @@ const clearError = () => {
   border-top-color: var(--mt-dark);
   animation: spin 1s ease-in-out infinite;
   margin-right: 8px;
+}
+
+.h-rule {
+  margin: 15px 0px;
 }
 
 @keyframes spin {

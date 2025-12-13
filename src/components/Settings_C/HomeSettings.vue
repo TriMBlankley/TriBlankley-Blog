@@ -1,5 +1,3 @@
-[file name]: HomeSettings.vue
-<!-- Update the script section -->
 <script setup lang="ts">
 import { ref } from 'vue';
 import TopicEditor from '@/components/Settings_C/TopicEditor.vue';
@@ -98,6 +96,7 @@ const handlePasswordChangeSuccess = () => {
         <button @click="handleTabClick('postEditor')" :class="{ active: activeTab === 'postEditor' }">
           Post Editor
         </button>
+
         <div class="grow"></div>
 
         <!-- Add Change Password button -->
@@ -121,7 +120,6 @@ const handlePasswordChangeSuccess = () => {
 
         <!-- Post Editor -->
         <PostEditor v-if="activeTab === 'postEditor'" :require-auth="!isAuthenticated" />
-
 
         <!-- Change Password Component -->
         <ChangePassword v-if="activeTab === 'changePassword'" @success="handlePasswordChangeSuccess"
@@ -151,7 +149,6 @@ const handlePasswordChangeSuccess = () => {
 
   /* max-width: 50px; */
 
-
   /* Behaviour ------------- */
   display: flex;
   flex-direction: column;
@@ -165,62 +162,68 @@ const handlePasswordChangeSuccess = () => {
   padding: 0 10px;
 
   /* Position ------------- */
-
-  /* Color ------------- */
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background-color: var(--background);
 
   /* Behaviour ------------- */
   display: flex;
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
+  flex-shrink: 0;
 }
 
-.tabs button {
-  padding: 8px 16px;
-  border: none;
-  cursor: pointer;
-  font-size: 16px;
-  color: #666;
-  border-bottom: 2px solid transparent;
-}
-
-.tabs button.active {
-  color: #007bff;
-  border-bottom-color: #007bff;
-  font-weight: 600;
-}
-
-
-.exit-button:hover {
-  background: #e0e0e0;
+.h-rule {
+  background-color: color-mix(in oklab, var(--background) 60%, var(--text) 66%);
+  height: 3px;
+  margin: 0px 10px;
+  border-radius: 10px;
+  position: sticky;
+  top: 60px;
+  /* Height of title-nav */
+  z-index: 10;
+  flex-shrink: 0;
 }
 
 .settings-content {
   /* Size ------------- */
   flex: 1;
-
-  /* Position ------------- */
-
-  /* Color ------------- */
+  min-height: 0;
+  /* Important for flex child scrolling */
 
   /* Behaviour ------------- */
   display: flex;
   flex-direction: row;
+  overflow: hidden;
 }
 
 .settings-class {
   /* Size ------------- */
-  width: 105x;
-  padding: 10px 0;
+  width: 150px;
+  height: 100%;
+
+  padding: 0;
 
   /* Position ------------- */
+  position: sticky;
+  left: 0;
+  align-self: flex-start;
+  z-index: 5;
 
   /* Color ------------- */
   /* border-right: 1px solid #e0e0e0; */
+  background-color: var(--background);
 
   /* Behaviour ------------- */
   display: flex;
   flex-direction: column;
+  flex-shrink: 0;
+  max-height: calc(100vh - 63px);
+  /* Adjust based on title-nav + h-rule */
+  overflow-y: auto;
+  /* Allow scrolling if content exceeds height */
 }
 
 .settings-class button {
@@ -230,14 +233,44 @@ const handlePasswordChangeSuccess = () => {
   cursor: pointer;
   text-align: left;
   border-radius: 5px;
+  flex-shrink: 0;
 }
 
-.settings-class button:hover {
-  background-color: color-mix(in oklab, var(--background), var(--focused) 20%);
+.settings-class .grow {
+  flex-grow: 1;
 }
 
-.settings-class button.active {
-  background-color: color-mix(in oklab, var(--background), var(--focused) 40%);
+.grow {
+  display: flex;
+  flex-grow: 1;
+}
+
+.v-rule {
+  background-color: color-mix(in oklab, var(--background) 60%, var(--text) 66%);
+  width: 3px;
+  margin: 10px 0px;
+  border-radius: 10px;
+  position: sticky;
+  /* left: 105px; */
+  /* Width of settings-class */
+  align-self: flex-start;
+  z-index: 5;
+  flex-shrink: 0;
+  height: 78vh;
+  /* Adjust based on total sticky heights */
+}
+
+.class-options {
+  /* Size ------------- */
+  flex: 1;
+  padding: 20px;
+
+  /* Behaviour ------------- */
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  min-height: 0;
+  /* Important for scrolling */
 }
 
 .top-banner {
@@ -246,51 +279,33 @@ const handlePasswordChangeSuccess = () => {
   padding-left: 0px;
 }
 
-.class-options {
-  /* Size ------------- */
-  flex: 1;
-  padding: 20px;
-
-  /* Position ------------- */
-
-  /* Color ------------- */
-
-  /* Behaviour ------------- */
-  display: flex;
-  flex-direction: column;
-  overflow-y: auto;
-}
-
-
+/* Update change-password-btn styles */
 .change-password-btn {
-  margin-top: 20px;
-  background-color: #f8f9fa;
-  border: 1px solid #dc3545;
-  color: #dc3545;
+  margin-top: auto;
+  /* This pushes it to the bottom */
+  margin-bottom: 10px;
+  /* Add some bottom spacing */
+  color: var(--ac-red);
+  background-color: transparent;
+  transition: background-color 0.2s ease;
 }
 
+/* Fix the hover and active states - remove the nested button selector */
 .change-password-btn:hover {
-  background-color: #dc3545;
-  color: white;
+  background-color: color-mix(in oklab, var(--background), var(--ac-red) 30%);
 }
 
 .change-password-btn.active {
-  background-color: #dc3545;
-  color: white;
+  background-color: color-mix(in oklab, var(--background), var(--ac-red) 20%);
+  color: var(--ac-red);
 }
 
-.h-rule{
-  background-color: var(--focused);
-  height: 3px;
-  margin: 0px 10px;
-  border-radius: 10px;
+/* Also ensure regular buttons have proper hover states */
+.settings-class button:not(.change-password-btn):hover {
+  background-color: color-mix(in oklab, var(--background) 80%, var(--text) 40%);
 }
 
-.v-rule{
-  background-color: var(--focused);
-  width: 3px;
-  margin: 10px 0px;
-  border-radius: 10px;
+.settings-class button:not(.change-password-btn).active {
+  background-color: color-mix(in oklab, var(--background) 80%, var(--text) 25%);
 }
-
 </style>

@@ -82,6 +82,19 @@ button {
   display: flex;
   flex-grow: 1;
 }
+
+.text-input {
+  flex: 1;
+  padding: 6px 10px;
+  border: 2.5px solid var(--text);
+  color: var(--text);
+  background-color: color-mix(in oklab, var(--background), var(--text) 20%);
+  border-radius: 5px;
+  font-size: 12px;
+  transition: border-color 0.3s ease;
+  font-family: 'OpenDyslexic';
+}
+
 @media (hover: hover) {
   a:hover {
     background-color: var(--ac-links-highlight);

@@ -370,7 +370,7 @@ watch(() => route.params.id, async (newId) => {
 .blog-page {
   max-width: 950px;
   min-height: 100vh;
-  margin: 0 auto;
+  margin: 10px auto;
   padding: 20px;
   border: solid 5px;
   border-radius: 15px;

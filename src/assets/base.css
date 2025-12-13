@@ -17,9 +17,12 @@
   /* Accent Colors */
   --ac-links: #cda2c9;
   --ac-links-highlight: #edb3e7;
+  --ac-red: #eb625b;
+  --ac-violet: #cb5fda;
+  --ac-blue: #7e84e2;
   
   /* USer Interface Colors */
-  --ui-x-button: #ff5f56;
+  --ui-x-button: var(--ac-red);
 
   /* Font Size Variables - Mobile First (keeping your original scale) */
   --font-size-xs: 0.75rem;   /* 12px */
