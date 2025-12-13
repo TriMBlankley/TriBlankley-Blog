@@ -424,7 +424,6 @@ onMounted(fetchGroups);
   background: white;
   padding: 30px;
   border-radius: 12px;
-  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
 }
 
 .editor-header {
@@ -667,7 +666,6 @@ onMounted(fetchGroups);
 .group-card:hover {
   border-color: #007bff;
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .group-card.editing {
@@ -687,7 +685,6 @@ onMounted(fetchGroups);
   height: 20px;
   border-radius: 4px;
   border: 2px solid rgba(255, 255, 255, 0.8);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
   flex-shrink: 0;
 }
 

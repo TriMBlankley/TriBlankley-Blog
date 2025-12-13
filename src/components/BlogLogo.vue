@@ -124,11 +124,12 @@ const getTooltipText = () => {
 
 <style scoped>
 .button-div {
-  background: var(--background);
+  /* background: var(--background); */
   border: none;
-  border-radius: 100px;
+  /* border-radius: 100px; */
   /* padding: 2.5px, 2.5px; */
   /* padding-top: 4px; */
+  background: none;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -141,7 +142,7 @@ const getTooltipText = () => {
 .svg-container {
   width: 100%;
   height: 100%;
-  color: var(--text);
+  /* color: var(--text); */
 }
 
 /* Tooltip styles */
@@ -157,7 +158,6 @@ const getTooltipText = () => {
   z-index: 1000;
   pointer-events: none;
   text-align: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
   transition: opacity 0.3s ease;
 }
 

@@ -1162,7 +1162,6 @@ export default {
   border-radius: 8px;
   padding: 25px;
   margin-bottom: 25px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   border: 1px solid #e0e0e0;
 }
 
@@ -1606,7 +1605,6 @@ export default {
   background: white;
   padding: 40px;
   border-radius: 8px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   max-width: 400px;
   width: 90%;
 }

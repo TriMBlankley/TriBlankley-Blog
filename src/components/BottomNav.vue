@@ -424,7 +424,6 @@ const shouldShowTooltip = (tooltipType: string) => {
   max-width: 950px;
   z-index: 1000;
   margin-top: 0;
-  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
 }
 
 
@@ -470,7 +469,6 @@ h3 {
   pointer-events: none;
   /* max-width: 200px;  */
   text-align: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
   transition: opacity 0.3s ease;
 }
 
@@ -498,7 +496,6 @@ h3 {
   display: flex;
   align-items: center;
   gap: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   max-width: 90%;
   pointer-events: auto;
 }

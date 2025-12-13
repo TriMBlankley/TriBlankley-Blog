@@ -1,5 +1,4 @@
 <script setup lang="ts">
-  import { defineEmits } from 'vue';
   import XButtonIcon from '@/assets/uiElements/xButton.svg'; // Renamed import to avoid naming conflict
 
   const emit = defineEmits<{

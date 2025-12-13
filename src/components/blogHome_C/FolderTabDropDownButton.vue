@@ -175,7 +175,6 @@ const getTooltipText = () => {
   z-index: 1000;
   pointer-events: none;
   text-align: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
   transition: opacity 0.3s ease;
 }
 
