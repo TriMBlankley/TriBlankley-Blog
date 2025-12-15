@@ -1,311 +1,254 @@
 <script setup lang="ts">
-import { ref } from 'vue';
-import TopicEditor from '@/components/Settings_C/TopicEditor.vue';
-import ThemeToggle from '@/components/Settings_C/ThemeToggle.vue';
-import PostCreator from '@/components/Settings_C/PostCreator.vue';
-import PostEditor from '@/components/Settings_C/PostEditor.vue';
-import GroupEditor from '@/components/Settings_C/GroupEditor.vue';
-import PasswordDialog from '@/components/Settings_C/PasswordDialog.vue';
-import ChangePassword from '@/components/Settings_C/ChangePassword.vue'; // Add this import
-import XButton from '@/components/XButton.vue';
+  import { ref } from 'vue';
+  import TopicEditor from '@/components/Settings_C/TopicEditor.vue';
+  import ThemeToggle from '@/components/Settings_C/ThemeToggle.vue';
+  import PostCreator from '@/components/Settings_C/PostCreator.vue';
+  import PostEditor from '@/components/Settings_C/PostEditor.vue';
+  import GroupEditor from '@/components/Settings_C/GroupEditor.vue';
+  import PasswordDialog from '@/components/Settings_C/PasswordDialog.vue';
+  import ChangePassword from '@/components/Settings_C/ChangePassword.vue';
 
-const emit = defineEmits<{
-  (e: 'close'): void;
-}>();
+  const emit = defineEmits<{
+    (e: 'close'): void;
+  }>();
 
-// Update the activeTab type to include 'changePassword'
-const activeTab = ref<'settings' | 'blogTopics' | 'postCreator' | 'postEditor' | 'groupEditor' | 'changePassword'>('settings');
-const isAuthenticated = ref(false);
-const showPasswordDialog = ref(false);
-const pendingTab = ref<string | null>(null);
+  const activeTab = ref<'settings' | 'blogTopics' | 'postCreator' | 'postEditor' | 'groupEditor' | 'changePassword'>('settings');
+  const isAuthenticated = ref(false);
+  const showPasswordDialog = ref(false);
+  const pendingTab = ref<string | null>(null);
 
-const handleClose = () => {
-  emit('close');
-};
+  const handleClose = () => {
+    emit('close');
+  };
 
-const handleTabClick = (tab: string) => {
-  if (tab === 'settings') {
-    activeTab.value = tab as any;
-    return;
-  }
+  const handleTabClick = (tab: string) => {
+    if (tab === 'settings') {
+      activeTab.value = tab as any;
+      return;
+    }
 
-  // Don't require password for change password tab
-  if (tab === 'changePassword') {
-    activeTab.value = tab as any;
-    return;
-  }
+    // Require password for ALL tabs except settings (including changePassword)
+    if (!isAuthenticated.value) {
+      pendingTab.value = tab;
+      showPasswordDialog.value = true;
+    } else {
+      activeTab.value = tab as any;
+    }
+  };
 
-  if (!isAuthenticated.value) {
-    pendingTab.value = tab;
-    showPasswordDialog.value = true;
-  } else {
-    activeTab.value = tab as any;
-  }
-};
+  const handlePasswordSuccess = () => {
+    isAuthenticated.value = true;
+    showPasswordDialog.value = false;
 
-const handlePasswordSuccess = () => {
-  isAuthenticated.value = true;
-  showPasswordDialog.value = false;
+    if (pendingTab.value) {
+      activeTab.value = pendingTab.value as any;
+      pendingTab.value = null;
+    }
+  };
 
-  if (pendingTab.value) {
-    activeTab.value = pendingTab.value as any;
+  const handlePasswordCancel = () => {
+    showPasswordDialog.value = false;
     pendingTab.value = null;
-  }
-};
+  };
 
-const handlePasswordCancel = () => {
-  showPasswordDialog.value = false;
-  pendingTab.value = null;
-};
+  const handlePasswordChangeSuccess = () => {
+    const token = localStorage.getItem('settingsSessionToken');
+    if (!token) {
+      isAuthenticated.value = false;
+      // Optionally switch back to settings tab when password is changed and sessions are invalidated
+      activeTab.value = 'settings';
+    }
+  };
+  </script>
 
-// Add function to handle password change success
-const handlePasswordChangeSuccess = () => {
-  // Optionally reset authentication if sessions were invalidated
-  const token = localStorage.getItem('settingsSessionToken');
-  if (!token) {
-    isAuthenticated.value = false;
-  }
-  // You could also show a message or switch to a different tab
-};
-</script>
-
-<!-- Update the template section -->
-<template>
-  <div class="home-settings">
-    <div class="title-nav">
-      <h1 class="top-banner">
-        Settings:
-        <ThemeToggle style="margin-left: 20px;" />
-      </h1>
-      <XButton @close="handleClose" aria-label="Close settings" />
-    </div>
-
-    <div class="h-rule"></div>
-
-    <div class="settings-content">
-      <div class="settings-class">
-        <button @click="handleTabClick('blogTopics')" :class="{ active: activeTab === 'blogTopics' }">
-          Blog Topics
-        </button>
-        <button @click="handleTabClick('groupEditor')" :class="{ active: activeTab === 'groupEditor' }">
-          Group Editor
-        </button>
-        <button @click="handleTabClick('postCreator')" :class="{ active: activeTab === 'postCreator' }">
-          Post Creator
-        </button>
-        <button @click="handleTabClick('postEditor')" :class="{ active: activeTab === 'postEditor' }">
-          Post Editor
-        </button>
-
-        <div class="grow"></div>
-
-        <!-- Add Change Password button -->
-        <button @click="handleTabClick('changePassword')" :class="{ active: activeTab === 'changePassword' }"
-          class="change-password-btn">
-          🔐 Change Password
-        </button>
+  <template>
+    <div class="home-settings">
+      <div class="title-nav">
+        <h1 class="top-banner">
+          Settings:
+          <ThemeToggle style="margin-left: 20px;" />
+        </h1>
+        <XButton @close="handleClose" aria-label="Close settings" />
       </div>
 
-      <div class="v-rule"></div>
+      <div class="h-rule"></div>
 
-      <div class="class-options">
-        <!-- Blog Topics content will appear here -->
-        <TopicEditor v-if="activeTab === 'blogTopics'" :require-auth="!isAuthenticated" />
+      <div class="settings-content">
+        <div class="settings-class">
+          <button @click="handleTabClick('blogTopics')" :class="{ active: activeTab === 'blogTopics' }">
+            Blog Topics
+          </button>
+          <button @click="handleTabClick('groupEditor')" :class="{ active: activeTab === 'groupEditor' }">
+            Group Editor
+          </button>
+          <button @click="handleTabClick('postCreator')" :class="{ active: activeTab === 'postCreator' }">
+            Post Creator
+          </button>
+          <button @click="handleTabClick('postEditor')" :class="{ active: activeTab === 'postEditor' }">
+            Post Editor
+          </button>
 
-        <!-- Group Editor -->
-        <GroupEditor v-if="activeTab === 'groupEditor'" :require-auth="!isAuthenticated" />
+          <div class="grow"></div>
 
-        <!-- Blog Post Creator -->
-        <PostCreator v-if="activeTab === 'postCreator'" :require-auth="!isAuthenticated" />
+          <!-- This button now requires authentication like the others -->
+          <button @click="handleTabClick('changePassword')" :class="{ active: activeTab === 'changePassword' }"
+            class="change-password-btn">
+            🔐 Change Password
+          </button>
+        </div>
 
-        <!-- Post Editor -->
-        <PostEditor v-if="activeTab === 'postEditor'" :require-auth="!isAuthenticated" />
+        <div class="v-rule"></div>
 
-        <!-- Change Password Component -->
-        <ChangePassword v-if="activeTab === 'changePassword'" @success="handlePasswordChangeSuccess"
-          @cancel="() => activeTab = 'settings'" />
+        <div class="class-options">
+          <TopicEditor v-if="activeTab === 'blogTopics'" :require-auth="!isAuthenticated" />
+          <GroupEditor v-if="activeTab === 'groupEditor'" :require-auth="!isAuthenticated" />
+          <PostCreator v-if="activeTab === 'postCreator'" :require-auth="!isAuthenticated" />
+          <PostEditor v-if="activeTab === 'postEditor'" :require-auth="!isAuthenticated" />
+          <ChangePassword v-if="activeTab === 'changePassword'" @success="handlePasswordChangeSuccess"
+            @cancel="() => activeTab = 'settings'" />
+        </div>
       </div>
+
+      <!-- Password Dialog -->
+      <PasswordDialog v-if="showPasswordDialog" @success="handlePasswordSuccess" @cancel="handlePasswordCancel" />
     </div>
+  </template>
 
-    <!-- Password Dialog -->
-    <PasswordDialog v-if="showPasswordDialog" @success="handlePasswordSuccess" @cancel="handlePasswordCancel" />
-  </div>
-</template>
+  <style>
+  .home-settings {
+    height: 100%;
+    z-index: 1000;
+    position: relative;
+    background-color: var(--background);
+    border: none;
+    border-radius: 5px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
 
-<style>
-.home-settings {
-  /* Size ------------- */
-  /* width: 100%; */
-  height: 100%;
+  .title-nav {
+    height: 60px;
+    padding: 0 10px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background-color: var(--background);
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+  }
 
-  /* Position ------------- */
-  z-index: 1000;
-  position: relative;
+  .h-rule {
+    background-color: color-mix(in oklab, var(--background) 60%, var(--text) 66%);
+    height: 3px;
+    margin: 0px 10px;
+    border-radius: 10px;
+    position: sticky;
+    top: 60px;
+    z-index: 10;
+    flex-shrink: 0;
+  }
 
-  /* Color ------------- */
-  background-color: var(--background);
-  border: none;
-  border-radius: 5px;
+  .settings-content {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: row;
+    overflow: hidden;
+  }
 
-  /* max-width: 50px; */
+  .settings-class {
+    width: 150px;
+    height: 100%;
+    padding: 0;
+    position: sticky;
+    left: 0;
+    align-self: flex-start;
+    z-index: 5;
+    background-color: var(--background);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    max-height: calc(100vh - 63px);
+    overflow-y: auto;
+  }
 
-  /* Behaviour ------------- */
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
+  .settings-class button {
+    margin: 5px;
+    padding: 10px 10px;
+    border: none;
+    cursor: pointer;
+    text-align: left;
+    border-radius: 5px;
+    flex-shrink: 0;
+  }
 
-.title-nav {
-  /* Size ------------- */
-  height: 60px;
-  /* padding: 0 20px; */
-  padding: 0 10px;
+  .settings-class .grow {
+    flex-grow: 1;
+  }
 
-  /* Position ------------- */
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  background-color: var(--background);
+  .grow {
+    display: flex;
+    flex-grow: 1;
+  }
 
-  /* Behaviour ------------- */
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  align-items: center;
-  flex-shrink: 0;
-}
+  .v-rule {
+    background-color: color-mix(in oklab, var(--background) 60%, var(--text) 66%);
+    width: 3px;
+    margin: 10px 0px;
+    border-radius: 10px;
+    position: sticky;
+    align-self: flex-start;
+    z-index: 5;
+    flex-shrink: 0;
+    height: 78vh;
+  }
 
-.h-rule {
-  background-color: color-mix(in oklab, var(--background) 60%, var(--text) 66%);
-  height: 3px;
-  margin: 0px 10px;
-  border-radius: 10px;
-  position: sticky;
-  top: 60px;
-  /* Height of title-nav */
-  z-index: 10;
-  flex-shrink: 0;
-}
+  .class-options {
+    flex: 1;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    min-height: 0;
+  }
 
-.settings-content {
-  /* Size ------------- */
-  flex: 1;
-  min-height: 0;
-  /* Important for flex child scrolling */
+  .top-banner {
+    display: flex;
+    flex-direction: row;
+    padding-left: 0px;
+  }
 
-  /* Behaviour ------------- */
-  display: flex;
-  flex-direction: row;
-  overflow: hidden;
-}
+  /* Update all buttons to have consistent styling */
+  .settings-class button {
+    background-color: transparent;
+    transition: background-color 0.2s ease;
+    color: var(--text);
+  }
 
-.settings-class {
-  /* Size ------------- */
-  width: 150px;
-  height: 100%;
+  .settings-class button:hover {
+    background-color: color-mix(in oklab, var(--background), var(--text) 20%);
+  }
 
-  padding: 0;
+  .settings-class button.active {
+    background-color: color-mix(in oklab, var(--background), var(--text) 10%);
+  }
 
-  /* Position ------------- */
-  position: sticky;
-  left: 0;
-  align-self: flex-start;
-  z-index: 5;
+  /* Change password button specific styling */
+  .change-password-btn {
+    margin-top: auto;
+    margin-bottom: 10px;
+    color: var(--ac-red);
+  }
 
-  /* Color ------------- */
-  /* border-right: 1px solid #e0e0e0; */
-  background-color: var(--background);
+  .change-password-btn:hover {
+    background-color: color-mix(in oklab, var(--background), var(--ac-red) 30%);
+  }
 
-  /* Behaviour ------------- */
-  display: flex;
-  flex-direction: column;
-  flex-shrink: 0;
-  max-height: calc(100vh - 63px);
-  /* Adjust based on title-nav + h-rule */
-  overflow-y: auto;
-  /* Allow scrolling if content exceeds height */
-}
-
-.settings-class button {
-  margin: 5px;
-  padding: 10px 10px;
-  border: none;
-  cursor: pointer;
-  text-align: left;
-  border-radius: 5px;
-  flex-shrink: 0;
-}
-
-.settings-class .grow {
-  flex-grow: 1;
-}
-
-.grow {
-  display: flex;
-  flex-grow: 1;
-}
-
-.v-rule {
-  background-color: color-mix(in oklab, var(--background) 60%, var(--text) 66%);
-  width: 3px;
-  margin: 10px 0px;
-  border-radius: 10px;
-  position: sticky;
-  /* left: 105px; */
-  /* Width of settings-class */
-  align-self: flex-start;
-  z-index: 5;
-  flex-shrink: 0;
-  height: 78vh;
-  /* Adjust based on total sticky heights */
-}
-
-.class-options {
-  /* Size ------------- */
-  flex: 1;
-  padding: 20px;
-
-  /* Behaviour ------------- */
-  display: flex;
-  flex-direction: column;
-  overflow-y: auto;
-  min-height: 0;
-  /* Important for scrolling */
-}
-
-.top-banner {
-  display: flex;
-  flex-direction: row;
-  padding-left: 0px;
-}
-
-/* Update change-password-btn styles */
-.change-password-btn {
-  margin-top: auto;
-  /* This pushes it to the bottom */
-  margin-bottom: 10px;
-  /* Add some bottom spacing */
-  color: var(--ac-red);
-  background-color: transparent;
-  transition: background-color 0.2s ease;
-}
-
-/* Fix the hover and active states - remove the nested button selector */
-.change-password-btn:hover {
-  background-color: color-mix(in oklab, var(--background), var(--ac-red) 30%);
-}
-
-.change-password-btn.active {
-  background-color: color-mix(in oklab, var(--background), var(--ac-red) 20%);
-  color: var(--ac-red);
-}
-
-/* Also ensure regular buttons have proper hover states */
-.settings-class button:not(.change-password-btn):hover {
-  background-color: color-mix(in oklab, var(--background) 80%, var(--text) 40%);
-}
-
-.settings-class button:not(.change-password-btn).active {
-  background-color: color-mix(in oklab, var(--background) 80%, var(--text) 25%);
-}
-</style>
+  .change-password-btn.active {
+    background-color: color-mix(in oklab, var(--background), var(--ac-red) 20%);
+  }
+  </style>

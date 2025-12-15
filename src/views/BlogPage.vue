@@ -10,7 +10,6 @@ import BottomNav from '@/components/BottomNav.vue'
 import MarkdownRenderer from '@/components/BlogPost_C/MarkdownRenderer.vue'
 import GalleryRenderer from '@/components/BlogPost_C/GalleryRenderer.vue'
 import AttachmentHandler from '@/components/BlogPost_C/AttachmentHandler.vue'
-import SettingsCog from '@/components/Settings_C/settingsCog.vue';
 
 
 const router = useRouter()
@@ -64,6 +63,7 @@ const fetchTopicColor = async () => {
 }
 
 // Update fetchPost to also fetch topic color
+// Update fetchPost to handle promises correctly
 const fetchPost = async () => {
   try {
     isLoading.value = true
@@ -85,9 +85,14 @@ const fetchPost = async () => {
       return
     }
 
-    // Fetch topic color first, then other data
+    // Fetch topic color first
     await fetchTopicColor()
-    await Promise.all([fetchTopicPosts(), fetchGroupPosts()])
+
+    // Then fetch topic and group posts in parallel
+    await Promise.all([
+      fetchTopicPosts(),
+      fetchGroupPosts()
+    ])
 
   } catch (err) {
     console.error('Error loading post:', err)
@@ -220,6 +225,8 @@ const fetchTopicPosts = async () => {
 }
 
 // Fetch posts by group
+// Fetch posts by group - FIXED VERSION
+// Enhanced fetchGroupPosts function with better comparison
 const fetchGroupPosts = async () => {
   if (!postData.value?.postGroup?.groupId) {
     console.log('❌ No post group found for current post')
@@ -227,18 +234,70 @@ const fetchGroupPosts = async () => {
   }
 
   try {
-    const response = await fetch(`/api/posts/group/${postData.value.postGroup.groupId}`)
-    if (response.ok) {
-      groupPosts.value = await response.json()
-      console.log('📦 Group posts fetched:', groupPosts.value.length)
+    const groupId = postData.value.postGroup.groupId
+    console.log('🔄 Fetching posts for group:', groupId)
 
+    // Fetch all posts and filter by group ID
+    const response = await fetch('/api/posts')
+    if (response.ok) {
+      const allPosts = await response.json()
+      console.log('📋 Total posts fetched:', allPosts.length)
+
+      // Convert groupId to string for comparison (handles ObjectId vs string)
+      const groupIdStr = String(groupId)
+
+      // Filter posts by the same group ID AND check if they're published
+      const postsInGroup = allPosts.filter((post: PostData) => {
+        if (!post.isPublished) return false
+
+        // Handle both string and ObjectId comparisons
+        const postGroupId = post.postGroup?.groupId
+        if (!postGroupId) return false
+
+        return String(postGroupId) === groupIdStr
+      })
+
+      console.log(`🎯 Found ${postsInGroup.length} posts in the same group`)
+
+      // Sort by sequence number (if available) or postId
+      // Update the sorting logic in fetchGroupPosts:
+      groupPosts.value = postsInGroup.sort((a: PostData, b: PostData) => {
+        // First try to sort by sequence number
+        const aSeq = a.postGroup?.sequence
+        const bSeq = b.postGroup?.sequence
+
+        // If both have sequences and they're different, sort by sequence
+        if (aSeq !== undefined && bSeq !== undefined && aSeq !== bSeq) {
+          return aSeq - bSeq
+        }
+
+        // Otherwise, sort by postId (earliest first)
+        return a.postId - b.postId
+      })
+
+      console.log('📊 Sorted group posts:', groupPosts.value.map(p => ({
+        id: p.postId,
+        title: p.postTitle,
+        sequence: p.postGroup?.sequence
+      })))
+
+      // Find current post index
       currentGroupIndex.value = groupPosts.value.findIndex(
         (post: PostData) => post.postId === postData.value?.postId
       )
 
       console.log('📍 Current group index:', currentGroupIndex.value)
+
+      // If current post not found in filtered list
+      if (currentGroupIndex.value === -1 && groupPosts.value.length > 0) {
+        console.warn('⚠️ Current post not found in group posts list')
+        // This can happen if the current post isn't published
+        // or if groupId comparison failed
+      } else if (groupPosts.value.length === 0) {
+        console.log('ℹ️ No other published posts found in this group')
+      }
     } else {
-      console.error('❌ Failed to fetch group posts:', response.status, response.statusText)
+      console.error('❌ Failed to fetch posts:', response.status, response.statusText)
     }
   } catch (err) {
     console.error('❌ Error fetching group posts:', err)
@@ -258,14 +317,20 @@ const goToNextTopicPost = () => {
 }
 
 const goToPreviousGroupPost = () => {
-  if (previousGroupPost.value) {
+  if (hasPreviousGroupPost.value && previousGroupPost.value) {
+    console.log('← Navigating to previous group post:', previousGroupPost.value.postId)
     router.push(`/BlogPage/${previousGroupPost.value.postId}`)
+  } else {
+    console.log('No previous group post available')
   }
 }
 
 const goToNextGroupPost = () => {
-  if (nextGroupPost.value) {
+  if (hasNextGroupPost.value && nextGroupPost.value) {
+    console.log('→ Navigating to next group post:', nextGroupPost.value.postId)
     router.push(`/BlogPage/${nextGroupPost.value.postId}`)
+  } else {
+    console.log('No next group post available')
   }
 }
 
