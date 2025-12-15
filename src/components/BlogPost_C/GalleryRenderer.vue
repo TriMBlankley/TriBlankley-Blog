@@ -87,7 +87,7 @@ const getImageNumber = (image: AttachedFile) => {
       <!-- Navigation arrows -->
       <button
         v-if="allImages.length > 1"
-        class="carousel-nav carousel-nav-prev"
+        class="nav-btn large-btn"
         @click="prevImage"
         :disabled="currentImageIndex === 0"
       >
@@ -114,9 +114,9 @@ const getImageNumber = (image: AttachedFile) => {
           </div>
           <button
             @click="handleDownload(allImages[currentImageIndex].fileId, allImages[currentImageIndex].filename)"
-            class="download-btn"
+            class="nav-btn large-btn"
           >
-            <DownloadIcon class="btn-icon"/>
+            <DownloadIcon class="btn-icon" />
           </button>
         </div>
       </div>
@@ -124,7 +124,7 @@ const getImageNumber = (image: AttachedFile) => {
       <!-- Navigation arrows -->
       <button
         v-if="allImages.length > 1"
-        class="carousel-nav carousel-nav-next"
+        class="nav-btn large-btn"
         @click="nextImage"
         :disabled="currentImageIndex === allImages.length - 1"
       >
@@ -203,7 +203,7 @@ const getImageNumber = (image: AttachedFile) => {
 }
 
 .carousel-nav {
-  background: var(--focused);
+  /* background: var(--focused);
   color: var(--text);
   border: none;
   width: 50px;
@@ -215,7 +215,7 @@ const getImageNumber = (image: AttachedFile) => {
   align-items: center;
   justify-content: center;
   transition: all 0.2s ease;
-  flex-shrink: 0;
+  flex-shrink: 0; */
 }
 
 .carousel-nav:hover:not(:disabled) {
@@ -256,9 +256,8 @@ const getImageNumber = (image: AttachedFile) => {
 
 .download-btn {
   background: var(--focused);
-  color: white;
   border: none;
-  padding: 8px 16px;
+  padding: 5px;
   border-radius: 6px;
   font-size: 14px;
   cursor: pointer;

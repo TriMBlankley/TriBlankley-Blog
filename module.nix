@@ -6,6 +6,7 @@ in
 {
   # Run a MongoDB server for storing the backend data.
   services.mongodb.enable = true;
+  services.mongodb.package = pkgs.mongodb-ce;
 
   # Backend server.
   systemd.services.blog_backend = {
@@ -19,13 +20,16 @@ in
   # Use nginx to wire the frontend and backend together.
   services.nginx = {
     enable = true;
-    virtualHosts."triblankleyblog.com" = {
+    virtualHosts."triblankley.blog" = {
       # Use this to enable HTTPS:
       forceSSL = true;
       enableACME = true;
 
       locations."/" = {
         root = "${build}/dist";
+        extraConfig = ''
+          try_files $uri $uri/ /index.html;
+        '';
       };
 
       locations."/api" = {
@@ -41,6 +45,6 @@ in
   # Needed for HTTPS as well, does nothing otherwise
   security.acme = {
     acceptTerms = true;
-    defaults.email = "admin@example.com";
+    defaults.email = "triblankley@gmail.com";
   };
 }

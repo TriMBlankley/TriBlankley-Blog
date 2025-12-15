@@ -6,6 +6,6 @@ the issue is things can get difficult when you are dealing with multiple photos!
 
 [Clavicle Pathways](image2)
 
-*If those were not ordered correctly... let me know (>-<
+*If those were not ordered correctly... let me know (>-<)
 
 I will go into the ethos of my tatoo designes in much greater length another day, this is just a post to showcase my blogs capability to show in-text images.
