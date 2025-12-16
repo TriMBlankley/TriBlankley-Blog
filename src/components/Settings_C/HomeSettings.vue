@@ -7,6 +7,8 @@
   import GroupEditor from '@/components/Settings_C/GroupEditor.vue';
   import PasswordDialog from '@/components/Settings_C/PasswordDialog.vue';
   import ChangePassword from '@/components/Settings_C/ChangePassword.vue';
+  import XButton from '@/components/XButton.vue';
+
 
   const emit = defineEmits<{
     (e: 'close'): void;
