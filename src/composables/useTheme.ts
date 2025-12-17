@@ -1,8 +1,8 @@
 import { ref, watchEffect } from 'vue';
 
-export function useTheme() {
-    const isDarkMode = ref(false);
+const isDarkMode = ref(false);
 
+export function useTheme() {
     const initTheme = () => {
         const savedTheme = localStorage.getItem('theme');
         if (savedTheme) {
