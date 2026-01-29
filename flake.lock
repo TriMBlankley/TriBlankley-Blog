@@ -55,7 +55,25 @@
     "root": {
       "inputs": {
         "nixos-generators": "nixos-generators",
-        "nixpkgs": "nixpkgs"
+        "nixpkgs": "nixpkgs",
+        "tatum-website": "tatum-website"
+      }
+    },
+    "tatum-website": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1769658982,
+        "narHash": "sha256-/j60ZtynV8IWsD6hfi2RLB5GzDW1JoFViTBDMsFqIqU=",
+        "ref": "main",
+        "rev": "2dda54080c757c59c3a805dcabc5e16a55746154",
+        "revCount": 114,
+        "type": "git",
+        "url": "ssh://root@plixers/root/tatum"
+      },
+      "original": {
+        "ref": "main",
+        "type": "git",
+        "url": "ssh://root@plixers/root/tatum"
       }
     }
   },
