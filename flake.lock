@@ -62,11 +62,11 @@
     "tatum-website": {
       "flake": false,
       "locked": {
-        "lastModified": 1769658982,
-        "narHash": "sha256-/j60ZtynV8IWsD6hfi2RLB5GzDW1JoFViTBDMsFqIqU=",
+        "lastModified": 1769923399,
+        "narHash": "sha256-sqSm+82RPxoRCAMdpUXuULVXPufuDrDaHQ+P+shlFW4=",
         "ref": "main",
-        "rev": "2dda54080c757c59c3a805dcabc5e16a55746154",
-        "revCount": 114,
+        "rev": "495d187917d7dc2e50569aba9a7757830826c976",
+        "revCount": 116,
         "type": "git",
         "url": "ssh://root@plixers/root/tatum"
       },
