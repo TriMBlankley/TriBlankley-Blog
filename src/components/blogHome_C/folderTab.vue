@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // VueJS imports
-import { defineProps, defineEmits, ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 
 // Component Imports
 

@@ -1,11 +1,17 @@
-// [file name]: blogPostSchema.js
+// [file name]: blogSchema.ts
 import mongoose from 'mongoose'
 
-const topicSchema = new mongoose.Schema({
+const blogTopicSchema = new mongoose.Schema({
   topicColor: {type: String, required: true },
   topicName: { type: String, required: true },
   topicOrder: { type: Number, required: true },
 })
+
+interface topicType {
+  topicColor: string;
+  topicName: string;
+  topicOrder: number;
+}
 
 const postGroupSchema = new mongoose.Schema({
   groupName: { type: String, required: true, unique: true },
@@ -15,7 +21,15 @@ const postGroupSchema = new mongoose.Schema({
   updatedDate: { type: Date, default: Date.now }
 });
 
-const postSchema = new mongoose.Schema({
+interface groupType{
+  groupName: string;
+  groupDescription: string;
+  groupColor: string;
+  createdDate: Date;
+  updatedDate: Date;
+}
+
+const blogPostSchema = new mongoose.Schema({
   postId: { type: Number, required: true, unique: true },
   postTitle: { type: String, required: true },
   postAuthor: { type: [String], required: true }, // FIXED: Now properly defined as array of strings
@@ -42,8 +56,36 @@ const postSchema = new mongoose.Schema({
   }]
 });
 
-const blogTopic = mongoose.model('Topic', topicSchema)
-const blogPost = mongoose.model('Post', postSchema)
+interface postType{
+  postId: number;
+  postTitle: string;
+  postAuthor: string; // FIXED: Now properly defined as array of strings
+  postDate: string;
+  postContent: string;
+  contentType: string;
+  isNSFW: boolean;
+  postTopics: string;
+  isPublished: boolean;
+  showGalleryView: boolean; // NEW: Gallery view flag
+  postGroup: {
+    groupId: mongoose.Schema.Types.ObjectId;
+    groupName: string;
+    groupColor: string;
+    sequence: number;
+  };
+  attachedFiles: {
+    filename: string;
+    fileId: mongoose.Types.ObjectId;
+    uploadDate: Date;
+    fileType: 'in-text' | 'attachment';
+    attachmentType: 'image' | 'audio' | 'video'; 
+    sequence: number;
+  };
+}
+
+const blogTopic = mongoose.model('Topic', blogTopicSchema)
+const blogPost = mongoose.model('Post', blogPostSchema)
 const PostGroup = mongoose.model('PostGroup', postGroupSchema)
 
+export type { postType, topicType, groupType }
 export { blogTopic, blogPost, PostGroup }

@@ -2,18 +2,18 @@
 // VueJS imports
 import { ref, onMounted, onUnmounted, watch, computed } from 'vue';
 
-
 // Component Imports
 import FolderTab from '@/components/blogHome_C/folderTab.vue';
 import PostDescriptor from '@/components/blogHome_C/postDescriptor.vue';
 import SettingsCog from '@/components/Settings_C/settingsCog.vue';
-import FilterAndNews from '@/components/blogHome_C/filterAndNews.vue';
-import HomeSettings from '@/components/Settings_C/HomeSettings.vue';
 import BlogLogo from '@/components/BlogLogo.vue';
 import FolderTabDropDownButton from '@/components/blogHome_C/FolderTabDropDownButton.vue';
 
-//SVG imports
+// SVG imports
 import BottomNav from '@/components/BottomNav.vue';
+
+// Database schema/ interface imports
+import type { postType, topicType, groupType } from "../../blogDB/blogSchema.ts"
 
 // Navigation functions
 const scrollToTop = () => {
@@ -35,7 +35,6 @@ const scrollToTop = () => {
 const topics = ref<any[]>([]);
 const posts = ref<any[]>([]);
 const activeTabColor = ref(localStorage.getItem('activeTabColor') || 'var(--cd-blue)');
-const left_right_margin = ref('5vw');
 
 // Add responsive state
 const isMobile = ref(false);
@@ -43,7 +42,7 @@ const windowWidth = ref(window.innerWidth);
 
 const allTopicsTab = computed(() => ({
   topicName: "All Topics",
-  topicColor: "#6e93b9",
+  topicColor: "#6e93b9", // Desaturated blue
   topicOrder: 100 // Place it after all other topics
 }));
 
@@ -52,7 +51,7 @@ const fetchTopics = async () => {
   try {
     const response = await fetch('/api/topics');
     if (!response.ok) throw new Error('Failed to fetch topics');
-    const data = await response.json();
+    const data: topicType[] = await response.json(); // parce return into a json object
     topics.value = data.sort((a: any, b: any) => a.topicOrder - b.topicOrder);
   } catch (error) {
     console.error('Error in fetchTopics:', error);
@@ -61,27 +60,18 @@ const fetchTopics = async () => {
 
 const activeTopic = ref<string | null>(null);
 
-// Add reactive refs for tab calculations
-const tabMotifWidth = ref(0);
-const tabContainerRef = ref<HTMLElement | null>(null);
-
 const fetchPosts = async () => {
   try {
     const response = await fetch('/api/posts');
     if (!response.ok) throw new Error('Failed to fetch posts');
-    let allPosts = await response.json();
+    const allPosts: postType[] = await response.json();
 
-    // Filter by published status first
-    allPosts = allPosts.filter((post: any) => post.isPublished);
+    // Filter by if published, and topic filter
+    const filteredPosts = allPosts
+      .filter(post => post.isPublished)
+      .filter(post => !activeTopic.value || post.postTopics.includes(activeTopic.value));
 
-    // Then filter by topic if one is selected
-    if (activeTopic.value) {
-      allPosts = allPosts.filter((post: any) =>
-        post.postTopics.includes(activeTopic.value)
-      );
-    }
-
-    posts.value = allPosts;
+    posts.value = filteredPosts;
   } catch (error) {
     console.error('Error in fetchPosts:', error);
   }
@@ -101,11 +91,6 @@ const handleTabClick = (tabData: { color: string, topicName: string }) => {
   fetchPosts();
 };
 
-// Add a method to clear topic filter if needed
-const clearTopicFilter = () => {
-  activeTopic.value = null;
-  fetchPosts();
-};
 
 const handlePostClick = (postId: number) => {
   console.log('Post clicked:', postId);
@@ -153,8 +138,6 @@ const handleAllTopicsSelect = () => {
 const closeDropdown = () => {
   showDropdown.value = false;
 };
-
-
 
 
 // Lifecycle hooks
@@ -420,7 +403,6 @@ watch(activeTabColor, (color) => {
     height: auto;
     min-height: auto;
   }
-
   .post-cards {
     /* FIX: Ensure posts can scroll naturally on mobile */
     overflow-y: visible;

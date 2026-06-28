@@ -23,7 +23,7 @@
 
   # NPM setup ---------------------------------------
   processes = {
-    TriBlankley-Blog.exec = "npm run dev -- --host --open";
+    TriBlankley-Blog.exec = "npm run dev -- --host 127.0.0.2";
     api.exec = "node blogDB/dbAPI.js";
   };
 
@@ -42,7 +42,7 @@
           listen 0.0.0.0:8080;
           server_name localhost ;
           location / {
-            proxy_pass http://localhost:5173 ;
+            proxy_pass http://127.0.0.2:5173 ;
           }
           location /api {
             proxy_pass http://localhost:8050 ;

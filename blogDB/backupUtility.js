@@ -3,7 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import mongoose from 'mongoose';
 import { GridFSBucket } from 'mongodb';
-import { blogPost, blogTopic, PostGroup } from './blogPostSchema.js';
+import { blogPost, blogTopic, PostGroup } from './blogSchema.ts';
 import archiver from 'archiver';
 import { fileURLToPath } from 'url';
 

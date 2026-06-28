@@ -5,7 +5,7 @@ import { GridFSBucket } from 'mongodb';
 import bcrypt from 'bcrypt';
 import crypto from 'crypto';
 // Import post Schemas:
-import { blogPost, blogTopic, PostGroup } from "./blogPostSchema.js";
+import { blogPost, blogTopic, PostGroup } from "./blogSchema.ts";
 
 // Import backup functions
 import { createBackup, listBackups } from './backupUtility.js';

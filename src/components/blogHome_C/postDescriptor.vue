@@ -1,7 +1,7 @@
 <script setup lang="ts">
 
 import { useRouter } from 'vue-router';
-import { defineProps, defineEmits, ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 
 // Content type svg's
 import filePostSVG from "@/assets/uiElements/filePost.svg";
