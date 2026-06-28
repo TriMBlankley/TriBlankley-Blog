@@ -149,7 +149,6 @@ const groupColorStyle = computed(() => {
 });
 
 
-// Logic ---------------------------------------------------
 const isMobile = ref(false);
 const windowWidth = ref(window.innerWidth);
 
@@ -157,10 +156,6 @@ const checkScreenSize = () => {
   windowWidth.value = window.innerWidth;
   isMobile.value = windowWidth.value < 750;
 };
-
-
-
-
 
 
 // Lifecycle hooks
@@ -265,7 +260,7 @@ onUnmounted(() => {
   max-height: 300px;
   height: 300px; /* Add fixed height for consistency */
 
-  /* Position ------------- */
+  
   margin: 5px;
 
   /* Color ------------- */
@@ -282,27 +277,34 @@ onUnmounted(() => {
 }
 
 .post-descriptor {
+  /* Size ------------- */
+  width: 100%;
+  height: 100%; /* Ensure it takes full height */
+
+  /* Position ------------- */
   position: relative; /* For SVG positioning */
+  padding: 7px;
+
+  /* Color ------------- */
+  background-color: var(--background);
+  border-radius: 2.5px;
+  border: none;
 
   /* Behaviour ------------- */
   display: flex;
   flex-direction: column;
-  background-color: var(--background);
-  border-radius: 2.5px;
-  border: none;
-  padding: 7px;
-  width: 100%;
-  height: 100%; /* Ensure it takes full height */
-  box-sizing: border-box; /* Include padding in height calculation */
   overflow: hidden; /* Contain content */
 }
 
 
 .post-descriptor p {
-  overflow: hidden;
+  /* Position ------------*/
   margin: 0;
+  position: relative; /* can stack on top of content */
+
+  /* Behavour -------------*/
+  overflow: hidden;
   flex: 1; /* Allow paragraph to grow and take available space */
-  position: relative; /* Ensure proper stacking context */
   z-index: 1; /* Text should be above SVG background but below the icon */
 }
 
@@ -346,7 +348,6 @@ onUnmounted(() => {
 /* For posts with images - ensure consistent height */
 .postIcon {
   margin-bottom: 5px;
-  box-sizing: border-box;
   align-items: flex-start;
   justify-content: center;
   min-width: 60px;

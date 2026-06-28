@@ -37,22 +37,32 @@
 
 <style scoped>
   .button-div {
+    /* Size ------------- */
+    width: 4rem;
+    height: auto;
+
+    /* Position ------------- */
+    padding: 2.5px, 2.5px;
+    padding-top: 4px;
+
+    /* Color ------------- */
     background: var(--background);
     border: 3px solid color-mix(in oklab, var(--background), var(--text) 20%);
     border-radius: 10px;
-    padding: 2.5px, 2.5px;
-    padding-top: 4px;
+    
+    /* Behaviour ------------- */
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 4rem;
-    height: auto;
   }
   
   .svg-container {
+    /* Size ------------- */
     width: 100%;
     height: 100%;
+
+    /* Color ------------- */
     color: var(--text);
   }
 </style>

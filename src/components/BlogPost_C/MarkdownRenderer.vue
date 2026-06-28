@@ -1,25 +1,12 @@
 <script setup lang="ts">
-  import {
-    ref,
-    onMounted,
-    watch,
-    nextTick,
-    computed,
-    h,
-    createApp,
-  } from 'vue'
-  import type {
-    App,
-    FunctionalComponent,
-    SVGAttributes
-  } from 'vue'
+  import { ref, onMounted, watch, nextTick, computed, h, createApp } from 'vue'
+  import type { App, FunctionalComponent, SVGAttributes } from 'vue'
 
   import { marked } from 'marked'
   import DOMPurify from 'dompurify'
 
   import "@/assets/syntaxHighlighting.css"
   import { useTheme } from '@/composables/useTheme'
-  import AvWidget from './AvWidget.vue'
 
   import CopyIcon from "@/assets/uiElements/copy.svg";
   import XButton from "@/assets/uiElements/xButton.svg";
@@ -39,33 +26,11 @@
     attachedFiles: AttachedFile[]
   }
 
-  interface ContentPart {
-    type: 'html' | 'audio' | 'video'
-    content?: string
-    audioUrl?: string
-    videoUrl?: string
-    filename?: string
-    fileId?: string
-    sequence?: number
-  }
-
-  interface MediaWidgetPosition {
-    fileId: string
-    filename: string
-    audioUrl?: string
-    videoUrl?: string
-    sequence?: number
-    index: number
-    type: 'audio' | 'video'
-  }
 
   const props = defineProps<Props>()
   const renderedContent = ref('')
   const hljs = ref<any>(null)
   const { isDarkMode } = useTheme()
-
-  // Track media widget positions (both audio and video)
-  const mediaWidgetPositions = ref<MediaWidgetPosition[]>([])
 
   // Configure marked
   const configureMarked = () => {
@@ -77,249 +42,16 @@
 
   // Initialize marked configuration
   configureMarked()
-
-  // Get audio files from attached files
-  const audioFiles = computed(() => {
-    console.log('🔍 Computing audio files from attachedFiles:', props.attachedFiles)
-    if (!props.attachedFiles) {
-      console.log('❌ No attached files provided')
-      return []
-    }
-
-    const audioFiles = props.attachedFiles.filter(file => {
-      // Check attachmentType
-      if (file.attachmentType === 'audio') {
-        console.log('✅ Found audio file by attachmentType:', file.filename)
-        return true
-      }
-
-      // Check filename extension as fallback
-      const audioExtensions = ['.mp3', '.wav', '.ogg', '.flac', '.aac', '.m4a']
-      const isAudio = audioExtensions.some(ext =>
-        file.filename.toLowerCase().endsWith(ext)
-      )
-
-      if (isAudio) {
-        console.log('✅ Found audio file by extension:', file.filename)
-      }
-
-      return isAudio
-    })
-
-    console.log('🎵 Final audio files:', audioFiles)
-    return audioFiles
-  })
-
-  // Get video files from attached files
-  const videoFiles = computed(() => {
-    console.log('🔍 Computing video files from attachedFiles:', props.attachedFiles)
-    if (!props.attachedFiles) {
-      console.log('❌ No attached files provided')
-      return []
-    }
-
-    const videoFiles = props.attachedFiles.filter(file => {
-      // Check attachmentType
-      if (file.attachmentType === 'video') {
-        console.log('✅ Found video file by attachmentType:', file.filename)
-        return true
-      }
-
-      // Check fileType
-      if (file.fileType === 'video') {
-        console.log('✅ Found video file by fileType:', file.filename)
-        return true
-      }
-
-      // Check filename extension as fallback
-      const videoExtensions = ['.mp4', '.webm', '.ogg', '.mov', '.avi', '.mkv']
-      const isVideo = videoExtensions.some(ext =>
-        file.filename.toLowerCase().endsWith(ext)
-      )
-
-      if (isVideo) {
-        console.log('✅ Found video file by extension:', file.filename)
-      }
-
-      return isVideo
-    })
-
-    console.log('🎥 Final video files:', videoFiles)
-    return videoFiles
-  })
-
-  // Get sequenced audio files (audio with sequence numbers)
-  const sequencedAudio = computed(() => {
-    if (!audioFiles.value) {
-      console.log('❌ No audio files for sequenced audio')
-      return []
-    }
-
-    const sequenced = audioFiles.value.filter(file => file.sequence !== undefined)
-    const sorted = sequenced.sort((a, b) => (a.sequence || 0) - (b.sequence || 0))
-
-    console.log('🎵 Sequenced audio files:', sorted)
-    return sorted
-  })
-
-  // Get sequenced video files (video with sequence numbers)
-  const sequencedVideo = computed(() => {
-    if (!videoFiles.value) {
-      console.log('❌ No video files for sequenced video')
-      return []
-    }
-
-    const sequenced = videoFiles.value.filter(file => file.sequence !== undefined)
-    const sorted = sequenced.sort((a, b) => (a.sequence || 0) - (b.sequence || 0))
-
-    console.log('🎥 Sequenced video files:', sorted)
-    return sorted
-  })
-
-  // Get additional audio files (audio without sequence numbers)
-  const additionalAudio = computed(() => {
-    if (!audioFiles.value) {
-      console.log('❌ No audio files for additional audio')
-      return []
-    }
-
-    const additional = audioFiles.value.filter(file => file.sequence === undefined)
-    const sorted = additional.sort((a, b) =>
-      new Date(a.uploadDate).getTime() - new Date(b.uploadDate).getTime()
-    )
-
-    console.log('🎵 Additional audio files:', sorted)
-    return sorted
-  })
-
-  // Get additional video files (video without sequence numbers)
-  const additionalVideo = computed(() => {
-    if (!videoFiles.value) {
-      console.log('❌ No video files for additional video')
-      return []
-    }
-
-    const additional = videoFiles.value.filter(file => file.sequence === undefined)
-    const sorted = additional.sort((a, b) =>
-      new Date(a.uploadDate).getTime() - new Date(b.uploadDate).getTime()
-    )
-
-    console.log('🎥 Additional video files:', sorted)
-    return sorted
-  })
-
-  // Get sequenced images (images with sequence numbers)
-  const sequencedImages = computed(() => {
-    if (!props.attachedFiles) {
-      console.log('❌ No attached files for sequenced images')
-      return []
-    }
-
-    const sequenced = props.attachedFiles.filter(file =>
-      file.fileType === 'in-text' && file.sequence !== undefined
-    )
-
-    const sorted = sequenced.sort((a, b) => (a.sequence || 0) - (b.sequence || 0))
-    console.log('🖼️ Sequenced images:', sorted)
-    return sorted
-  })
-
-  // Get additional images (images without sequence numbers)
-  const additionalImages = computed(() => {
-    if (!props.attachedFiles) {
-      console.log('❌ No attached files for additional images')
-      return []
-    }
-
-    const additional = props.attachedFiles.filter(file =>
-      file.fileType === 'attachment' && file.sequence === undefined
-    )
-
-    const sorted = additional.sort((a, b) =>
-      new Date(a.uploadDate).getTime() - new Date(b.uploadDate).getTime()
-    )
-
-    console.log('🖼️ Additional images:', sorted)
-    return sorted
-  })
-
+  
   // Process markdown content to replace image, audio, and video placeholders
   const processMarkdownContent = (content: string) => {
     console.log('🔄 Starting markdown content processing')
     console.log('📄 Original content:', content)
 
     let processedContent = content
-    mediaWidgetPositions.value = [] // Reset positions
 
-    console.log('🎵 Sequenced audio available:', sequencedAudio.value)
-    console.log('🎥 Sequenced video available:', sequencedVideo.value)
     console.log('🖼️ Sequenced images available:', sequencedImages.value)
 
-    // First, replace numbered video placeholders (video1, video2, etc.)
-    sequencedVideo.value.forEach((video, index) => {
-      const videoNumber = index + 1
-      const videoUrl = `/api/file/${video.fileId}`
-
-      console.log(`🎥 Processing video${videoNumber}:`, video.filename)
-
-      // Pattern for video links: [alt text](video1)
-      const videoPattern = new RegExp(`\\[([^\\]]*)\\]\\(video${videoNumber}\\)`, 'gi')
-
-      const videoMatches = processedContent.match(videoPattern)
-      if (videoMatches) {
-        console.log(`🎥 Found video pattern matches for video${videoNumber}:`, videoMatches)
-      }
-
-      // Track this video widget position
-      const widgetIndex = mediaWidgetPositions.value.length
-      mediaWidgetPositions.value.push({
-        fileId: video.fileId,
-        filename: video.filename,
-        videoUrl: videoUrl,
-        sequence: video.sequence,
-        index: widgetIndex,
-        type: 'video'
-      })
-
-      // Replace with a unique marker
-      processedContent = processedContent.replace(
-        videoPattern,
-        `<div class="video-widget-marker" data-video-index="${widgetIndex}"></div>`
-      )
-    })
-
-    // Then, replace numbered audio placeholders (audio1, audio2, etc.)
-    sequencedAudio.value.forEach((audio, index) => {
-      const audioNumber = index + 1
-      const audioUrl = `/api/file/${audio.fileId}`
-
-      console.log(`🎵 Processing audio${audioNumber}:`, audio.filename)
-
-      // Pattern for audio links: [alt text](audio1)
-      const audioPattern = new RegExp(`\\[([^\\]]*)\\]\\(audio${audioNumber}\\)`, 'gi')
-
-      const audioMatches = processedContent.match(audioPattern)
-      if (audioMatches) {
-        console.log(`🎵 Found audio pattern matches for audio${audioNumber}:`, audioMatches)
-      }
-
-      // Track this audio widget position
-      const widgetIndex = mediaWidgetPositions.value.length
-      mediaWidgetPositions.value.push({
-        fileId: audio.fileId,
-        filename: audio.filename,
-        audioUrl: audioUrl,
-        sequence: audio.sequence,
-        index: widgetIndex,
-        type: 'audio'
-      })
-
-      // Replace with a unique marker
-      processedContent = processedContent.replace(
-        audioPattern,
-        `<div class="audio-widget-marker" data-audio-index="${widgetIndex}"></div>`
-      )
-    })
 
     // Then, replace numbered image placeholders (image1, image2, etc.)
     sequencedImages.value.forEach((image, index) => {
@@ -380,16 +112,6 @@
         return match
       }
 
-      if (src.match(/^audio\d+$/)) {
-        console.log(`⏩ Skipping already processed audio reference: ${src}`)
-        return match
-      }
-
-      if (src.match(/^video\d+$/)) {
-        console.log(`⏩ Skipping already processed video reference: ${src}`)
-        return match
-      }
-
       const matchingImage = [...sequencedImages.value, ...additionalImages.value].find(
         img => img.filename === src || img.filename.includes(src)
       )
@@ -399,124 +121,51 @@
         return `![${altText}](/api/file/${matchingImage.fileId})`
       }
 
-      const matchingAudio = [...sequencedAudio.value, ...additionalAudio.value].find(
-        audio => audio.filename === src || audio.filename.includes(src)
-      )
-
-      if (matchingAudio) {
-        console.log(`🎵 Converting link to audio widget for "${src}":`, matchingAudio.filename)
-
-        // Track this additional audio widget position
-        const widgetIndex = mediaWidgetPositions.value.length
-        mediaWidgetPositions.value.push({
-          fileId: matchingAudio.fileId,
-          filename: matchingAudio.filename,
-          audioUrl: `/api/file/${matchingAudio.fileId}`,
-          sequence: matchingAudio.sequence,
-          index: widgetIndex,
-          type: 'audio'
-        })
-
-        return `<div class="audio-widget-marker" data-audio-index="${widgetIndex}"></div>`
-      }
-
-      const matchingVideo = [...sequencedVideo.value, ...additionalVideo.value].find(
-        video => video.filename === src || video.filename.includes(src)
-      )
-
-      if (matchingVideo) {
-        console.log(`🎥 Converting link to video widget for "${src}":`, matchingVideo.filename)
-
-        // Track this additional video widget position
-        const widgetIndex = mediaWidgetPositions.value.length
-        mediaWidgetPositions.value.push({
-          fileId: matchingVideo.fileId,
-          filename: matchingVideo.filename,
-          videoUrl: `/api/file/${matchingVideo.fileId}`,
-          sequence: matchingVideo.sequence,
-          index: widgetIndex,
-          type: 'video'
-        })
-
-        return `<div class="video-widget-marker" data-video-index="${widgetIndex}"></div>`
-      }
-
       return match
     })
 
     console.log('✅ Final processed content:', processedContent)
-    console.log('🎵 Media widget positions:', mediaWidgetPositions.value)
     return processedContent
   }
 
-  // Computed property to split content around media markers
-  const splitContentWithWidgets = computed(() => {
-    if (!renderedContent.value) {
-      console.log('❌ No rendered content available for splitting')
+
+
+
+  // Get sequenced images (images with sequence numbers)
+  const sequencedImages = computed(() => {
+    if (!props.attachedFiles) {
+      console.log('❌ No attached files for sequenced images')
       return []
     }
 
-    const parts: ContentPart[] = []
-    let currentContent = renderedContent.value
+    const sequenced = props.attachedFiles.filter(file =>
+      file.fileType === 'in-text' && file.sequence !== undefined
+    )
 
-    console.log(`🔪 Splitting content with ${mediaWidgetPositions.value.length} media markers`)
+    const sorted = sequenced.sort((a, b) => (a.sequence || 0) - (b.sequence || 0))
+    console.log('🖼️ Sequenced images:', sorted)
+    return sorted
+  })
 
-    // Process each media widget position in order
-    mediaWidgetPositions.value.forEach((widget, index) => {
-      const marker = widget.type === 'video'
-        ? `<div class="video-widget-marker" data-video-index="${index}"></div>`
-        : `<div class="audio-widget-marker" data-audio-index="${index}"></div>`
-
-      const markerIndex = currentContent.indexOf(marker)
-
-      if (markerIndex !== -1) {
-        // Add content before the marker
-        if (markerIndex > 0) {
-          parts.push({
-            type: 'html',
-            content: currentContent.substring(0, markerIndex)
-          })
-        }
-
-        // Add the media widget
-        if (widget.type === 'video') {
-          parts.push({
-            type: 'video',
-            videoUrl: widget.videoUrl || '',
-            filename: widget.filename,
-            fileId: widget.fileId,
-            sequence: widget.sequence
-          })
-        } else {
-          parts.push({
-            type: 'audio',
-            audioUrl: widget.audioUrl || '',
-            filename: widget.filename,
-            fileId: widget.fileId,
-            sequence: widget.sequence
-          })
-        }
-
-        // Update current content to after the marker
-        currentContent = currentContent.substring(markerIndex + marker.length)
-        console.log(`✅ Added ${widget.type} widget at position ${index}: ${widget.filename}`)
-      } else {
-        console.log(`❌ Could not find marker for ${widget.type} widget ${index}: ${widget.filename}`)
-      }
-    })
-
-    // Add any remaining content
-    if (currentContent.length > 0) {
-      parts.push({
-        type: 'html',
-        content: currentContent
-      })
+  // Get additional images (images without sequence numbers)
+  const additionalImages = computed(() => {
+    if (!props.attachedFiles) {
+      console.log('❌ No attached files for additional images')
+      return []
     }
 
-    console.log(`📋 Split content into ${parts.length} parts`)
-    console.log('📊 Parts breakdown:', parts.map(p => p.type))
-    return parts
+    const additional = props.attachedFiles.filter(file =>
+      file.fileType === 'attachment' && file.sequence === undefined
+    )
+
+    const sorted = additional.sort((a, b) =>
+      new Date(a.uploadDate).getTime() - new Date(b.uploadDate).getTime()
+    )
+
+    console.log('🖼️ Additional images:', sorted)
+    return sorted
   })
+
 
   // Render markdown content
   const renderMarkdownContent = async (content: string) => {
@@ -727,38 +376,7 @@
 
   <template>
     <div class="markdown-content">
-      <!-- Render content split around media widgets -->
-      <template v-if="splitContentWithWidgets.length > 0">
-        <div v-for="(part, index) in splitContentWithWidgets" :key="index">
-          <!-- Regular markdown content -->
-          <div v-if="part.type === 'html'" v-html="part.content"></div>
-
-          <!-- Audio widget -->
-          <div v-else-if="part.type === 'audio'" class="audio-widget-container">
-            <AvWidget
-              :audio-url="part.audioUrl || ''"
-              :filename="part.filename || ''"
-              :file-id="part.fileId || ''"
-              file-type="audio"
-              @download="handleDownload"
-            />
-          </div>
-
-          <!-- Video widget -->
-          <div v-else-if="part.type === 'video'" class="video-widget-container">
-            <AvWidget
-              :video-url="part.videoUrl || ''"
-              :filename="part.filename || ''"
-              :file-id="part.fileId || ''"
-              file-type="video"
-              @download="handleDownload"
-            />
-          </div>
-        </div>
-      </template>
-
-      <!-- Fallback if no content is split (shouldn't happen normally) -->
-      <div v-else-if="renderedContent" v-html="renderedContent"></div>
+      <div v-html="renderedContent"></div>
     </div>
   </template>
 
@@ -795,15 +413,7 @@
     font-size: 0.8rem;
   }
 
-  .audio-widget-container {
-    margin: 2em auto;
-    max-width: 40vw;
-  }
-
-  .video-widget-container {
-    margin: 2em 0;
-    max-width: auto;
-  }
+  
 
   .markdown-content :deep(h1) {
     font-size: 2em;
