@@ -154,14 +154,3 @@ html {
 .responsive-h4 { font-size: var(--h4-size); }
 .responsive-h5 { font-size: var(--h5-size); }
 .responsive-h6 { font-size: var(--h6-size); }
-
-/* Optional: Only apply responsive sizes to native headings if you want to */
-/* Remove or comment out this section if you don't want automatic heading sizing */
-/*
-h1 { font-size: var(--h1-size); }
-h2 { font-size: var(--h2-size); }
-h3 { font-size: var(--h3-size); }
-h4 { font-size: var(--h4-size); }
-h5 { font-size: var(--h5-size); }
-h6 { font-size: var(--h6-size); }
-*/

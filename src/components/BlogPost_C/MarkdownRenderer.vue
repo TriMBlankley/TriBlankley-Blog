@@ -291,11 +291,6 @@
     })
   }
 
-  // Handle download event from AvWidget
-  const handleDownload = (fileId: string, filename: string) => {
-    console.log('📥 Download requested:', { fileId, filename })
-    // Emit to parent component or handle download here
-  }
 
   // Load highlight.js dynamically
   const loadHighlightJS = async () => {
@@ -384,6 +379,7 @@
   .markdown-content {
     line-height: 1.7;
     color: var(--text);
+    
   }
 
   .debug-info {
@@ -413,8 +409,6 @@
     font-size: 0.8rem;
   }
 
-  
-
   .markdown-content :deep(h1) {
     font-size: 2em;
     margin: 0.67em 0;
@@ -431,6 +425,7 @@
     font-size: 1.17em;
     margin: 1em 0;
     color: var(--text);
+    
   }
 
   .markdown-content :deep(p) {

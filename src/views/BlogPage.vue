@@ -170,25 +170,6 @@ const nextGroupPost = computed(() =>
   hasNextGroupPost.value ? groupPosts.value[currentGroupIndex.value + 1] : null
 )
 
-// Get audio files from attached files
-const audioFiles = computed(() => {
-  if (!postData.value?.attachedFiles) return []
-
-  return postData.value.attachedFiles.filter(file => {
-    // Check fileType first
-    if (file.fileType === 'audio') return true
-
-    // Check attachmentType
-    if (file.attachmentType === 'audio') return true
-
-    // Check filename extension as fallback
-    const audioExtensions = ['.mp3', '.wav', '.ogg', '.flac', '.aac', '.m4a']
-    return audioExtensions.some(ext =>
-      file.filename.toLowerCase().endsWith(ext)
-    )
-  })
-})
-
 // Fetch posts by topic
 const fetchTopicPosts = async () => {
   if (!postData.value?.postTopics?.length) {
@@ -224,9 +205,7 @@ const fetchTopicPosts = async () => {
   }
 }
 
-// Fetch posts by group
-// Fetch posts by group - FIXED VERSION
-// Enhanced fetchGroupPosts function with better comparison
+// Fetch posts by group with better comparison
 const fetchGroupPosts = async () => {
   if (!postData.value?.postGroup?.groupId) {
     console.log('❌ No post group found for current post')
@@ -443,10 +422,15 @@ watch(() => route.params.id, async (newId) => {
   position: relative;
   scroll-behavior: smooth;
   background-color: var(--background);
+
 }
 
-
-
+/* Force all children to respect overflow */
+.blog-page > * {
+  max-width: 100%;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
 
 .separator {
   width: 100%;
@@ -509,5 +493,5 @@ watch(() => route.params.id, async (newId) => {
   margin-bottom: 35px;
 }
 
-/* Remove the old audio section styles since audio widgets are now inline */
+
 </style>
