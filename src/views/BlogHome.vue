@@ -185,7 +185,9 @@ watch(activeTabColor, (color) => {
 
           <div class="grow"></div>
           <SettingsCog />
-          <BlogLogo />
+          <div class="logo-position">
+            <BlogLogo />
+          </div>
 
 
           <!-- Dropdown Menu -->
@@ -258,8 +260,9 @@ watch(activeTabColor, (color) => {
   /* Position ------------- */
   position: relative;
   /* margin: 1.5em 0.5em auto v-bind(left_right_margin); */
-  margin: 1.5em auto auto auto;
-
+  margin: auto;
+  margin-top: 1.5em;
+  padding-left: 20px;
   /* Behaviour ------------- */
   flex: 1;
   display: flex;
@@ -374,10 +377,6 @@ watch(activeTabColor, (color) => {
 
 /* Responsive adjustments */
 @media (max-width: 1250px) {
-  .post-view {
-    margin: 1.5em 0.5em auto 0.5em;
-  }
-
   .tab-motif {
     margin: 0 5px;
   }
@@ -395,18 +394,25 @@ watch(activeTabColor, (color) => {
     /* FIX: Allow natural height on mobile */
     height: auto;
     min-height: auto;
-    margin: 1em 0.5em;
+    /* margin: 1em 0.5em; */
+    padding-left: 0px;
   }
 
   .post-container {
     /* FIX: Remove height constraints on mobile */
     height: auto;
     min-height: auto;
+    margin-top: -7px;
+    border-radius: 0px 0px 15px 15px;
   }
   .post-cards {
     /* FIX: Ensure posts can scroll naturally on mobile */
     overflow-y: visible;
     flex-shrink: 0;
+  }
+
+  .bottom-nav {
+    border-radius: 15px;
   }
 }
 
@@ -456,6 +462,16 @@ watch(activeTabColor, (color) => {
   justify-content: center;
   align-items: center;
   flex-shrink: 0;
-  margin-bottom: 1vh;
+  /* margin-bottom: 1vh; */
+  padding: 5px;
+  padding-left: 6px;
+
+  border-radius: 15px 15px 0px 0px;
+
+  background-color: var(--focused);
+}
+
+.logo-position{
+  transform: translateY(2px);
 }
 </style>

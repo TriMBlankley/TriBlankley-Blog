@@ -91,9 +91,9 @@ onUnmounted(() => {
         </div>
       </h1>
 
-      <div class="tab-accent flipped">
+      <!-- <div class="tab-accent flipped">
         <MobileFolderTab class="svg" :aria-hidden="true" style="min-width: 16px;" />
-      </div>
+      </div> -->
     </div> <!-- folderTab Mobile -->
   </template>
 
@@ -211,7 +211,8 @@ onUnmounted(() => {
   white-space: nowrap;
 
   /* Ensure text is properly contained and centered */
-  text-align: center;
+  /* text-align: center; */
+  margin-left: 7px;
   box-sizing: border-box;
 
   /* Take full available width of parent */
@@ -251,6 +252,11 @@ onUnmounted(() => {
 
   .tab-accent.flipped {
     margin: 0 0 -1.5px -1px;
+  }
+
+  .tab-text {
+    text-align: center;
+    margin-left: none;
   }
 }
 </style>
