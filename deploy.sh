@@ -2,4 +2,4 @@
 set -euo pipefail
 IFS=$'\n\t'
 
-TERM=xterm nixos-rebuild switch -L --target-host=root@triblankley.blog --flake=.#TriBlankleyBlog
+nixos-rebuild switch -L --target-host=root@triblankley.blog --flake=.#TriBlankleyBlog
