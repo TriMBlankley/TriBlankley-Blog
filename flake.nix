@@ -8,7 +8,7 @@
         };
 
         tatum-website = {
-            url = "git+ssh://root@plixers/root/tatum?ref=main";
+            url = "git+ssh://forgejo@git.lpcc.dev/PILOPIN/TatumJewelryWebsite.git?ref=main";
             flake = false;
         };
     };

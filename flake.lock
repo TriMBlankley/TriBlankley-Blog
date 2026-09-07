@@ -62,18 +62,18 @@
     "tatum-website": {
       "flake": false,
       "locked": {
-        "lastModified": 1769923399,
-        "narHash": "sha256-sqSm+82RPxoRCAMdpUXuULVXPufuDrDaHQ+P+shlFW4=",
+        "lastModified": 1788806225,
+        "narHash": "sha256-7OQ1Pat4bg4QW0kkF/14aphfEN3RykYO24qpDJisf34=",
         "ref": "main",
-        "rev": "495d187917d7dc2e50569aba9a7757830826c976",
-        "revCount": 116,
+        "rev": "29bbad9b4b51ee33063cf42fdb726156d454af4d",
+        "revCount": 120,
         "type": "git",
-        "url": "ssh://root@plixers/root/tatum"
+        "url": "ssh://forgejo@git.lpcc.dev/PILOPIN/TatumJewelryWebsite.git"
       },
       "original": {
         "ref": "main",
         "type": "git",
-        "url": "ssh://root@plixers/root/tatum"
+        "url": "ssh://forgejo@git.lpcc.dev/PILOPIN/TatumJewelryWebsite.git"
       }
     }
   },
