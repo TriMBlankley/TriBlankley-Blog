@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<rss version="2.0">
+
+<channel>
+  <title>Tri Blankley Blog</title>
+  <link>https://triblankley.blog/</link>
+  <description>Blog Showcasing my Personal Hobbies, Projects, and Thoughts</description>
+  <item>
+    <title>EEE</title>
+    <link>EEE</link>
+    <description>EEE</description>
+  </item>
+</channel>
+
+</rss>
